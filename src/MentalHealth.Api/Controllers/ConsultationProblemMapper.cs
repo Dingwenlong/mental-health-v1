@@ -32,6 +32,7 @@ internal static class ConsultationProblemMapper
             ApiProblemCodes.InvalidSessionState => "这次咨询现在不能执行该动作",
             ApiProblemCodes.MessageTextInvalid => "消息内容不能为空或过长",
             ApiProblemCodes.ClientMessageIdInvalid => "消息请求标识无效",
+            ApiProblemCodes.MessageCursorInvalid => "消息位置无效",
             ApiProblemCodes.IdempotencyKeyInvalid => "请求标识无效",
             ApiProblemCodes.IdempotencyConflict => "相同请求标识对应了不同内容",
             _ => "无法完成这次咨询操作"

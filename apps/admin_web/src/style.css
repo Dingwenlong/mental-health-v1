@@ -3,7 +3,7 @@
 }
 
 :root {
-  font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+  font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
   color: #18221f;
   background: #f5f7f6;
   font-synthesis: none;
@@ -19,7 +19,8 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -49,7 +50,8 @@ button.danger {
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
   margin-top: 0.4rem;
   border: 1px solid #a7b6b2;
@@ -180,4 +182,48 @@ select {
 #app,
 #app-shell {
   min-height: 100svh;
+}
+
+.chat-connect,
+.chat-composer {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 0.75rem;
+}
+
+.chat-messages {
+  display: grid;
+  gap: 0.75rem;
+  min-height: 20rem;
+  max-height: 55svh;
+  margin: 1rem 0;
+  padding: 1rem;
+  overflow-y: auto;
+  list-style: none;
+  background: #f4f7f6;
+}
+
+.chat-messages li {
+  display: grid;
+  gap: 0.25rem;
+  max-width: 44rem;
+  border-left: 3px solid #4c7d76;
+  padding: 0.75rem 1rem;
+  background: #fff;
+}
+
+@media (max-width: 42rem) {
+  .section-nav {
+    overflow-x: auto;
+  }
+
+  .section-nav button {
+    flex: 0 0 auto;
+  }
+
+  .chat-connect,
+  .chat-composer {
+    grid-template-columns: 1fr;
+  }
 }

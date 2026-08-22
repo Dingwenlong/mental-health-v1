@@ -22,6 +22,7 @@ public interface IConsultationRepository
 
     Task<IReadOnlyList<Message>> ListMessagesAsync(
         Guid sessionId,
+        int afterSequence,
         CancellationToken cancellationToken);
 
     Task<MessageAppendResult> AppendMessageAsync(

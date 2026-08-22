@@ -3,13 +3,20 @@ import 'package:flutter/material.dart';
 import '../../core/api/api_client.dart';
 import '../../generated/ui_copy.g.dart';
 import 'catalog_repository.dart';
+import '../consultation/chat_connection.dart';
 import 'consent_page.dart';
 import 'service_plan_card.dart';
 
 class CatalogPage extends StatefulWidget {
-  const CatalogPage({required this.repository, this.onLogout, super.key});
+  const CatalogPage({
+    required this.repository,
+    this.chatLauncher,
+    this.onLogout,
+    super.key,
+  });
 
   final CatalogRepository repository;
+  final ChatSessionLauncher? chatLauncher;
   final VoidCallback? onLogout;
 
   @override
@@ -79,8 +86,11 @@ class _CatalogPageState extends State<CatalogPage> {
                 plan: plan,
                 onSelected: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
-                    builder: (_) =>
-                        ConsentPage(plan: plan, repository: widget.repository),
+                    builder: (_) => ConsentPage(
+                      plan: plan,
+                      repository: widget.repository,
+                      chatLauncher: widget.chatLauncher,
+                    ),
                   ),
                 ),
               );

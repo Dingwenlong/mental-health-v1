@@ -33,6 +33,7 @@ public static class ApiProblemCodes
     public const string PractitionerNotAllowed = "PRACTITIONER_NOT_ALLOWED";
     public const string MessageTextInvalid = "MESSAGE_TEXT_INVALID";
     public const string ClientMessageIdInvalid = "CLIENT_MESSAGE_ID_INVALID";
+    public const string MessageCursorInvalid = "MESSAGE_CURSOR_INVALID";
     public const string CrisisInProgress = "CRISIS_IN_PROGRESS";
     public const string NoQualifiedSlotBeforeSla = "NO_QUALIFIED_SLOT_BEFORE_SLA";
 }

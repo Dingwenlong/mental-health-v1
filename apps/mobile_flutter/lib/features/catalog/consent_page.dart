@@ -4,12 +4,19 @@ import '../../core/api/api_client.dart';
 import '../../generated/ui_copy.g.dart';
 import 'catalog_repository.dart';
 import 'order_page.dart';
+import '../consultation/chat_connection.dart';
 
 class ConsentPage extends StatefulWidget {
-  const ConsentPage({required this.plan, required this.repository, super.key});
+  const ConsentPage({
+    required this.plan,
+    required this.repository,
+    this.chatLauncher,
+    super.key,
+  });
 
   final ServicePlanSummary plan;
   final CatalogRepository repository;
+  final ChatSessionLauncher? chatLauncher;
 
   @override
   State<ConsentPage> createState() => _ConsentPageState();
@@ -106,9 +113,11 @@ class _ConsentPageState extends State<ConsentPage> {
         MaterialPageRoute<void>(
           builder: (_) => OrderPage(
             order: order,
+            plan: widget.plan,
             repository: widget.repository is DemoOrderRepository
                 ? widget.repository as DemoOrderRepository
                 : null,
+            chatLauncher: widget.chatLauncher,
           ),
         ),
       );

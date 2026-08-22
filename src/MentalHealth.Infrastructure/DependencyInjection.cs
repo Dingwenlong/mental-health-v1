@@ -110,9 +110,11 @@ public static class DependencyInjection
         services.AddScoped<IConsultationRepository>(provider =>
             provider.GetRequiredService<MentalHealthDbContext>());
         services.AddScoped<CreateConsultationHandler>();
+        services.AddScoped<SessionAccessService>();
         services.AddScoped<StartConsultationHandler>();
         services.AddScoped<SendMessageHandler>();
         services.AddScoped<CompleteConsultationHandler>();
+        services.AddSingleton<IPresenceStore, RedisPresenceStore>();
 
         services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

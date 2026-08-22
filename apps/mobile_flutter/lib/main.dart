@@ -5,6 +5,7 @@ import 'core/auth/auth_store.dart';
 import 'features/auth/login_page.dart';
 import 'features/catalog/catalog_page.dart';
 import 'features/catalog/catalog_repository.dart';
+import 'features/consultation/chat_connection.dart';
 import 'generated/ui_copy.g.dart';
 
 Future<void> main() async {
@@ -21,20 +22,34 @@ Future<void> main() async {
     gateway: ApiAuthGateway(client),
     storage: storage,
   );
+  final chatLauncher = ApiChatSessionLauncher(
+    client,
+    const String.fromEnvironment(
+      'CHAT_HUB_URL',
+      defaultValue: 'http://10.0.2.2:5165/hubs/chat',
+    ),
+  );
   await authStore.restore();
   runApp(
     MentalHealthApp(
       authStore: authStore,
       catalogRepository: ApiCatalogRepository(client),
+      chatLauncher: chatLauncher,
     ),
   );
 }
 
 class MentalHealthApp extends StatelessWidget {
-  const MentalHealthApp({this.authStore, this.catalogRepository, super.key});
+  const MentalHealthApp({
+    this.authStore,
+    this.catalogRepository,
+    this.chatLauncher,
+    super.key,
+  });
 
   final AuthStore? authStore;
   final CatalogRepository? catalogRepository;
+  final ChatSessionLauncher? chatLauncher;
 
   @override
   Widget build(BuildContext context) {
@@ -52,6 +67,7 @@ class MentalHealthApp extends StatelessWidget {
               builder: (context, _) => authStore!.isAuthenticated
                   ? CatalogPage(
                       repository: catalogRepository!,
+                      chatLauncher: chatLauncher,
                       onLogout: authStore!.logout,
                     )
                   : LoginPage(authStore: authStore!),

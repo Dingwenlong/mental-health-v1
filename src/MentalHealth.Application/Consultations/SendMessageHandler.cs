@@ -6,6 +6,7 @@ namespace MentalHealth.Application.Consultations;
 
 public sealed class SendMessageHandler(
     IConsultationRepository consultations,
+    SessionAccessService access,
     IClock clock)
 {
     public async Task<MessageAppendResult> HandleAsync(
@@ -15,10 +16,11 @@ public sealed class SendMessageHandler(
         string clientMessageId,
         CancellationToken cancellationToken)
     {
-        var session = await consultations.FindAsync(sessionId, cancellationToken)
-            ?? throw new DomainException("SESSION_NOT_FOUND");
-        var senderKind = actor.RequireSessionAccess(session);
-        if (session.Status != ConsultationStatus.InProgress)
+        var permitted = await access.DemandAsync(
+            actor,
+            sessionId,
+            cancellationToken);
+        if (permitted.Session.Status != ConsultationStatus.InProgress)
         {
             throw new DomainException("INVALID_SESSION_STATE");
         }
@@ -26,7 +28,7 @@ public sealed class SendMessageHandler(
         return await consultations.AppendMessageAsync(
             sessionId,
             actor.UserId,
-            senderKind,
+            permitted.SenderKind,
             text,
             clientMessageId,
             clock.UtcNow,
@@ -36,11 +38,18 @@ public sealed class SendMessageHandler(
     public async Task<IReadOnlyList<Message>> ListAsync(
         ConsultationActor actor,
         Guid sessionId,
+        int afterSequence,
         CancellationToken cancellationToken)
     {
-        var session = await consultations.FindAsync(sessionId, cancellationToken)
-            ?? throw new DomainException("SESSION_NOT_FOUND");
-        actor.RequireSessionAccess(session);
-        return await consultations.ListMessagesAsync(sessionId, cancellationToken);
+        if (afterSequence < 0)
+        {
+            throw new DomainException("MESSAGE_CURSOR_INVALID");
+        }
+
+        await access.DemandAsync(actor, sessionId, cancellationToken);
+        return await consultations.ListMessagesAsync(
+            sessionId,
+            afterSequence,
+            cancellationToken);
     }
 }

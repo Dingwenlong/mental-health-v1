@@ -88,7 +88,16 @@ public sealed class AuthApiFixture : IAsyncLifetime
         return client;
     }
 
+    public HttpMessageHandler CreateServerHandler() => _factory?.Server.CreateHandler()
+        ?? throw new InvalidOperationException("The API fixture is not initialized.");
+
     public async Task<HttpClient> CreateTrustedApiClientForAsync(string email)
+    {
+        var token = await IssueTrustedApiTokenForAsync(email);
+        return CreateClientWithBearer(token);
+    }
+
+    public async Task<string> IssueTrustedApiTokenForAsync(string email)
     {
         await using var scope = Services.CreateAsyncScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
@@ -96,15 +105,14 @@ public sealed class AuthApiFixture : IAsyncLifetime
             ?? throw new InvalidOperationException($"Test user '{email}' was not seeded.");
         var roles = await userManager.GetRolesAsync(user);
         var tokenService = scope.ServiceProvider.GetRequiredService<IJwtTokenService>();
-        var token = tokenService.Issue(
+        return tokenService.Issue(
             new JwtTokenSubject(
                 user.Id,
                 user.Email!,
                 roles.ToArray(),
                 user.SubjectId,
                 user.PractitionerId),
-            JwtTokenScope.Api);
-        return CreateClientWithBearer(token.Value);
+            JwtTokenScope.Api).Value;
     }
 
     public async Task DisposeAsync()

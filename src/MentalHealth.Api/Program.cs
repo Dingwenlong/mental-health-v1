@@ -4,6 +4,7 @@ using MentalHealth.Infrastructure;
 using MentalHealth.Infrastructure.Identity;
 using MentalHealth.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 var builder = WebApplication.CreateBuilder(args);
 const string LocalClientCorsPolicy = "LocalClients";
@@ -24,9 +25,27 @@ builder.Services.AddCors(options => options.AddPolicy(
     policy => policy
         .WithOrigins(allowedClientOrigins)
         .AllowAnyHeader()
-        .AllowAnyMethod()));
+        .AllowAnyMethod()
+        .AllowCredentials()));
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddMentalHealthAuthorization();
+builder.Services.PostConfigure<JwtBearerOptions>(
+    JwtBearerDefaults.AuthenticationScheme,
+    options =>
+    {
+        options.Events ??= new JwtBearerEvents();
+        options.Events.OnMessageReceived = context =>
+        {
+            var token = context.Request.Query["access_token"].ToString();
+            if (!string.IsNullOrWhiteSpace(token)
+                && context.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+            {
+                context.Token = token;
+            }
+
+            return Task.CompletedTask;
+        };
+    });
 
 var app = builder.Build();
 
@@ -51,6 +70,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapControllers();
+app.MapHub<ConsultationHub>("/hubs/chat");
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }))
     .ExcludeFromDescription();
 

@@ -239,10 +239,12 @@ public sealed class MentalHealthDbContext(DbContextOptions<MentalHealthDbContext
 
     public async Task<IReadOnlyList<Message>> ListMessagesAsync(
         Guid sessionId,
+        int afterSequence,
         CancellationToken cancellationToken) =>
         await Messages
             .AsNoTracking()
-            .Where(message => message.SessionId == sessionId)
+            .Where(message => message.SessionId == sessionId
+                && message.Sequence > afterSequence)
             .OrderBy(message => message.Sequence)
             .ToArrayAsync(cancellationToken);
 

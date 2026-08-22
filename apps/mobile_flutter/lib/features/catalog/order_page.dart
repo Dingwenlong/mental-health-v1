@@ -3,12 +3,22 @@ import 'package:flutter/material.dart';
 import '../../core/api/api_client.dart';
 import '../../generated/ui_copy.g.dart';
 import 'catalog_repository.dart';
+import '../consultation/chat_connection.dart';
+import '../consultation/chat_page.dart';
 
 class OrderPage extends StatefulWidget {
-  const OrderPage({required this.order, this.repository, super.key});
+  const OrderPage({
+    required this.order,
+    this.plan,
+    this.repository,
+    this.chatLauncher,
+    super.key,
+  });
 
   final DemoOrderSummary order;
+  final ServicePlanSummary? plan;
   final DemoOrderRepository? repository;
+  final ChatSessionLauncher? chatLauncher;
 
   @override
   State<OrderPage> createState() => _OrderPageState();
@@ -60,11 +70,24 @@ class _OrderPageState extends State<OrderPage> {
                 child: Text(UiCopy.get('order.confirmDemoPayment')),
               ),
             ],
+            if (!awaiting && _canStartHumanChat) ...<Widget>[
+              const SizedBox(height: 20),
+              FilledButton(
+                key: const Key('start-chat'),
+                onPressed: _isBusy ? null : _startChat,
+                child: Text(UiCopy.get('chat.start')),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
+
+  bool get _canStartHumanChat =>
+      widget.chatLauncher != null &&
+      widget.plan?.kind == ServiceKind.human &&
+      widget.plan?.channel == ServiceChannel.chat;
 
   Future<void> _confirm() async {
     setState(() {
@@ -76,6 +99,37 @@ class _OrderPageState extends State<OrderPage> {
       if (mounted) {
         setState(() => _order = order);
       }
+    } on ApiFailure catch (failure) {
+      if (mounted) {
+        setState(() {
+          _errorCopyKey = failure.code == 'FORBIDDEN_RESOURCE'
+              ? 'error.forbidden'
+              : 'error.retry';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isBusy = false);
+      }
+    }
+  }
+
+  Future<void> _startChat() async {
+    setState(() {
+      _isBusy = true;
+      _errorCopyKey = null;
+    });
+    try {
+      final chat = await widget.chatLauncher!.startHumanChat(_order.id);
+      if (!mounted) {
+        return;
+      }
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) =>
+              ChatPage(sessionId: chat.sessionId, controller: chat.controller),
+        ),
+      );
     } on ApiFailure catch (failure) {
       if (mounted) {
         setState(() {

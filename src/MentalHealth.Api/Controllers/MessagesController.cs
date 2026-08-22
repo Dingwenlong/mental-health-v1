@@ -16,7 +16,8 @@ public sealed class MessagesController(
     [HttpGet]
     public async Task<IActionResult> List(
         Guid sessionId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        [FromQuery] int afterSequence = 0)
     {
         var actor = User.ToConsultationActor();
         if (actor is null)
@@ -29,6 +30,7 @@ public sealed class MessagesController(
             var result = await messages.ListAsync(
                 actor,
                 sessionId,
+                afterSequence,
                 cancellationToken);
             return Ok(result.Select(ChatMessageDto.From));
         }
