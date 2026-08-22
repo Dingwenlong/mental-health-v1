@@ -5,18 +5,21 @@ import '../../generated/ui_copy.g.dart';
 import 'catalog_repository.dart';
 import 'order_page.dart';
 import '../consultation/chat_connection.dart';
+import '../consultation/video_session_launcher.dart';
 
 class ConsentPage extends StatefulWidget {
   const ConsentPage({
     required this.plan,
     required this.repository,
     this.chatLauncher,
+    this.videoLauncher,
     super.key,
   });
 
   final ServicePlanSummary plan;
   final CatalogRepository repository;
   final ChatSessionLauncher? chatLauncher;
+  final VideoSessionLauncher? videoLauncher;
 
   @override
   State<ConsentPage> createState() => _ConsentPageState();
@@ -118,6 +121,7 @@ class _ConsentPageState extends State<ConsentPage> {
                 ? widget.repository as DemoOrderRepository
                 : null,
             chatLauncher: widget.chatLauncher,
+            videoLauncher: widget.videoLauncher,
           ),
         ),
       );

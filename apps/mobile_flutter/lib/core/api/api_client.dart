@@ -20,12 +20,16 @@ class ApiFailure implements Exception {
     final problem = raw is Map
         ? Map<String, dynamic>.from(raw)
         : const <String, dynamic>{};
+    final networkMessage = <String>[
+      if (error.message case final message? when message.isNotEmpty) message,
+      if (error.error case final cause?) cause.toString(),
+    ].join(' · ');
     return ApiFailure(
       code: problem['code']?.toString() ?? 'NETWORK_ERROR',
       message:
           problem['detail']?.toString() ??
           problem['title']?.toString() ??
-          error.message ??
+          (networkMessage.isEmpty ? null : networkMessage) ??
           'Request failed',
       status: error.response?.statusCode,
       data: problem,
@@ -89,6 +93,31 @@ class ApiClient {
 
   Future<void> delete(String path) async {
     await _request<dynamic>('DELETE', path);
+  }
+
+  Future<Map<String, dynamic>> putBytes(String path, List<int> bytes) async {
+    try {
+      final token = await readAccessToken();
+      final response = await _dio.put<dynamic>(
+        path,
+        data: bytes,
+        options: Options(
+          contentType: 'application/octet-stream',
+          headers: token == null || token.isEmpty
+              ? null
+              : <String, String>{'Authorization': 'Bearer $token'},
+        ),
+      );
+      if (response.data is! Map) {
+        throw const ApiFailure(
+          code: 'INVALID_RESPONSE',
+          message: 'Expected a JSON object',
+        );
+      }
+      return Map<String, dynamic>.from(response.data as Map);
+    } on DioException catch (error) {
+      throw ApiFailure.fromDio(error);
+    }
   }
 
   Future<T> _request<T>(

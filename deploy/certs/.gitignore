@@ -1,0 +1,6 @@
+*.key
+*.csr
+*.pfx
+*.srl
+server.cnf
+server.crt

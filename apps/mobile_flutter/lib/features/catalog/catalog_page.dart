@@ -4,6 +4,7 @@ import '../../core/api/api_client.dart';
 import '../../generated/ui_copy.g.dart';
 import 'catalog_repository.dart';
 import '../consultation/chat_connection.dart';
+import '../consultation/video_session_launcher.dart';
 import 'consent_page.dart';
 import 'service_plan_card.dart';
 
@@ -11,12 +12,14 @@ class CatalogPage extends StatefulWidget {
   const CatalogPage({
     required this.repository,
     this.chatLauncher,
+    this.videoLauncher,
     this.onLogout,
     super.key,
   });
 
   final CatalogRepository repository;
   final ChatSessionLauncher? chatLauncher;
+  final VideoSessionLauncher? videoLauncher;
   final VoidCallback? onLogout;
 
   @override
@@ -90,6 +93,7 @@ class _CatalogPageState extends State<CatalogPage> {
                       plan: plan,
                       repository: widget.repository,
                       chatLauncher: widget.chatLauncher,
+                      videoLauncher: widget.videoLauncher,
                     ),
                   ),
                 ),

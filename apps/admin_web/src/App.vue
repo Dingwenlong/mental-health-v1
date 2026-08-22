@@ -6,11 +6,12 @@ import CatalogView from "./features/catalog/CatalogView.vue";
 import PractitionerView from "./features/catalog/PractitionerView.vue";
 import AvailabilityView from "./features/catalog/AvailabilityView.vue";
 import ChatRoomView from "./features/consultations/ChatRoomView.vue";
+import VideoRoomView from "./features/consultations/VideoRoomView.vue";
 
 const auth = useAuthStore();
-const activeView = ref<"catalog" | "practitioners" | "availability" | "chat">(
-  "catalog",
-);
+const activeView = ref<
+  "catalog" | "practitioners" | "availability" | "chat" | "video"
+>("catalog");
 const credentials = reactive({ email: "", password: "", totpCode: "" });
 
 async function submitLogin(): Promise<void> {
@@ -108,11 +109,19 @@ function label(key: string): string {
         >
           {{ getUiCopy("admin.chat") }}
         </button>
+        <button
+          type="button"
+          :class="{ active: activeView === 'video' }"
+          @click="activeView = 'video'"
+        >
+          {{ getUiCopy("admin.video") }}
+        </button>
       </nav>
       <CatalogView v-if="activeView === 'catalog'" />
       <PractitionerView v-else-if="activeView === 'practitioners'" />
       <AvailabilityView v-else-if="activeView === 'availability'" />
-      <ChatRoomView v-else />
+      <ChatRoomView v-else-if="activeView === 'chat'" />
+      <VideoRoomView v-else />
     </template>
   </main>
 </template>

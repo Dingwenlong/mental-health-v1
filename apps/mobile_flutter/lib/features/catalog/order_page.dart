@@ -5,6 +5,8 @@ import '../../generated/ui_copy.g.dart';
 import 'catalog_repository.dart';
 import '../consultation/chat_connection.dart';
 import '../consultation/chat_page.dart';
+import '../consultation/video_page.dart';
+import '../consultation/video_session_launcher.dart';
 
 class OrderPage extends StatefulWidget {
   const OrderPage({
@@ -12,6 +14,7 @@ class OrderPage extends StatefulWidget {
     this.plan,
     this.repository,
     this.chatLauncher,
+    this.videoLauncher,
     super.key,
   });
 
@@ -19,6 +22,7 @@ class OrderPage extends StatefulWidget {
   final ServicePlanSummary? plan;
   final DemoOrderRepository? repository;
   final ChatSessionLauncher? chatLauncher;
+  final VideoSessionLauncher? videoLauncher;
 
   @override
   State<OrderPage> createState() => _OrderPageState();
@@ -78,6 +82,14 @@ class _OrderPageState extends State<OrderPage> {
                 child: Text(UiCopy.get('chat.start')),
               ),
             ],
+            if (!awaiting && _canStartHumanVideo) ...<Widget>[
+              const SizedBox(height: 20),
+              FilledButton(
+                key: const Key('start-video'),
+                onPressed: _isBusy ? null : _startVideo,
+                child: Text(UiCopy.get('video.start')),
+              ),
+            ],
           ],
         ),
       ),
@@ -88,6 +100,11 @@ class _OrderPageState extends State<OrderPage> {
       widget.chatLauncher != null &&
       widget.plan?.kind == ServiceKind.human &&
       widget.plan?.channel == ServiceChannel.chat;
+
+  bool get _canStartHumanVideo =>
+      widget.videoLauncher != null &&
+      widget.plan?.kind == ServiceKind.human &&
+      widget.plan?.channel == ServiceChannel.video;
 
   Future<void> _confirm() async {
     setState(() {
@@ -142,6 +159,45 @@ class _OrderPageState extends State<OrderPage> {
       if (mounted) {
         setState(() => _isBusy = false);
       }
+    }
+  }
+
+  Future<void> _startVideo() async {
+    setState(() {
+      _isBusy = true;
+      _errorCopyKey = null;
+    });
+    try {
+      final video = await widget.videoLauncher!.startHumanVideo(_order.id);
+      if (!mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (videoContext) => VideoPage(
+            sessionId: video.sessionId,
+            media: video.media,
+            onSwitchToText: () {
+              Navigator.of(videoContext).pushReplacement(
+                MaterialPageRoute<void>(
+                  builder: (_) => ChatPage(
+                    sessionId: video.sessionId,
+                    controller: video.textController,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+    } on ApiFailure catch (failure) {
+      if (mounted) {
+        setState(() {
+          _errorCopyKey = failure.code == 'FORBIDDEN_RESOURCE'
+              ? 'error.forbidden'
+              : 'error.retry';
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _isBusy = false);
     }
   }
 }
