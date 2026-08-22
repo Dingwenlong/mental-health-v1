@@ -14,8 +14,10 @@ internal static class ConsultationProblemMapper
             ApiProblemCodes.SessionNotFound or
                 ApiProblemCodes.OrderNotFound or
                 ApiProblemCodes.PlanNotAvailable or
-                ApiProblemCodes.PractitionerNotFound => StatusCodes.Status404NotFound,
-            ApiProblemCodes.IdempotencyConflict => StatusCodes.Status409Conflict,
+                ApiProblemCodes.PractitionerNotFound or
+                ApiProblemCodes.MediaNotFound => StatusCodes.Status404NotFound,
+            ApiProblemCodes.IdempotencyConflict or
+                ApiProblemCodes.MediaChunkConflict => StatusCodes.Status409Conflict,
             _ => StatusCodes.Status422UnprocessableEntity
         };
         var title = exception.Code switch
@@ -33,6 +35,18 @@ internal static class ConsultationProblemMapper
             ApiProblemCodes.MessageTextInvalid => "消息内容不能为空或过长",
             ApiProblemCodes.ClientMessageIdInvalid => "消息请求标识无效",
             ApiProblemCodes.MessageCursorInvalid => "消息位置无效",
+            ApiProblemCodes.MediaNotFound => "没有找到这次媒体上传",
+            ApiProblemCodes.MediaChunkConflict => "这个分块已存在但内容不同",
+            ApiProblemCodes.MediaChunkMissing => "还有分块没有上传",
+            ApiProblemCodes.MediaHashMismatch => "媒体摘要不一致",
+            ApiProblemCodes.InvalidChunkIndex => "分块编号无效",
+            ApiProblemCodes.MediaChunkCountInvalid => "分块数量无效",
+            ApiProblemCodes.MediaChunkTooLarge => "这个分块超过大小限制",
+            ApiProblemCodes.MediaChunkEmpty => "不能上传空分块",
+            ApiProblemCodes.MediaContentTypeInvalid => "媒体类型无效",
+            ApiProblemCodes.MediaUploadExpired => "这次媒体上传已经过期",
+            ApiProblemCodes.InvalidMediaState => "这次媒体上传现在不能执行该动作",
+            ApiProblemCodes.VideoSessionRequired => "只有视频咨询可以上传媒体",
             ApiProblemCodes.IdempotencyKeyInvalid => "请求标识无效",
             ApiProblemCodes.IdempotencyConflict => "相同请求标识对应了不同内容",
             _ => "无法完成这次咨询操作"

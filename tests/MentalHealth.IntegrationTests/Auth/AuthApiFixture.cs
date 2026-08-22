@@ -25,6 +25,7 @@ public sealed class AuthApiFixture : IAsyncLifetime
 
     private WebApplicationFactory<Program>? _factory;
     private HttpClient? _client;
+    private string? _storageRoot;
     private readonly TestLogCollector _logs = new();
 
     public const string InitialPassword = "Synthetic-password-2026!";
@@ -43,7 +44,7 @@ public sealed class AuthApiFixture : IAsyncLifetime
     {
         await Task.WhenAll(_postgres.StartAsync(), _redis.StartAsync());
 
-        var storageRoot = Path.Combine(
+        _storageRoot = Path.Combine(
             Path.GetTempPath(),
             "mental-health-v1-tests",
             Guid.NewGuid().ToString("N"));
@@ -52,7 +53,7 @@ public sealed class AuthApiFixture : IAsyncLifetime
         {
             ["ConnectionStrings:MentalHealth"] = _postgres.GetConnectionString(),
             ["ConnectionStrings:Redis"] = _redis.GetConnectionString(),
-            ["LocalObjectStorage:RootPath"] = storageRoot,
+            ["LocalObjectStorage:RootPath"] = _storageRoot,
             ["Jwt:Issuer"] = "mental-health-v1-tests",
             ["Jwt:Audience"] = "mental-health-v1-tests",
             ["Jwt:SigningKey"] = "synthetic-test-signing-key-with-at-least-32-bytes",
@@ -118,13 +119,52 @@ public sealed class AuthApiFixture : IAsyncLifetime
     public async Task DisposeAsync()
     {
         _client?.Dispose();
-        if (_factory is not null)
+        try
         {
-            await _factory.DisposeAsync();
+            if (_factory is not null)
+            {
+                await _factory.DisposeAsync();
+            }
+        }
+        finally
+        {
+            try
+            {
+                await Task.WhenAll(
+                    _postgres.DisposeAsync().AsTask(),
+                    _redis.DisposeAsync().AsTask());
+            }
+            finally
+            {
+                DeleteStorageRoot();
+            }
+        }
+    }
+
+    private void DeleteStorageRoot()
+    {
+        if (string.IsNullOrWhiteSpace(_storageRoot)
+            || !Directory.Exists(_storageRoot))
+        {
+            return;
         }
 
-        await Task.WhenAll(
-            _postgres.DisposeAsync().AsTask(),
-            _redis.DisposeAsync().AsTask());
+        var allowedRoot = Path.GetFullPath(Path.Combine(
+            Path.GetTempPath(),
+            "mental-health-v1-tests"));
+        var allowedPrefix = allowedRoot.TrimEnd(
+            Path.DirectorySeparatorChar,
+            Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        var target = Path.GetFullPath(_storageRoot);
+        var comparison = OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+        if (!target.StartsWith(allowedPrefix, comparison))
+        {
+            throw new InvalidOperationException(
+                "Test storage root is outside the allowed temporary directory.");
+        }
+
+        Directory.Delete(target, recursive: true);
     }
 }

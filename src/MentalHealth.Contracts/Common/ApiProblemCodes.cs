@@ -34,6 +34,16 @@ public static class ApiProblemCodes
     public const string MessageTextInvalid = "MESSAGE_TEXT_INVALID";
     public const string ClientMessageIdInvalid = "CLIENT_MESSAGE_ID_INVALID";
     public const string MessageCursorInvalid = "MESSAGE_CURSOR_INVALID";
+    public const string MediaNotFound = "MEDIA_NOT_FOUND";
+    public const string MediaChunkConflict = "MEDIA_CHUNK_CONFLICT";
+    public const string MediaChunkMissing = "MEDIA_CHUNK_MISSING";
+    public const string MediaChunkCountInvalid = "MEDIA_CHUNK_COUNT_INVALID";
+    public const string MediaChunkTooLarge = "MEDIA_CHUNK_TOO_LARGE";
+    public const string MediaChunkEmpty = "MEDIA_CHUNK_EMPTY";
+    public const string MediaContentTypeInvalid = "MEDIA_CONTENT_TYPE_INVALID";
+    public const string MediaUploadExpired = "MEDIA_UPLOAD_EXPIRED";
+    public const string InvalidMediaState = "INVALID_MEDIA_STATE";
+    public const string VideoSessionRequired = "VIDEO_SESSION_REQUIRED";
     public const string CrisisInProgress = "CRISIS_IN_PROGRESS";
     public const string NoQualifiedSlotBeforeSla = "NO_QUALIFIED_SLOT_BEFORE_SLA";
 }

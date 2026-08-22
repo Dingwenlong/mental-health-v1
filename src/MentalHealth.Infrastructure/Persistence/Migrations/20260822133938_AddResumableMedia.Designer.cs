@@ -3,6 +3,7 @@ using System;
 using MentalHealth.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MentalHealth.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(MentalHealthDbContext))]
-    partial class MentalHealthDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260822133938_AddResumableMedia")]
+    partial class AddResumableMedia
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -287,10 +290,6 @@ namespace MentalHealth.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("captured_at");
 
-                    b.Property<DateTimeOffset?>("ChunksDeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("chunks_deleted_at");
-
                     b.Property<DateTimeOffset?>("CompletedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("completed_at");
@@ -351,10 +350,6 @@ namespace MentalHealth.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("SubjectId")
                         .HasColumnType("uuid")
                         .HasColumnName("subject_id");
-
-                    b.Property<DateTimeOffset>("UploadExpiresAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("upload_expires_at");
 
                     b.HasKey("Id");
 

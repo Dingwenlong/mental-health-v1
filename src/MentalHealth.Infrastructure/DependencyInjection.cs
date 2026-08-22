@@ -7,6 +7,7 @@ using MentalHealth.Application.Audit;
 using MentalHealth.Application.Consents;
 using MentalHealth.Application.Catalog;
 using MentalHealth.Application.Consultations;
+using MentalHealth.Application.Consultations.Media;
 using MentalHealth.Infrastructure.Identity;
 using MentalHealth.Infrastructure.Content;
 using MentalHealth.Infrastructure.Outbox;
@@ -115,6 +116,13 @@ public static class DependencyInjection
         services.AddScoped<SendMessageHandler>();
         services.AddScoped<CompleteConsultationHandler>();
         services.AddSingleton<IPresenceStore, RedisPresenceStore>();
+        services.AddScoped<IMediaAssetRepository>(provider =>
+            provider.GetRequiredService<MentalHealthDbContext>());
+        services.AddScoped<MediaSessionAccessService>();
+        services.AddScoped<CreateUploadHandler>();
+        services.AddScoped<WriteChunkHandler>();
+        services.AddScoped<CompleteUploadHandler>();
+        services.AddScoped<ExpiredUploadCleanupHandler>();
 
         services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

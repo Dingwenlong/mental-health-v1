@@ -3,6 +3,7 @@ using MentalHealth.Application.Audit;
 using MentalHealth.Application.Consents;
 using MentalHealth.Application.Catalog;
 using MentalHealth.Application.Consultations;
+using MentalHealth.Application.Consultations.Media;
 using MentalHealth.Domain.Audit;
 using MentalHealth.Domain.Consents;
 using MentalHealth.Domain.Consultations;
@@ -23,7 +24,8 @@ public sealed class MentalHealthDbContext(DbContextOptions<MentalHealthDbContext
         IUnitOfWork,
         ICatalogRepository,
         IOrderRepository,
-        IConsultationRepository
+        IConsultationRepository,
+        IMediaAssetRepository
 {
     public DbSet<Practitioner> Practitioners => Set<Practitioner>();
 
@@ -36,6 +38,8 @@ public sealed class MentalHealthDbContext(DbContextOptions<MentalHealthDbContext
     public DbSet<ConsentRecord> ConsentRecords => Set<ConsentRecord>();
 
     public DbSet<Message> Messages => Set<Message>();
+
+    public DbSet<MediaAsset> MediaAssets => Set<MediaAsset>();
 
     public DbSet<AuditEvent> AuditEvents => Set<AuditEvent>();
 
@@ -300,4 +304,37 @@ public sealed class MentalHealthDbContext(DbContextOptions<MentalHealthDbContext
 
     public void Add(ConsultationSession session) =>
         ConsultationSessions.Add(session);
+
+    Task<MediaAsset?> IMediaAssetRepository.FindAsync(
+        Guid mediaAssetId,
+        CancellationToken cancellationToken) =>
+        MediaAssets.SingleOrDefaultAsync(
+            asset => asset.Id == mediaAssetId,
+            cancellationToken);
+
+    Task<MediaAsset?> IMediaAssetRepository.FindByCreationKeyAsync(
+        Guid sessionId,
+        string idempotencyKey,
+        CancellationToken cancellationToken) =>
+        MediaAssets.SingleOrDefaultAsync(
+            asset => asset.SessionId == sessionId
+                && asset.CreationIdempotencyKey == idempotencyKey,
+            cancellationToken);
+
+    async Task<IReadOnlyList<MediaAsset>>
+        IMediaAssetRepository.ListCleanupCandidatesAsync(
+            DateTimeOffset expiresBefore,
+            int maximumCount,
+            CancellationToken cancellationToken) =>
+        await MediaAssets
+            .Where(asset => (asset.Status == MediaAssetStatus.Expired
+                    && asset.ChunksDeletedAt == null)
+                || (asset.Status == MediaAssetStatus.Uploading
+                    && asset.UploadExpiresAt <= expiresBefore))
+            .OrderBy(asset => asset.UploadExpiresAt)
+            .Take(maximumCount)
+            .ToArrayAsync(cancellationToken);
+
+    void IMediaAssetRepository.Add(MediaAsset mediaAsset) =>
+        MediaAssets.Add(mediaAsset);
 }

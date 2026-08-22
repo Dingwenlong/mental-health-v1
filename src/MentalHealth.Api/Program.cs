@@ -1,5 +1,6 @@
 using MentalHealth.Api.Authorization;
 using MentalHealth.Api.Hubs;
+using MentalHealth.Api.Services;
 using MentalHealth.Infrastructure;
 using MentalHealth.Infrastructure.Identity;
 using MentalHealth.Infrastructure.Persistence;
@@ -20,6 +21,7 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 builder.Services.AddSignalR();
+builder.Services.AddHostedService<MediaUploadCleanupWorker>();
 builder.Services.AddCors(options => options.AddPolicy(
     LocalClientCorsPolicy,
     policy => policy
@@ -71,6 +73,7 @@ if (app.Environment.IsDevelopment())
 
 app.MapControllers();
 app.MapHub<ConsultationHub>("/hubs/chat");
+app.MapHub<RtcSignalingHub>("/hubs/rtc");
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }))
     .ExcludeFromDescription();
 
