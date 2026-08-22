@@ -1,11 +1,13 @@
 using MentalHealth.Application.Abstractions.Providers;
 using MentalHealth.Application.Abstractions.Clock;
+using MentalHealth.Application.Abstractions;
 using MentalHealth.Application.Security;
 using MentalHealth.Application.Abstractions.Persistence;
 using MentalHealth.Application.Audit;
 using MentalHealth.Application.Consents;
 using MentalHealth.Application.Catalog;
 using MentalHealth.Infrastructure.Identity;
+using MentalHealth.Infrastructure.Content;
 using MentalHealth.Infrastructure.Outbox;
 using MentalHealth.Infrastructure.Persistence;
 using MentalHealth.Infrastructure.Storage;
@@ -28,6 +30,17 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        var uiCopyPath = configuration["UiCopy:Path"];
+        if (string.IsNullOrWhiteSpace(uiCopyPath))
+        {
+            uiCopyPath = Path.Combine(
+                AppContext.BaseDirectory,
+                "content",
+                "zh-CN",
+                "ui-copy.v1.json");
+        }
+
+        services.AddSingleton<IUiCopyCatalog>(new JsonUiCopyCatalog(uiCopyPath));
         services.AddSingleton<OutboxSaveChangesInterceptor>();
         services.AddDbContextFactory<MentalHealthDbContext>((provider, options) =>
             options

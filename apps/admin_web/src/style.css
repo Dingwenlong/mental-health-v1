@@ -17,6 +17,166 @@ body {
   min-height: 100svh;
 }
 
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  border: 1px solid #245d57;
+  border-radius: 6px;
+  padding: 0.65rem 1rem;
+  color: #fff;
+  background: #245d57;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+button.secondary {
+  color: #245d57;
+  background: #fff;
+}
+
+button.danger {
+  color: #8d2c2c;
+  background: #fff;
+  border-color: #c78c8c;
+}
+
+input,
+select {
+  width: 100%;
+  margin-top: 0.4rem;
+  border: 1px solid #a7b6b2;
+  border-radius: 5px;
+  padding: 0.65rem 0.75rem;
+  background: #fff;
+}
+
+.login-shell {
+  display: grid;
+  min-height: 100svh;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+.login-card,
+.workspace-panel {
+  width: min(100%, 72rem);
+  border: 1px solid #d8e0de;
+  border-radius: 8px;
+  padding: 1.5rem;
+  background: #fff;
+  box-shadow: 0 8px 28px rgb(30 55 49 / 8%);
+}
+
+.login-card {
+  max-width: 28rem;
+}
+
+.login-card label,
+.editor-form label {
+  display: block;
+  margin-top: 1rem;
+  color: #33433f;
+  font-weight: 600;
+}
+
+.login-card button,
+.editor-form button {
+  margin-top: 1.25rem;
+}
+
+.topbar,
+.section-nav,
+.workspace-panel {
+  margin-inline: auto;
+  width: min(calc(100% - 2rem), 72rem);
+}
+
+.topbar,
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.topbar {
+  padding-block: 1rem;
+}
+
+.section-nav {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.section-nav button {
+  color: #245d57;
+  background: transparent;
+}
+
+.section-nav button.active {
+  color: #fff;
+  background: #245d57;
+}
+
+.editor-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  align-items: end;
+  gap: 0.75rem 1rem;
+  padding-block: 1rem 1.5rem;
+}
+
+.editor-form h3 {
+  grid-column: 1 / -1;
+  margin-bottom: 0;
+}
+
+.record-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.record-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-top: 1px solid #e2e8e6;
+  padding-block: 0.9rem;
+}
+
+.record-list li div {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.record-list span,
+.empty {
+  color: #5d6d68;
+}
+
+.error {
+  color: #a12626;
+}
+
+.success {
+  color: #1b6b3a;
+}
+
+.slot-group {
+  margin-top: 1.25rem;
+}
+
 #app,
 #app-shell {
   min-height: 100svh;

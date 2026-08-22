@@ -276,8 +276,7 @@ public sealed class AdminCatalogController(AdminCatalogHandler handler)
         out ServicePlanInput input)
     {
         input = null!;
-        if (!Enum.TryParse<ConsultationKind>(request.Kind, true, out var kind)
-            || !Enum.IsDefined(kind)
+        if (!TryConsultationKind(request.Kind, out var kind)
             || !Enum.TryParse<ConsultationChannel>(
                 request.Channel,
                 true,
@@ -301,6 +300,26 @@ public sealed class AdminCatalogController(AdminCatalogHandler handler)
             request.Currency,
             request.DurationMinutes);
         return true;
+    }
+
+    private static bool TryConsultationKind(
+        string value,
+        out ConsultationKind kind)
+    {
+        if (string.Equals(value, "Human", StringComparison.OrdinalIgnoreCase))
+        {
+            kind = ConsultationKind.Human;
+            return true;
+        }
+
+        if (string.Equals(value, "Ai", StringComparison.OrdinalIgnoreCase))
+        {
+            kind = ConsultationKind.AiVirtual;
+            return true;
+        }
+
+        kind = default;
+        return false;
     }
 
     private bool TryActor(out Guid actorUserId) =>

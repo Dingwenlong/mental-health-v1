@@ -13,6 +13,23 @@ namespace MentalHealth.IntegrationTests.Auth;
 public sealed class LoginAndMfaTests(AuthApiFixture fixture)
 {
     [Fact]
+    public async Task Local_admin_origin_receives_CORS_preflight_headers()
+    {
+        using var request = new HttpRequestMessage(
+            HttpMethod.Options,
+            "/api/v1/auth/login");
+        request.Headers.Add("Origin", "http://localhost:5173");
+        request.Headers.Add("Access-Control-Request-Method", "POST");
+
+        using var response = await fixture.Client.SendAsync(request);
+
+        response.EnsureSuccessStatusCode();
+        Assert.Equal(
+            "http://localhost:5173",
+            response.Headers.GetValues("Access-Control-Allow-Origin").Single());
+    }
+
+    [Fact]
     public async Task Doctor_login_without_totp_returns_mfa_required_problem()
     {
         var response = await fixture.Client.PostAsJsonAsync(

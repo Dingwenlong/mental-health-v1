@@ -16,7 +16,7 @@ public sealed record ServicePlanDto(
     public static ServicePlanDto From(ServicePlan plan) => new(
         plan.Id,
         plan.Name,
-        plan.Kind.ToString(),
+        plan.Kind == ConsultationKind.AiVirtual ? "Ai" : "Human",
         plan.Channel.ToString(),
         plan.PaymentMode.ToString(),
         plan.PriceInMinorUnits,

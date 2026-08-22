@@ -129,7 +129,7 @@ public sealed class CatalogAndOrderTests(AuthApiFixture fixture)
             "/api/v1/admin/catalog/plans",
             PlanRequest(
                 $"AI 视频-{Guid.NewGuid():N}",
-                "AiVirtual",
+                "Ai",
                 "Video",
                 0));
 
@@ -329,9 +329,13 @@ public sealed class CatalogAndOrderTests(AuthApiFixture fixture)
             .ToArray();
 
         Assert.Equal(4, seededPlans.Length);
+        Assert.Equal(
+            2,
+            seededPlans.Count(
+                plan => plan.GetProperty("kind").GetString() == "Ai"));
         Assert.DoesNotContain(
             seededPlans,
-            plan => plan.GetProperty("kind").GetString() == "AiVirtual"
+            plan => plan.GetProperty("kind").GetString() == "Ai"
                 && plan.GetProperty("channel").GetString() == "Video");
     }
 

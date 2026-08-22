@@ -32,6 +32,22 @@ Pop-Location
 npm --prefix apps/admin_web run build
 ```
 
+Android 登录、目录、授权和模拟订单验收：
+
+```powershell
+pwsh .\scripts\Test-Task7Android.ps1 -DeviceId emulator-5554
+```
+
+脚本会临时启动本机 API，在 Android 设备上完成普通用户登录、选择模拟收费的 AI 文字套餐、逐项确认三项授权、创建订单并确认模拟收费。账号参数只写入系统临时目录，运行结束后立即删除。
+
+管理端开发服务器：
+
+```powershell
+npm --prefix apps/admin_web run dev
+```
+
+管理端默认连接 `http://127.0.0.1:5165/api/v1/`。Android 模拟器默认连接 `http://10.0.2.2:5165/api/v1/`，也可以通过 `VITE_API_BASE_URL` 或 Flutter 的 `API_BASE_URL` 编译参数覆盖。
+
 首次运行本机数据库时：
 
 ```powershell

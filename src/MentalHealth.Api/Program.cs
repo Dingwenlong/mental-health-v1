@@ -6,11 +6,25 @@ using MentalHealth.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+const string LocalClientCorsPolicy = "LocalClients";
+var allowedClientOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? [];
+if (allowedClientOrigins.Length == 0)
+{
+    throw new InvalidOperationException("At least one client CORS origin is required.");
+}
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 builder.Services.AddSignalR();
+builder.Services.AddCors(options => options.AddPolicy(
+    LocalClientCorsPolicy,
+    policy => policy
+        .WithOrigins(allowedClientOrigins)
+        .AllowAnyHeader()
+        .AllowAnyMethod()));
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddMentalHealthAuthorization();
 
@@ -26,6 +40,7 @@ if (builder.Configuration.GetValue<bool>("Database:InitializeOnStartup"))
 }
 
 app.UseExceptionHandler();
+app.UseCors(LocalClientCorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
 
