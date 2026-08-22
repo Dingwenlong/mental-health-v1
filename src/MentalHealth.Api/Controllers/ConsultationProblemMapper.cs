@@ -1,4 +1,5 @@
 using MentalHealth.Contracts.Common;
+using MentalHealth.Application.Abstractions.Providers;
 using MentalHealth.Domain.Shared;
 using Microsoft.AspNetCore.Mvc;
 
@@ -47,6 +48,7 @@ internal static class ConsultationProblemMapper
             ApiProblemCodes.MediaUploadExpired => "这次媒体上传已经过期",
             ApiProblemCodes.InvalidMediaState => "这次媒体上传现在不能执行该动作",
             ApiProblemCodes.VideoSessionRequired => "只有视频咨询可以上传媒体",
+            ApiProblemCodes.AiChatSessionRequired => "只有 AI 文字咨询可以发送这条消息",
             ApiProblemCodes.IdempotencyKeyInvalid => "请求标识无效",
             ApiProblemCodes.IdempotencyConflict => "相同请求标识对应了不同内容",
             _ => "无法完成这次咨询操作"
@@ -62,4 +64,18 @@ internal static class ConsultationProblemMapper
 
     public static ObjectResult Forbidden() => From(
         new DomainException(ApiProblemCodes.ForbiddenResource));
+
+    public static ObjectResult From(ProviderException exception)
+    {
+        var problem = new ProblemDetails
+        {
+            Status = StatusCodes.Status503ServiceUnavailable,
+            Title = "暂时无法生成回复，请稍后重试"
+        };
+        problem.Extensions["code"] = exception.Code;
+        return new ObjectResult(problem)
+        {
+            StatusCode = StatusCodes.Status503ServiceUnavailable
+        };
+    }
 }

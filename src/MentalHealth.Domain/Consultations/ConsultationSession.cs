@@ -1,4 +1,5 @@
 using MentalHealth.Domain.Consents;
+using MentalHealth.Domain.Analysis;
 using MentalHealth.Domain.Shared;
 
 namespace MentalHealth.Domain.Consultations;
@@ -173,6 +174,31 @@ public sealed class ConsultationSession : IHasDomainEvents
 
         Status = ConsultationStatus.Cancelled;
         CancelledAt = now;
+    }
+
+    public void RequestEscalation(
+        Guid eventId,
+        string ruleId,
+        DateTimeOffset occurredAt)
+    {
+        EnsureStatus(ConsultationStatus.InProgress);
+        var normalizedRuleId = ruleId?.Trim();
+        if (eventId == Guid.Empty || string.IsNullOrWhiteSpace(normalizedRuleId))
+        {
+            throw new DomainException("ESCALATION_INVALID");
+        }
+
+        if (_domainEvents.Any(domainEvent => domainEvent.EventId == eventId))
+        {
+            return;
+        }
+
+        _domainEvents.Add(new EscalationRequestedDomainEvent(
+            eventId,
+            Id,
+            SubjectId,
+            normalizedRuleId,
+            occurredAt));
     }
 
     public void ClearDomainEvents() => _domainEvents.Clear();

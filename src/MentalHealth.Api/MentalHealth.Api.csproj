@@ -26,6 +26,14 @@
       <Link>content\zh-CN\ui-copy.v1.json</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="..\..\config\conversation-rules.v1.json">
+      <Link>config\conversation-rules.v1.json</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\config\risk-rules.v1.json">
+      <Link>config\risk-rules.v1.json</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

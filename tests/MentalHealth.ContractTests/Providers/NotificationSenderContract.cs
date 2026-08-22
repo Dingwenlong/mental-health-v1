@@ -1,5 +1,7 @@
 using MentalHealth.Application.Abstractions.Providers;
 using MentalHealth.ContractTests.Fakes;
+using MentalHealth.Infrastructure.Providers;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MentalHealth.ContractTests.Providers;
 
@@ -73,6 +75,16 @@ public sealed class FakeNotificationSenderContractTests : NotificationSenderCont
     protected override NotificationSenderHarness CreateHarness()
     {
         var sender = new FakeNotificationSender();
+        return new NotificationSenderHarness(sender, () => sender.DeliveryCount);
+    }
+}
+
+public sealed class LocalNotificationSenderContractTests : NotificationSenderContract
+{
+    protected override NotificationSenderHarness CreateHarness()
+    {
+        var sender = new LocalNotificationSender(
+            NullLogger<LocalNotificationSender>.Instance);
         return new NotificationSenderHarness(sender, () => sender.DeliveryCount);
     }
 }

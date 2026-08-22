@@ -1,5 +1,6 @@
 using MentalHealth.Application.Abstractions.Providers;
 using MentalHealth.ContractTests.Fakes;
+using MentalHealth.Infrastructure.Providers;
 
 namespace MentalHealth.ContractTests.Providers;
 
@@ -49,4 +50,57 @@ public abstract class ConversationProviderContract
 public sealed class FakeConversationProviderContractTests : ConversationProviderContract
 {
     protected override IConversationProvider CreateProvider() => new FakeConversationProvider();
+}
+
+public sealed class RuleBasedConversationProviderContractTests
+    : ConversationProviderContract, IDisposable
+{
+    private readonly string _directory;
+    private readonly string _rulesPath;
+
+    public RuleBasedConversationProviderContractTests()
+    {
+        _directory = Path.Combine(
+            Path.GetTempPath(),
+            "mental-health-conversation-contract",
+            Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(_directory);
+        _rulesPath = Path.Combine(_directory, "rules.json");
+        File.WriteAllText(
+            _rulesPath,
+            """
+            {
+              "version": "conversation-v1",
+              "fallback": "我在。",
+              "rules": [
+                { "id": "listen", "any": ["紧张"], "reply": "你现在很紧张。" }
+              ]
+            }
+            """);
+    }
+
+    protected override IConversationProvider CreateProvider() =>
+        new RuleBasedConversationProvider(_rulesPath);
+
+    public void Dispose()
+    {
+        var allowedRoot = Path.GetFullPath(Path.Combine(
+            Path.GetTempPath(),
+            "mental-health-conversation-contract"));
+        var target = Path.GetFullPath(_directory);
+        var comparison = OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+        if (!target.StartsWith(
+            allowedRoot + Path.DirectorySeparatorChar,
+            comparison))
+        {
+            throw new InvalidOperationException("Contract temp path is outside its root.");
+        }
+
+        if (Directory.Exists(target))
+        {
+            Directory.Delete(target, recursive: true);
+        }
+    }
 }

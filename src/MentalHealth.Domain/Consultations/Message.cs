@@ -5,7 +5,8 @@ namespace MentalHealth.Domain.Consultations;
 public enum MessageSenderKind
 {
     User,
-    Practitioner
+    Practitioner,
+    Assistant
 }
 
 public sealed class Message
@@ -28,7 +29,10 @@ public sealed class Message
             throw new DomainException("MESSAGE_SESSION_REQUIRED");
         }
 
-        if (senderUserId == Guid.Empty || !Enum.IsDefined(senderKind))
+        if (!Enum.IsDefined(senderKind)
+            || (senderKind == MessageSenderKind.Assistant
+                ? senderUserId != Guid.Empty
+                : senderUserId == Guid.Empty))
         {
             throw new DomainException("MESSAGE_SENDER_INVALID");
         }

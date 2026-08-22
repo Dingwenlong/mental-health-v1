@@ -2,6 +2,7 @@ using System.Text.Json;
 using MentalHealth.Domain.Consultations;
 using MentalHealth.Domain.FollowUps;
 using MentalHealth.Domain.Shared;
+using MentalHealth.Domain.Analysis;
 
 namespace MentalHealth.Infrastructure.Outbox;
 
@@ -69,6 +70,7 @@ public sealed class OutboxMessage
             ConsultationCompletedDomainEvent completed => completed.SessionId,
             FollowUpProposedDomainEvent proposed => proposed.FollowUpTaskId,
             FollowUpScheduledDomainEvent scheduled => scheduled.FollowUpTaskId,
+            EscalationRequestedDomainEvent escalation => escalation.SessionId,
             _ => domainEvent.EventId
         };
 

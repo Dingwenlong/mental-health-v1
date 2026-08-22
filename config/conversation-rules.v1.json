@@ -1,0 +1,21 @@
+{
+  "version": "conversation-v1",
+  "fallback": "我在。你想先说哪件事？",
+  "rules": [
+    {
+      "id": "listen-sadness",
+      "any": ["难过", "低落", "撑不住"],
+      "reply": "这几天不好过。哪件事最让你难受？"
+    },
+    {
+      "id": "listen-anxiety",
+      "any": ["紧张", "担心", "睡不着"],
+      "reply": "你一直在担心。现在最担心哪一件事？"
+    },
+    {
+      "id": "seek-support",
+      "any": ["没人理解", "不想见人", "孤单"],
+      "reply": "一个人扛着很累。现在有没有可以联系的人？"
+    }
+  ]
+}

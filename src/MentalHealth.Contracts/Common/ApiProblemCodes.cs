@@ -45,5 +45,6 @@ public static class ApiProblemCodes
     public const string InvalidMediaState = "INVALID_MEDIA_STATE";
     public const string VideoSessionRequired = "VIDEO_SESSION_REQUIRED";
     public const string CrisisInProgress = "CRISIS_IN_PROGRESS";
+    public const string AiChatSessionRequired = "AI_CHAT_SESSION_REQUIRED";
     public const string NoQualifiedSlotBeforeSla = "NO_QUALIFIED_SLOT_BEFORE_SLA";
 }

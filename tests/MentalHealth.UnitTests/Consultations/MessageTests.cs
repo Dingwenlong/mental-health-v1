@@ -57,4 +57,35 @@ public sealed class MessageTests
 
         Assert.Equal("MESSAGE_TEXT_INVALID", exception.Code);
     }
+
+    [Fact]
+    public void Assistant_message_uses_the_empty_system_sender_id()
+    {
+        var message = Message.Create(
+            Guid.NewGuid(),
+            Guid.Empty,
+            MessageSenderKind.Assistant,
+            "我在。",
+            "assistant-001",
+            2,
+            SentAt);
+
+        Assert.Equal(MessageSenderKind.Assistant, message.SenderKind);
+        Assert.Equal(Guid.Empty, message.SenderUserId);
+    }
+
+    [Fact]
+    public void Assistant_message_rejects_a_user_sender_id()
+    {
+        var exception = Assert.Throws<DomainException>(() => Message.Create(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            MessageSenderKind.Assistant,
+            "我在。",
+            "assistant-001",
+            2,
+            SentAt));
+
+        Assert.Equal("MESSAGE_SENDER_INVALID", exception.Code);
+    }
 }

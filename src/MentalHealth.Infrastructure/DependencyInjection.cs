@@ -8,6 +8,8 @@ using MentalHealth.Application.Consents;
 using MentalHealth.Application.Catalog;
 using MentalHealth.Application.Consultations;
 using MentalHealth.Application.Consultations.Media;
+using MentalHealth.Application.Consultations.Ai;
+using MentalHealth.Domain.Analysis;
 using MentalHealth.Infrastructure.Identity;
 using MentalHealth.Infrastructure.Content;
 using MentalHealth.Infrastructure.Outbox;
@@ -43,6 +45,21 @@ public static class DependencyInjection
         }
 
         services.AddSingleton<IUiCopyCatalog>(new JsonUiCopyCatalog(uiCopyPath));
+        var conversationRulesPath = ResolveContentPath(
+            configuration["ConversationRules:Path"],
+            "config",
+            "conversation-rules.v1.json");
+        var riskRulesPath = ResolveContentPath(
+            configuration["RiskRules:Path"],
+            "config",
+            "risk-rules.v1.json");
+        services.AddSingleton<IConversationProvider>(
+            new RuleBasedConversationProvider(conversationRulesPath));
+        services.AddSingleton<CrisisRuleEngine>(
+            RuleBasedConversationProvider.LoadCrisisRuleEngine(riskRulesPath));
+        services.AddSingleton<LocalNotificationSender>();
+        services.AddSingleton<INotificationSender>(provider =>
+            provider.GetRequiredService<LocalNotificationSender>());
         services.AddSingleton<OutboxSaveChangesInterceptor>();
         services.AddDbContextFactory<MentalHealthDbContext>((provider, options) =>
             options
@@ -114,6 +131,7 @@ public static class DependencyInjection
         services.AddScoped<SessionAccessService>();
         services.AddScoped<StartConsultationHandler>();
         services.AddScoped<SendMessageHandler>();
+        services.AddScoped<SendAiTurnHandler>();
         services.AddScoped<CompleteConsultationHandler>();
         services.AddSingleton<IPresenceStore, RedisPresenceStore>();
         services.AddScoped<IMediaAssetRepository>(provider =>
@@ -170,5 +188,14 @@ public static class DependencyInjection
             ? throw new InvalidOperationException(
                 $"Connection string '{name}' is required.")
             : connectionString;
+    }
+
+    private static string ResolveContentPath(
+        string? configuredPath,
+        params string[] defaultParts)
+    {
+        return string.IsNullOrWhiteSpace(configuredPath)
+            ? Path.Combine([AppContext.BaseDirectory, .. defaultParts])
+            : Path.GetFullPath(configuredPath);
     }
 }
