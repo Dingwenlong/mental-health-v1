@@ -98,6 +98,19 @@
         "dependencies": {
           "xunit.extensibility.core": "[2.9.3]"
         }
+      },
+      "mentalhealth.application": {
+        "type": "Project",
+        "dependencies": {
+          "MentalHealth.Contracts": "[1.0.0, )",
+          "MentalHealth.Domain": "[1.0.0, )"
+        }
+      },
+      "mentalhealth.contracts": {
+        "type": "Project"
+      },
+      "mentalhealth.domain": {
+        "type": "Project"
       }
     }
   }
