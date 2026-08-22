@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "mentalhealth.application": {
+        "type": "Project",
+        "dependencies": {
+          "MentalHealth.Contracts": "[1.0.0, )",
+          "MentalHealth.Domain": "[1.0.0, )"
+        }
+      },
+      "mentalhealth.contracts": {
+        "type": "Project"
+      },
+      "mentalhealth.domain": {
+        "type": "Project"
+      }
+    }
+  }
+}

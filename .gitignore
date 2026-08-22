@@ -1,0 +1,54 @@
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.jks
+*.keystore
+key.properties
+*.pfx
+*.p12
+*.pem
+*.key
+*.csr
+*.srl
+
+# .NET
+**/bin/
+**/obj/
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+
+# Node and Vue
+**/node_modules/
+apps/admin_web/dist/
+apps/admin_web/playwright-report/
+apps/admin_web/test-results/
+
+# Flutter and Android
+apps/mobile_flutter/.dart_tool/
+apps/mobile_flutter/.flutter-plugins
+apps/mobile_flutter/.flutter-plugins-dependencies
+apps/mobile_flutter/.packages
+apps/mobile_flutter/build/
+apps/mobile_flutter/android/.gradle/
+apps/mobile_flutter/android/local.properties
+
+# Local runtime data and generated evidence
+data/
+artifacts/
+deploy/volumes/
+**/postgres-data/
+**/redis-data/
+tests/output/
+tests/**/video-output/
+
+# Editors and operating system
+.idea/
+.vs/
+.vscode/
+*.user
+*.suo
+Thumbs.db
+Desktop.ini

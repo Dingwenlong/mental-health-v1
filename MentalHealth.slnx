@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MentalHealth.AnalysisWorker/MentalHealth.AnalysisWorker.csproj" />
+    <Project Path="src/MentalHealth.Api/MentalHealth.Api.csproj" />
+    <Project Path="src/MentalHealth.Application/MentalHealth.Application.csproj" />
+    <Project Path="src/MentalHealth.Contracts/MentalHealth.Contracts.csproj" />
+    <Project Path="src/MentalHealth.Domain/MentalHealth.Domain.csproj" />
+    <Project Path="src/MentalHealth.Infrastructure/MentalHealth.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MentalHealth.ContractTests/MentalHealth.ContractTests.csproj" />
+    <Project Path="tests/MentalHealth.IntegrationTests/MentalHealth.IntegrationTests.csproj" />
+    <Project Path="tests/MentalHealth.PerformanceTests/MentalHealth.PerformanceTests.csproj" />
+    <Project Path="tests/MentalHealth.UnitTests/MentalHealth.UnitTests.csproj" />
+  </Folder>
+</Solution>
