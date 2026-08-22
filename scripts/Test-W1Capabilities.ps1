@@ -11,6 +11,20 @@ $apkPath = Join-Path $mobileRoot 'build\app\outputs\flutter-apk\app-debug.apk'
 $packageName = 'com.example.mentalhealth.mobile_flutter'
 $cameraPermission = 'android.permission.CAMERA'
 $apiProcess = $null
+$apiEnvironment = @{
+    'ASPNETCORE_ENVIRONMENT' = 'Development'
+    'ConnectionStrings__MentalHealth' =
+        'Host=127.0.0.1;Port=1;Database=probe;Username=probe;Password=synthetic-probe-password'
+    'ConnectionStrings__Redis' = '127.0.0.1:1,abortConnect=false'
+    'LocalObjectStorage__RootPath' = Join-Path $repoRoot 'tests\output\w1\object-storage'
+    'Jwt__Issuer' = 'mental-health-v1-probe'
+    'Jwt__Audience' = 'mental-health-v1-probe'
+    'Jwt__SigningKey' = 'synthetic-w1-probe-signing-key-with-at-least-32-bytes'
+    'Jwt__AccessTokenMinutes' = '15'
+    'Jwt__MfaSetupTokenMinutes' = '5'
+    'Database__InitializeOnStartup' = 'false'
+    'IdentitySeed__Enabled' = 'false'
+}
 
 function Invoke-Checked {
     param(
@@ -48,8 +62,17 @@ try {
     $apiPort = $portProbe.LocalEndpoint.Port
     $portProbe.Stop()
 
-    $previousEnvironment = $env:ASPNETCORE_ENVIRONMENT
-    $env:ASPNETCORE_ENVIRONMENT = 'Development'
+    $previousEnvironment = @{}
+    foreach ($entry in $apiEnvironment.GetEnumerator()) {
+        $existing = Get-Item "Env:$($entry.Key)" -ErrorAction SilentlyContinue
+        $previousEnvironment[$entry.Key] = if ($null -eq $existing) {
+            $null
+        }
+        else {
+            $existing.Value
+        }
+        Set-Item "Env:$($entry.Key)" $entry.Value
+    }
     try {
         $apiProcess = Start-Process `
             -FilePath (Get-Command dotnet).Source `
@@ -64,7 +87,14 @@ try {
             -PassThru
     }
     finally {
-        $env:ASPNETCORE_ENVIRONMENT = $previousEnvironment
+        foreach ($entry in $previousEnvironment.GetEnumerator()) {
+            if ($null -eq $entry.Value) {
+                Remove-Item "Env:$($entry.Key)" -ErrorAction SilentlyContinue
+            }
+            else {
+                Set-Item "Env:$($entry.Key)" $entry.Value
+            }
+        }
     }
 
     $ready = $false

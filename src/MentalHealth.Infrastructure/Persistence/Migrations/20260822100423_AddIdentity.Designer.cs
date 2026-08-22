@@ -3,6 +3,7 @@ using System;
 using MentalHealth.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MentalHealth.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(MentalHealthDbContext))]
-    partial class MentalHealthDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260822100423_AddIdentity")]
+    partial class AddIdentity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,92 +24,6 @@ namespace MentalHealth.Infrastructure.Persistence.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.Entity("MentalHealth.Domain.Audit.AuditEvent", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("Action")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("action");
-
-                    b.Property<Guid>("ActorUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("actor_user_id");
-
-                    b.Property<DateTimeOffset>("OccurredAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("occurred_at");
-
-                    b.Property<Guid>("ResourceId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("resource_id");
-
-                    b.Property<string>("ResourceType")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("resource_type");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ActorUserId", "OccurredAt");
-
-                    b.HasIndex("ResourceType", "ResourceId", "OccurredAt");
-
-                    b.ToTable("audit_events", (string)null);
-                });
-
-            modelBuilder.Entity("MentalHealth.Domain.Consents.ConsentRecord", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTimeOffset>("GrantedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("granted_at");
-
-                    b.Property<Guid>("GrantedByUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("granted_by_user_id");
-
-                    b.Property<string>("Kind")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
-                        .HasColumnName("kind");
-
-                    b.Property<Guid>("SubjectId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("subject_id");
-
-                    b.Property<string>("TextVersion")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("text_version");
-
-                    b.Property<DateTimeOffset?>("WithdrawnAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("withdrawn_at");
-
-                    b.Property<Guid?>("WithdrawnByUserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("withdrawn_by_user_id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SubjectId", "Kind")
-                        .IsUnique()
-                        .HasFilter("withdrawn_at IS NULL");
-
-                    b.ToTable("consent_records", (string)null);
-                });
 
             modelBuilder.Entity("MentalHealth.Domain.Consultations.ConsultationSession", b =>
                 {

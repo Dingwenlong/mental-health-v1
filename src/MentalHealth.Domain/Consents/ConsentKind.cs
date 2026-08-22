@@ -4,5 +4,6 @@ public enum ConsentKind
 {
     Service,
     Recording,
-    AiAnalysis
+    AiAnalysis,
+    ModelTraining
 }

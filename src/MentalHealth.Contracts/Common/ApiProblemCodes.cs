@@ -10,6 +10,13 @@ public static class ApiProblemCodes
     public const string MediaHashMismatch = "MEDIA_HASH_MISMATCH";
     public const string InvalidChunkIndex = "INVALID_CHUNK_INDEX";
     public const string MfaRequired = "MFA_REQUIRED";
+    public const string InvalidCredentials = "INVALID_CREDENTIALS";
+    public const string InvalidMfaCode = "INVALID_MFA_CODE";
+    public const string ConsentTypeDisabled = "CONSENT_TYPE_DISABLED";
+    public const string InvalidConsentKind = "INVALID_CONSENT_KIND";
+    public const string InvalidConsentTextVersion = "INVALID_CONSENT_TEXT_VERSION";
+    public const string ActiveConsentExists = "ACTIVE_CONSENT_EXISTS";
+    public const string ForbiddenResource = "FORBIDDEN_RESOURCE";
     public const string CrisisInProgress = "CRISIS_IN_PROGRESS";
     public const string NoQualifiedSlotBeforeSla = "NO_QUALIFIED_SLOT_BEFORE_SLA";
 }
