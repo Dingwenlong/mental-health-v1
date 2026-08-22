@@ -18,4 +18,8 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\MentalHealth.Domain\MentalHealth.Domain.csproj" />
+  </ItemGroup>
+
 </Project>
