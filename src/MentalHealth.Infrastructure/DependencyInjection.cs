@@ -4,10 +4,12 @@ using MentalHealth.Application.Security;
 using MentalHealth.Application.Abstractions.Persistence;
 using MentalHealth.Application.Audit;
 using MentalHealth.Application.Consents;
+using MentalHealth.Application.Catalog;
 using MentalHealth.Infrastructure.Identity;
 using MentalHealth.Infrastructure.Outbox;
 using MentalHealth.Infrastructure.Persistence;
 using MentalHealth.Infrastructure.Storage;
+using MentalHealth.Infrastructure.Providers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -54,6 +56,9 @@ public static class DependencyInjection
             .ValidateOnStart();
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
+        services.AddSingleton<DemoPaymentGateway>();
+        services.AddSingleton<IPaymentGateway>(provider =>
+            provider.GetRequiredService<DemoPaymentGateway>());
 
         services
             .AddIdentityCore<AppUser>(options =>
@@ -73,6 +78,7 @@ public static class DependencyInjection
             .AddSignInManager()
             .AddDefaultTokenProviders();
         services.AddScoped<IdentitySeeder>();
+        services.AddScoped<DemoCatalogSeeder>();
         services.AddScoped<IConsentRepository>(provider =>
             provider.GetRequiredService<MentalHealthDbContext>());
         services.AddScoped<IAuditTrail>(provider =>
@@ -80,6 +86,13 @@ public static class DependencyInjection
         services.AddScoped<IUnitOfWork>(provider =>
             provider.GetRequiredService<MentalHealthDbContext>());
         services.AddScoped<RecordConsentHandler>();
+        services.AddScoped<ICatalogRepository>(provider =>
+            provider.GetRequiredService<MentalHealthDbContext>());
+        services.AddScoped<IOrderRepository>(provider =>
+            provider.GetRequiredService<MentalHealthDbContext>());
+        services.AddScoped<CatalogQueryHandler>();
+        services.AddScoped<AdminCatalogHandler>();
+        services.AddScoped<OrderHandler>();
 
         services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

@@ -17,6 +17,14 @@ public static class ApiProblemCodes
     public const string InvalidConsentTextVersion = "INVALID_CONSENT_TEXT_VERSION";
     public const string ActiveConsentExists = "ACTIVE_CONSENT_EXISTS";
     public const string ForbiddenResource = "FORBIDDEN_RESOURCE";
+    public const string PlanCombinationUnsupported = "PLAN_COMBINATION_UNSUPPORTED";
+    public const string CatalogValueInvalid = "CATALOG_VALUE_INVALID";
+    public const string AvailabilitySlotConflict = "AVAILABILITY_SLOT_CONFLICT";
+    public const string PractitionerNotFound = "PRACTITIONER_NOT_FOUND";
+    public const string PractitionerRoleLocked = "PRACTITIONER_ROLE_LOCKED";
+    public const string PlanNotAvailable = "PLAN_NOT_AVAILABLE";
+    public const string OrderNotFound = "ORDER_NOT_FOUND";
+    public const string IdempotencyKeyInvalid = "IDEMPOTENCY_KEY_INVALID";
     public const string CrisisInProgress = "CRISIS_IN_PROGRESS";
     public const string NoQualifiedSlotBeforeSla = "NO_QUALIFIED_SLOT_BEFORE_SLA";
 }

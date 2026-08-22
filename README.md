@@ -40,6 +40,6 @@ docker compose --env-file .env -f deploy/docker-compose.yml up -d
 pwsh .\scripts\Test-LocalIdentity.ps1
 ```
 
-`Test-LocalIdentity.ps1` 会应用迁移并创建虚构测试账户，然后检查普通用户登录和医生 MFA 门禁。脚本不会输出 `.env` 中的密码或密钥，检查结束后会停止临时 API 进程。
+`Test-LocalIdentity.ps1` 会应用迁移并创建虚构测试账户与演示套餐，然后检查套餐目录、普通用户登录和医生 MFA 门禁。脚本不会输出 `.env` 中的密码或密钥，检查结束后会停止临时 API 进程。
 
 本地运行、测试账号和验收步骤会随对应功能补入 `docs`。云部署不在 v1 开发阶段内。

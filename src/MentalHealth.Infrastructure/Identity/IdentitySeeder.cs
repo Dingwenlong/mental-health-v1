@@ -1,4 +1,8 @@
 using MentalHealth.Application.Security;
+using MentalHealth.Application.Abstractions.Clock;
+using MentalHealth.Domain.Consultations;
+using MentalHealth.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 
@@ -7,7 +11,9 @@ namespace MentalHealth.Infrastructure.Identity;
 public sealed class IdentitySeeder(
     RoleManager<IdentityRole<Guid>> roleManager,
     UserManager<AppUser> userManager,
-    IConfiguration configuration)
+    IConfiguration configuration,
+    MentalHealthDbContext db,
+    IClock clock)
 {
     public static readonly Guid DemoSubjectId =
         Guid.Parse("10000000-0000-0000-0000-000000000001");
@@ -41,6 +47,17 @@ public sealed class IdentitySeeder(
                     new IdentityRole<Guid>(role)));
             }
         }
+
+        await EnsurePractitionerAsync(
+            DemoCounselorId,
+            "演示咨询师",
+            PractitionerRole.Counselor,
+            cancellationToken);
+        await EnsurePractitionerAsync(
+            DemoDoctorId,
+            "演示精神科医生",
+            PractitionerRole.Doctor,
+            cancellationToken);
 
         await EnsureUserAsync(
             "user@demo.local",
@@ -91,10 +108,45 @@ public sealed class IdentitySeeder(
             EnsureSucceeded(await userManager.CreateAsync(user, password));
         }
 
+        else
+        {
+            var changed = user.RequiresMfa != requiresMfa
+                || user.SubjectId != subjectId
+                || user.PractitionerId != practitionerId;
+            if (changed)
+            {
+                user.RequiresMfa = requiresMfa;
+                user.SubjectId = subjectId;
+                user.PractitionerId = practitionerId;
+                EnsureSucceeded(await userManager.UpdateAsync(user));
+            }
+        }
+
         if (!await userManager.IsInRoleAsync(user, role))
         {
             EnsureSucceeded(await userManager.AddToRoleAsync(user, role));
         }
+    }
+
+    private async Task EnsurePractitionerAsync(
+        Guid practitionerId,
+        string displayName,
+        PractitionerRole role,
+        CancellationToken cancellationToken)
+    {
+        if (await db.Practitioners.AnyAsync(
+            practitioner => practitioner.Id == practitionerId,
+            cancellationToken))
+        {
+            return;
+        }
+
+        db.Practitioners.Add(Practitioner.Create(
+            practitionerId,
+            displayName,
+            role,
+            clock.UtcNow));
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     private static void EnsureSucceeded(IdentityResult result)

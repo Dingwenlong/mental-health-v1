@@ -1,5 +1,6 @@
 using MentalHealth.Application.Abstractions.Providers;
 using MentalHealth.ContractTests.Fakes;
+using MentalHealth.Infrastructure.Providers;
 
 namespace MentalHealth.ContractTests.Providers;
 
@@ -90,6 +91,18 @@ public sealed class FakePaymentGatewayContractTests : PaymentGatewayContract
     {
         var gateway = new FakePaymentGateway();
         return new PaymentGatewayHarness(gateway, () => gateway.ChargeCount);
+    }
+}
+
+public sealed class DemoPaymentGatewayContractTests : PaymentGatewayContract
+{
+    protected override PaymentGatewayHarness CreateHarness()
+    {
+        var gateway = new DemoPaymentGateway(new FakeClock(
+            DateTimeOffset.Parse("2026-08-22T01:00:00+00:00")));
+        return new PaymentGatewayHarness(
+            gateway,
+            () => gateway.ConfirmationCount);
     }
 }
 

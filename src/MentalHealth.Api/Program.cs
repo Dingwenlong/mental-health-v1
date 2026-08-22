@@ -22,6 +22,7 @@ if (builder.Configuration.GetValue<bool>("Database:InitializeOnStartup"))
     var db = scope.ServiceProvider.GetRequiredService<MentalHealthDbContext>();
     await db.Database.MigrateAsync();
     await scope.ServiceProvider.GetRequiredService<IdentitySeeder>().SeedAsync();
+    await scope.ServiceProvider.GetRequiredService<DemoCatalogSeeder>().SeedAsync();
 }
 
 app.UseExceptionHandler();

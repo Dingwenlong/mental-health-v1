@@ -66,6 +66,7 @@ $apiEnvironment = @{
     'Jwt__MfaSetupTokenMinutes' = '5'
     'Database__InitializeOnStartup' = 'true'
     'IdentitySeed__Enabled' = 'true'
+    'CatalogSeed__Enabled' = 'true'
     'DemoAccounts__InitialPassword' = $localValues['MH_DEMO_INITIAL_PASSWORD']
 }
 
@@ -147,6 +148,15 @@ try {
         throw '普通用户本机登录失败。'
     }
 
+    $catalog = Invoke-WebRequest `
+        -Uri "http://127.0.0.1:$apiPort/api/v1/catalog/plans" `
+        -Headers @{ Authorization = "Bearer $($userResult.accessToken)" } `
+        -SkipHttpErrorCheck
+    $catalogResult = ConvertFrom-ResponseJson -Response $catalog
+    if ($catalog.StatusCode -ne 200 -or $catalogResult.Count -lt 4) {
+        throw '本机演示套餐未准备完成。'
+    }
+
     $doctorBody = @{
         email = 'doctor@demo.local'
         password = $localValues['MH_DEMO_INITIAL_PASSWORD']
@@ -163,7 +173,7 @@ try {
         throw "医生本机 MFA 门禁失败：HTTP $($doctorLogin.StatusCode)，业务码 $($doctorResult.code)。"
     }
 
-    Write-Host '本机 API 健康检查、普通用户登录和医生 MFA 门禁均通过。'
+    Write-Host '本机 API、演示套餐、普通用户登录和医生 MFA 门禁均通过。'
 }
 finally {
     if ($null -ne $apiProcess -and -not $apiProcess.HasExited) {

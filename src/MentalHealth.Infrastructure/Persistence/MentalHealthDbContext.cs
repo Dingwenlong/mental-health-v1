@@ -1,6 +1,7 @@
 using MentalHealth.Application.Abstractions.Persistence;
 using MentalHealth.Application.Audit;
 using MentalHealth.Application.Consents;
+using MentalHealth.Application.Catalog;
 using MentalHealth.Domain.Audit;
 using MentalHealth.Domain.Consents;
 using MentalHealth.Domain.Consultations;
@@ -18,8 +19,18 @@ public sealed class MentalHealthDbContext(DbContextOptions<MentalHealthDbContext
     : IdentityDbContext<AppUser, IdentityRole<Guid>, Guid>(options),
         IConsentRepository,
         IAuditTrail,
-        IUnitOfWork
+        IUnitOfWork,
+        ICatalogRepository,
+        IOrderRepository
 {
+    public DbSet<Practitioner> Practitioners => Set<Practitioner>();
+
+    public DbSet<AvailabilitySlot> AvailabilitySlots => Set<AvailabilitySlot>();
+
+    public DbSet<ServicePlan> ServicePlans => Set<ServicePlan>();
+
+    public DbSet<DemoOrder> DemoOrders => Set<DemoOrder>();
+
     public DbSet<ConsentRecord> ConsentRecords => Set<ConsentRecord>();
 
     public DbSet<AuditEvent> AuditEvents => Set<AuditEvent>();
@@ -88,4 +99,112 @@ public sealed class MentalHealthDbContext(DbContextOptions<MentalHealthDbContext
     }
 
     public void Add(AuditEvent auditEvent) => AuditEvents.Add(auditEvent);
+
+    public async Task<IReadOnlyList<ServicePlan>> ListActivePlansAsync(
+        CancellationToken cancellationToken)
+    {
+        return await ServicePlans
+            .AsNoTracking()
+            .Where(plan => plan.Active)
+            .OrderBy(plan => plan.Name)
+            .ToArrayAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Practitioner>> ListActivePractitionersAsync(
+        CancellationToken cancellationToken)
+    {
+        return await Practitioners
+            .AsNoTracking()
+            .Where(practitioner => practitioner.Active)
+            .OrderBy(practitioner => practitioner.DisplayName)
+            .ToArrayAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<AvailabilitySlot>> ListActiveSlotsAsync(
+        DateTimeOffset endingAfter,
+        CancellationToken cancellationToken)
+    {
+        return await AvailabilitySlots
+            .AsNoTracking()
+            .Where(slot => slot.Active && slot.EndAt > endingAfter)
+            .OrderBy(slot => slot.StartAt)
+            .ToArrayAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<AvailabilitySlot>> ListActiveSlotsAsync(
+        Guid practitionerId,
+        CancellationToken cancellationToken)
+    {
+        return await AvailabilitySlots
+            .Where(slot => slot.PractitionerId == practitionerId && slot.Active)
+            .ToArrayAsync(cancellationToken);
+    }
+
+    public Task<ServicePlan?> FindPlanAsync(
+        Guid planId,
+        CancellationToken cancellationToken) =>
+        ServicePlans.SingleOrDefaultAsync(
+            plan => plan.Id == planId,
+            cancellationToken);
+
+    public Task<Practitioner?> FindPractitionerAsync(
+        Guid practitionerId,
+        CancellationToken cancellationToken) =>
+        Practitioners.SingleOrDefaultAsync(
+            practitioner => practitioner.Id == practitionerId,
+            cancellationToken);
+
+    public Task<AvailabilitySlot?> FindSlotAsync(
+        Guid practitionerId,
+        Guid slotId,
+        CancellationToken cancellationToken) =>
+        AvailabilitySlots.SingleOrDefaultAsync(
+            slot => slot.Id == slotId
+                && slot.PractitionerId == practitionerId
+                && slot.Active,
+            cancellationToken);
+
+    public Task<bool> HasSlotOverlapAsync(
+        Guid practitionerId,
+        DateTimeOffset startAt,
+        DateTimeOffset endAt,
+        CancellationToken cancellationToken) =>
+        AvailabilitySlots.AnyAsync(
+            slot => slot.PractitionerId == practitionerId
+                && slot.Active
+                && slot.StartAt < endAt
+                && startAt < slot.EndAt,
+            cancellationToken);
+
+    public Task<bool> IsPractitionerLinkedToAccountAsync(
+        Guid practitionerId,
+        CancellationToken cancellationToken) =>
+        Users.AnyAsync(
+            user => user.PractitionerId == practitionerId,
+            cancellationToken);
+
+    public void Add(ServicePlan plan) => ServicePlans.Add(plan);
+
+    public void Add(Practitioner practitioner) => Practitioners.Add(practitioner);
+
+    public void Add(AvailabilitySlot slot) => AvailabilitySlots.Add(slot);
+
+    public Task<DemoOrder?> FindByIdempotencyKeyAsync(
+        Guid subjectId,
+        string idempotencyKey,
+        CancellationToken cancellationToken) =>
+        DemoOrders.SingleOrDefaultAsync(
+            order => order.SubjectId == subjectId
+                && order.IdempotencyKey == idempotencyKey,
+            cancellationToken);
+
+    public Task<DemoOrder?> FindAsync(
+        Guid subjectId,
+        Guid orderId,
+        CancellationToken cancellationToken) =>
+        DemoOrders.SingleOrDefaultAsync(
+            order => order.Id == orderId && order.SubjectId == subjectId,
+            cancellationToken);
+
+    public void Add(DemoOrder order) => DemoOrders.Add(order);
 }

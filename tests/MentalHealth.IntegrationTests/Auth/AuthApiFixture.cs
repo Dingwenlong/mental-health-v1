@@ -3,6 +3,9 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net.Http.Headers;
+using MentalHealth.Application.Security;
+using MentalHealth.Infrastructure.Identity;
+using Microsoft.AspNetCore.Identity;
 using Testcontainers.PostgreSql;
 using Testcontainers.Redis;
 
@@ -51,6 +54,7 @@ public sealed class AuthApiFixture : IAsyncLifetime
             ["Jwt:MfaSetupTokenMinutes"] = "5",
             ["Database:InitializeOnStartup"] = "true",
             ["IdentitySeed:Enabled"] = "true",
+            ["CatalogSeed:Enabled"] = "true",
             ["DemoAccounts:InitialPassword"] = InitialPassword
         };
 
@@ -75,6 +79,25 @@ public sealed class AuthApiFixture : IAsyncLifetime
         client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", token);
         return client;
+    }
+
+    public async Task<HttpClient> CreateTrustedApiClientForAsync(string email)
+    {
+        await using var scope = Services.CreateAsyncScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+        var user = await userManager.FindByEmailAsync(email)
+            ?? throw new InvalidOperationException($"Test user '{email}' was not seeded.");
+        var roles = await userManager.GetRolesAsync(user);
+        var tokenService = scope.ServiceProvider.GetRequiredService<IJwtTokenService>();
+        var token = tokenService.Issue(
+            new JwtTokenSubject(
+                user.Id,
+                user.Email!,
+                roles.ToArray(),
+                user.SubjectId,
+                user.PractitionerId),
+            JwtTokenScope.Api);
+        return CreateClientWithBearer(token.Value);
     }
 
     public async Task DisposeAsync()
