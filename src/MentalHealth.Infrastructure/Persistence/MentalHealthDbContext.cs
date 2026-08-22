@@ -2,6 +2,7 @@ using MentalHealth.Application.Abstractions.Persistence;
 using MentalHealth.Application.Audit;
 using MentalHealth.Application.Consents;
 using MentalHealth.Application.Catalog;
+using MentalHealth.Application.Consultations;
 using MentalHealth.Domain.Audit;
 using MentalHealth.Domain.Consents;
 using MentalHealth.Domain.Consultations;
@@ -21,7 +22,8 @@ public sealed class MentalHealthDbContext(DbContextOptions<MentalHealthDbContext
         IAuditTrail,
         IUnitOfWork,
         ICatalogRepository,
-        IOrderRepository
+        IOrderRepository,
+        IConsultationRepository
 {
     public DbSet<Practitioner> Practitioners => Set<Practitioner>();
 
@@ -32,6 +34,8 @@ public sealed class MentalHealthDbContext(DbContextOptions<MentalHealthDbContext
     public DbSet<DemoOrder> DemoOrders => Set<DemoOrder>();
 
     public DbSet<ConsentRecord> ConsentRecords => Set<ConsentRecord>();
+
+    public DbSet<Message> Messages => Set<Message>();
 
     public DbSet<AuditEvent> AuditEvents => Set<AuditEvent>();
 
@@ -207,4 +211,91 @@ public sealed class MentalHealthDbContext(DbContextOptions<MentalHealthDbContext
             cancellationToken);
 
     public void Add(DemoOrder order) => DemoOrders.Add(order);
+
+    public Task<ConsultationSession?> FindAsync(
+        Guid sessionId,
+        CancellationToken cancellationToken) =>
+        ConsultationSessions.SingleOrDefaultAsync(
+            session => session.Id == sessionId,
+            cancellationToken);
+
+    public Task<ConsultationSession?> FindByCreationKeyAsync(
+        Guid subjectId,
+        string idempotencyKey,
+        CancellationToken cancellationToken) =>
+        ConsultationSessions.SingleOrDefaultAsync(
+            session => session.SubjectId == subjectId
+                && session.CreationIdempotencyKey == idempotencyKey,
+            cancellationToken);
+
+    public Task<ConsultationSession?> FindByOrderAsync(
+        Guid subjectId,
+        Guid orderId,
+        CancellationToken cancellationToken) =>
+        ConsultationSessions.SingleOrDefaultAsync(
+            session => session.SubjectId == subjectId
+                && session.OrderId == orderId,
+            cancellationToken);
+
+    public async Task<IReadOnlyList<Message>> ListMessagesAsync(
+        Guid sessionId,
+        CancellationToken cancellationToken) =>
+        await Messages
+            .AsNoTracking()
+            .Where(message => message.SessionId == sessionId)
+            .OrderBy(message => message.Sequence)
+            .ToArrayAsync(cancellationToken);
+
+    public async Task<MessageAppendResult> AppendMessageAsync(
+        Guid sessionId,
+        Guid senderUserId,
+        MessageSenderKind senderKind,
+        string text,
+        string clientMessageId,
+        DateTimeOffset sentAt,
+        CancellationToken cancellationToken)
+    {
+        await using var transaction = await Database.BeginTransactionAsync(
+            cancellationToken);
+        var session = await ConsultationSessions
+            .FromSqlInterpolated(
+                $"SELECT * FROM consultation_sessions WHERE id = {sessionId} FOR UPDATE")
+            .SingleOrDefaultAsync(cancellationToken)
+            ?? throw new DomainException("SESSION_NOT_FOUND");
+        var normalizedClientMessageId = clientMessageId.Trim();
+        var existing = await Messages.SingleOrDefaultAsync(
+            message => message.SessionId == sessionId
+                && message.ClientMessageId == normalizedClientMessageId,
+            cancellationToken);
+        if (existing is not null)
+        {
+            await transaction.CommitAsync(cancellationToken);
+            return new MessageAppendResult(existing, false);
+        }
+
+        if (session.Status != ConsultationStatus.InProgress)
+        {
+            throw new DomainException("INVALID_SESSION_STATE");
+        }
+
+        var lastSequence = await Messages
+            .Where(message => message.SessionId == sessionId)
+            .Select(message => (int?)message.Sequence)
+            .MaxAsync(cancellationToken) ?? 0;
+        var message = Message.Create(
+            sessionId,
+            senderUserId,
+            senderKind,
+            text,
+            normalizedClientMessageId,
+            checked(lastSequence + 1),
+            sentAt);
+        Messages.Add(message);
+        await SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return new MessageAppendResult(message, true);
+    }
+
+    public void Add(ConsultationSession session) =>
+        ConsultationSessions.Add(session);
 }

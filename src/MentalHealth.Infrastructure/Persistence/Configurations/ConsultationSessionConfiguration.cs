@@ -16,6 +16,16 @@ public sealed class ConsultationSessionConfiguration
             .ValueGeneratedNever();
         builder.Property(session => session.SubjectId)
             .HasColumnName("subject_id");
+        builder.Property(session => session.OrderId)
+            .HasColumnName("order_id");
+        builder.Property(session => session.AssignedPractitionerId)
+            .HasColumnName("assigned_practitioner_id");
+        builder.Property(session => session.CreationIdempotencyKey)
+            .HasColumnName("creation_idempotency_key")
+            .HasMaxLength(100);
+        builder.Property(session => session.CompletionIdempotencyKey)
+            .HasColumnName("completion_idempotency_key")
+            .HasMaxLength(100);
         builder.Property(session => session.Kind)
             .HasColumnName("kind")
             .HasConversion<string>()
@@ -34,5 +44,13 @@ public sealed class ConsultationSessionConfiguration
         builder.Property(session => session.CancelledAt).HasColumnName("cancelled_at");
         builder.Ignore(session => session.DomainEvents);
         builder.HasIndex(session => new { session.SubjectId, session.Status });
+        builder.HasIndex(session => new
+        {
+            session.SubjectId,
+            session.CreationIdempotencyKey
+        })
+            .IsUnique();
+        builder.HasIndex(session => session.OrderId)
+            .IsUnique();
     }
 }

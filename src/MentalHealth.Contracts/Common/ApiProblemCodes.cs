@@ -25,6 +25,14 @@ public static class ApiProblemCodes
     public const string PlanNotAvailable = "PLAN_NOT_AVAILABLE";
     public const string OrderNotFound = "ORDER_NOT_FOUND";
     public const string IdempotencyKeyInvalid = "IDEMPOTENCY_KEY_INVALID";
+    public const string IdempotencyConflict = "IDEMPOTENCY_CONFLICT";
+    public const string SessionNotFound = "SESSION_NOT_FOUND";
+    public const string OrderNotConfirmed = "ORDER_NOT_CONFIRMED";
+    public const string PractitionerRequired = "PRACTITIONER_REQUIRED";
+    public const string PractitionerNotAvailable = "PRACTITIONER_NOT_AVAILABLE";
+    public const string PractitionerNotAllowed = "PRACTITIONER_NOT_ALLOWED";
+    public const string MessageTextInvalid = "MESSAGE_TEXT_INVALID";
+    public const string ClientMessageIdInvalid = "CLIENT_MESSAGE_ID_INVALID";
     public const string CrisisInProgress = "CRISIS_IN_PROGRESS";
     public const string NoQualifiedSlotBeforeSla = "NO_QUALIFIED_SLOT_BEFORE_SLA";
 }

@@ -187,6 +187,32 @@ public sealed class ConsultationSessionTests
         Assert.Equal(completedAt, domainEvent.OccurredAt);
     }
 
+    [Fact]
+    public void Complete_with_same_idempotency_key_does_not_add_another_event()
+    {
+        var session = CreateInState(ConsultationStatus.InProgress);
+        var completedAt = ScheduledAt.AddHours(1);
+
+        Assert.True(session.Complete(completedAt, "complete-001"));
+        session.ClearDomainEvents();
+
+        Assert.False(session.Complete(completedAt, "complete-001"));
+        Assert.Empty(session.DomainEvents);
+        Assert.Equal("complete-001", session.CompletionIdempotencyKey);
+    }
+
+    [Fact]
+    public void Complete_with_different_idempotency_key_is_rejected()
+    {
+        var session = CreateInState(ConsultationStatus.InProgress);
+        session.Complete(ScheduledAt.AddHours(1), "complete-001");
+
+        var exception = Assert.Throws<DomainException>(
+            () => session.Complete(ScheduledAt.AddHours(1), "complete-002"));
+
+        Assert.Equal("IDEMPOTENCY_CONFLICT", exception.Code);
+    }
+
     private static ConsultationSession CreateInState(ConsultationStatus status)
     {
         var session = ConsultationSession.Create(

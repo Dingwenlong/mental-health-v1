@@ -13,6 +13,8 @@ public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outbox
         builder.Property(message => message.Id)
             .HasColumnName("id")
             .ValueGeneratedNever();
+        builder.Property(message => message.AggregateId)
+            .HasColumnName("aggregate_id");
         builder.Property(message => message.Type)
             .HasColumnName("type")
             .HasMaxLength(128)
@@ -29,5 +31,6 @@ public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outbox
             .HasColumnName("last_error")
             .HasMaxLength(1024);
         builder.HasIndex(message => new { message.ProcessedAt, message.OccurredAt });
+        builder.HasIndex(message => new { message.AggregateId, message.Type });
     }
 }

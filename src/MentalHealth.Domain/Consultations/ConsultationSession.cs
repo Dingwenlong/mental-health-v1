@@ -14,17 +14,31 @@ public sealed class ConsultationSession : IHasDomainEvents
     private ConsultationSession(
         Guid subjectId,
         ConsultationKind kind,
-        ConsultationChannel channel)
+        ConsultationChannel channel,
+        Guid? orderId = null,
+        Guid? assignedPractitionerId = null,
+        string? creationIdempotencyKey = null)
     {
         Id = Guid.NewGuid();
         SubjectId = subjectId;
         Kind = kind;
         Channel = channel;
+        OrderId = orderId;
+        AssignedPractitionerId = assignedPractitionerId;
+        CreationIdempotencyKey = creationIdempotencyKey;
     }
 
     public Guid Id { get; private set; }
 
     public Guid SubjectId { get; private set; }
+
+    public Guid? OrderId { get; private set; }
+
+    public Guid? AssignedPractitionerId { get; private set; }
+
+    public string? CreationIdempotencyKey { get; private set; }
+
+    public string? CompletionIdempotencyKey { get; private set; }
 
     public ConsultationKind Kind { get; private set; }
 
@@ -46,6 +60,34 @@ public sealed class ConsultationSession : IHasDomainEvents
         Guid subjectId,
         ConsultationKind kind,
         ConsultationChannel channel) => new(subjectId, kind, channel);
+
+    public static ConsultationSession CreateAuthorized(
+        Guid subjectId,
+        Guid orderId,
+        Guid? assignedPractitionerId,
+        ConsultationKind kind,
+        ConsultationChannel channel,
+        string idempotencyKey)
+    {
+        if (subjectId == Guid.Empty || orderId == Guid.Empty)
+        {
+            throw new DomainException("CONSULTATION_REFERENCE_INVALID");
+        }
+
+        var normalizedKey = idempotencyKey?.Trim();
+        if (string.IsNullOrWhiteSpace(normalizedKey) || normalizedKey.Length > 100)
+        {
+            throw new DomainException("IDEMPOTENCY_KEY_INVALID");
+        }
+
+        return new ConsultationSession(
+            subjectId,
+            kind,
+            channel,
+            orderId,
+            assignedPractitionerId,
+            normalizedKey);
+    }
 
     public void RequestConsent()
     {
@@ -79,6 +121,38 @@ public sealed class ConsultationSession : IHasDomainEvents
     public void Complete(DateTimeOffset now)
     {
         EnsureStatus(ConsultationStatus.InProgress);
+        CompleteCore(now);
+    }
+
+    public bool Complete(DateTimeOffset now, string idempotencyKey)
+    {
+        var normalizedKey = idempotencyKey?.Trim();
+        if (string.IsNullOrWhiteSpace(normalizedKey) || normalizedKey.Length > 100)
+        {
+            throw new DomainException("IDEMPOTENCY_KEY_INVALID");
+        }
+
+        if (Status == ConsultationStatus.Completed)
+        {
+            if (string.Equals(
+                CompletionIdempotencyKey,
+                normalizedKey,
+                StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            throw new DomainException("IDEMPOTENCY_CONFLICT");
+        }
+
+        EnsureStatus(ConsultationStatus.InProgress);
+        CompletionIdempotencyKey = normalizedKey;
+        CompleteCore(now);
+        return true;
+    }
+
+    private void CompleteCore(DateTimeOffset now)
+    {
         Status = ConsultationStatus.Completed;
         CompletedAt = now;
         _domainEvents.Add(new ConsultationCompletedDomainEvent(

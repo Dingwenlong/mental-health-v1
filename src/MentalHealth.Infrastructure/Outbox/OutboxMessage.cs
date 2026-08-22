@@ -1,4 +1,6 @@
 using System.Text.Json;
+using MentalHealth.Domain.Consultations;
+using MentalHealth.Domain.FollowUps;
 using MentalHealth.Domain.Shared;
 
 namespace MentalHealth.Infrastructure.Outbox;
@@ -15,7 +17,8 @@ public sealed class OutboxMessage
         Guid id,
         string type,
         DateTimeOffset occurredAt,
-        string payload)
+        string payload,
+        Guid? aggregateId = null)
     {
         if (id == Guid.Empty)
         {
@@ -26,6 +29,7 @@ public sealed class OutboxMessage
         ArgumentException.ThrowIfNullOrWhiteSpace(payload);
 
         Id = id;
+        AggregateId = aggregateId ?? id;
         Type = type;
         OccurredAt = occurredAt;
         CreatedAt = occurredAt;
@@ -33,6 +37,8 @@ public sealed class OutboxMessage
     }
 
     public Guid Id { get; private set; }
+
+    public Guid AggregateId { get; private set; }
 
     public string Type { get; private set; } = string.Empty;
 
@@ -58,11 +64,19 @@ public sealed class OutboxMessage
             domainEvent,
             domainEvent.GetType(),
             JsonOptions);
+        var aggregateId = domainEvent switch
+        {
+            ConsultationCompletedDomainEvent completed => completed.SessionId,
+            FollowUpProposedDomainEvent proposed => proposed.FollowUpTaskId,
+            FollowUpScheduledDomainEvent scheduled => scheduled.FollowUpTaskId,
+            _ => domainEvent.EventId
+        };
 
         return new OutboxMessage(
             domainEvent.EventId,
             type,
             domainEvent.OccurredAt,
-            payload);
+            payload,
+            aggregateId);
     }
 }

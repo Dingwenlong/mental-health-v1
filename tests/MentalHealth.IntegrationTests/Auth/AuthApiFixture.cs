@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System.Net.Http.Headers;
 using MentalHealth.Application.Security;
 using MentalHealth.Infrastructure.Identity;
@@ -24,6 +25,7 @@ public sealed class AuthApiFixture : IAsyncLifetime
 
     private WebApplicationFactory<Program>? _factory;
     private HttpClient? _client;
+    private readonly TestLogCollector _logs = new();
 
     public const string InitialPassword = "Synthetic-password-2026!";
 
@@ -32,6 +34,10 @@ public sealed class AuthApiFixture : IAsyncLifetime
 
     public IServiceProvider Services => _factory?.Services
         ?? throw new InvalidOperationException("The API fixture is not initialized.");
+
+    public IReadOnlyList<TestLogEntry> CapturedLogs => _logs.Entries;
+
+    public void ClearCapturedLogs() => _logs.Clear();
 
     public async Task InitializeAsync()
     {
@@ -61,6 +67,7 @@ public sealed class AuthApiFixture : IAsyncLifetime
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment("Testing");
+            builder.ConfigureLogging(logging => logging.AddProvider(_logs));
             builder.ConfigureAppConfiguration((_, configuration) =>
                 configuration.AddInMemoryCollection(settings));
         });

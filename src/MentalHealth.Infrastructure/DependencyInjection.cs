@@ -6,6 +6,7 @@ using MentalHealth.Application.Abstractions.Persistence;
 using MentalHealth.Application.Audit;
 using MentalHealth.Application.Consents;
 using MentalHealth.Application.Catalog;
+using MentalHealth.Application.Consultations;
 using MentalHealth.Infrastructure.Identity;
 using MentalHealth.Infrastructure.Content;
 using MentalHealth.Infrastructure.Outbox;
@@ -106,6 +107,12 @@ public static class DependencyInjection
         services.AddScoped<CatalogQueryHandler>();
         services.AddScoped<AdminCatalogHandler>();
         services.AddScoped<OrderHandler>();
+        services.AddScoped<IConsultationRepository>(provider =>
+            provider.GetRequiredService<MentalHealthDbContext>());
+        services.AddScoped<CreateConsultationHandler>();
+        services.AddScoped<StartConsultationHandler>();
+        services.AddScoped<SendMessageHandler>();
+        services.AddScoped<CompleteConsultationHandler>();
 
         services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
