@@ -3,9 +3,13 @@ using MentalHealth.Domain.Shared;
 
 namespace MentalHealth.Domain.Consultations;
 
-public sealed class ConsultationSession
+public sealed class ConsultationSession : IHasDomainEvents
 {
     private readonly List<IDomainEvent> _domainEvents = [];
+
+    private ConsultationSession()
+    {
+    }
 
     private ConsultationSession(
         Guid subjectId,
@@ -18,13 +22,13 @@ public sealed class ConsultationSession
         Channel = channel;
     }
 
-    public Guid Id { get; }
+    public Guid Id { get; private set; }
 
-    public Guid SubjectId { get; }
+    public Guid SubjectId { get; private set; }
 
-    public ConsultationKind Kind { get; }
+    public ConsultationKind Kind { get; private set; }
 
-    public ConsultationChannel Channel { get; }
+    public ConsultationChannel Channel { get; private set; }
 
     public ConsultationStatus Status { get; private set; }
 
@@ -96,6 +100,8 @@ public sealed class ConsultationSession
         Status = ConsultationStatus.Cancelled;
         CancelledAt = now;
     }
+
+    public void ClearDomainEvents() => _domainEvents.Clear();
 
     private void EnsureStatus(ConsultationStatus expectedStatus)
     {

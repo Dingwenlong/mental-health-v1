@@ -1,0 +1,31 @@
+name: mental-health-v1
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: mental_health
+      POSTGRES_USER: mental_health
+      POSTGRES_PASSWORD: ${MH_POSTGRES_PASSWORD:?请先运行 scripts/Initialize-LocalSecrets.ps1}
+    ports:
+      - "127.0.0.1:54329:5432"
+    volumes:
+      - ./volumes/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mental_health -d mental_health"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis:8-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:56379:6379"
+    volumes:
+      - ./volumes/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 30

@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\MentalHealth.Application\MentalHealth.Application.csproj" />
+    <ProjectReference Include="..\..\src\MentalHealth.Infrastructure\MentalHealth.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

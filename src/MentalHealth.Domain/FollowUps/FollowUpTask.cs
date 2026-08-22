@@ -2,9 +2,13 @@ using MentalHealth.Domain.Shared;
 
 namespace MentalHealth.Domain.FollowUps;
 
-public sealed class FollowUpTask
+public sealed class FollowUpTask : IHasDomainEvents
 {
     private readonly List<IDomainEvent> _domainEvents = [];
+
+    private FollowUpTask()
+    {
+    }
 
     private FollowUpTask(Guid subjectId, Guid assessmentId, DateTimeOffset proposedAt)
     {
@@ -21,17 +25,17 @@ public sealed class FollowUpTask
             proposedAt));
     }
 
-    public Guid Id { get; }
+    public Guid Id { get; private set; }
 
-    public Guid SubjectId { get; }
+    public Guid SubjectId { get; private set; }
 
-    public Guid AssessmentId { get; }
+    public Guid AssessmentId { get; private set; }
 
     public Guid? AssigneeId { get; private set; }
 
     public FollowUpStatus Status { get; private set; }
 
-    public DateTimeOffset ProposedAt { get; }
+    public DateTimeOffset ProposedAt { get; private set; }
 
     public DateTimeOffset? ScheduledAt { get; private set; }
 
@@ -118,6 +122,8 @@ public sealed class FollowUpTask
         Status = FollowUpStatus.Overdue;
         OverdueAt = now;
     }
+
+    public void ClearDomainEvents() => _domainEvents.Clear();
 
     private void EnsureStatus(FollowUpStatus expectedStatus)
     {
