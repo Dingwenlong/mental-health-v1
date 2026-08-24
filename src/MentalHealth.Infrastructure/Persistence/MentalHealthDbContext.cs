@@ -4,7 +4,9 @@ using MentalHealth.Application.Consents;
 using MentalHealth.Application.Catalog;
 using MentalHealth.Application.Consultations;
 using MentalHealth.Application.Consultations.Media;
+using MentalHealth.Application.Analysis;
 using MentalHealth.Domain.Audit;
+using MentalHealth.Domain.Analysis;
 using MentalHealth.Domain.Consents;
 using MentalHealth.Domain.Consultations;
 using MentalHealth.Domain.FollowUps;
@@ -25,7 +27,8 @@ public sealed class MentalHealthDbContext(DbContextOptions<MentalHealthDbContext
         ICatalogRepository,
         IOrderRepository,
         IConsultationRepository,
-        IMediaAssetRepository
+        IMediaAssetRepository,
+        IAnalysisRepository
 {
     public DbSet<Practitioner> Practitioners => Set<Practitioner>();
 
@@ -48,6 +51,10 @@ public sealed class MentalHealthDbContext(DbContextOptions<MentalHealthDbContext
     public DbSet<FollowUpTask> FollowUpTasks => Set<FollowUpTask>();
 
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+
+    public DbSet<AnalysisJob> AnalysisJobs => Set<AnalysisJob>();
+
+    public DbSet<ManualTranscript> ManualTranscripts => Set<ManualTranscript>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -337,4 +344,58 @@ public sealed class MentalHealthDbContext(DbContextOptions<MentalHealthDbContext
 
     void IMediaAssetRepository.Add(MediaAsset mediaAsset) =>
         MediaAssets.Add(mediaAsset);
+
+    public async Task<AnalysisJob> GetOrCreateJobAsync(
+        Guid sessionId,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        var tracked = AnalysisJobs.Local.SingleOrDefault(
+            job => job.SessionId == sessionId);
+        if (tracked is not null)
+        {
+            return tracked;
+        }
+
+        var requested = AnalysisJob.Request(sessionId, now);
+        var status = requested.Status.ToString();
+        await Database.ExecuteSqlInterpolatedAsync($$"""
+            INSERT INTO analysis_jobs (
+                id, session_id, status, attempts, created_at, updated_at)
+            VALUES (
+                {{requested.Id}}, {{requested.SessionId}}, {{status}},
+                {{requested.Attempts}}, {{requested.CreatedAt}}, {{requested.UpdatedAt}})
+            ON CONFLICT (session_id) DO NOTHING
+            """, cancellationToken);
+        return await AnalysisJobs.SingleAsync(
+            job => job.SessionId == sessionId,
+            cancellationToken);
+    }
+
+    public async Task<int> GetLatestTranscriptRevisionAsync(
+        Guid sessionId,
+        CancellationToken cancellationToken) =>
+        await ManualTranscripts
+            .Where(document => document.SessionId == sessionId)
+            .Select(document => (int?)document.Revision)
+            .MaxAsync(cancellationToken) ?? 0;
+
+    public Task<ManualTranscript?> FindAsync(
+        Guid sessionId,
+        int? revision,
+        CancellationToken cancellationToken)
+    {
+        var documents = ManualTranscripts
+            .AsNoTracking()
+            .Where(document => document.SessionId == sessionId);
+        return revision is { } exact
+            ? documents.SingleOrDefaultAsync(
+                document => document.Revision == exact,
+                cancellationToken)
+            : documents
+                .OrderByDescending(document => document.Revision)
+                .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public void Add(ManualTranscript transcript) => ManualTranscripts.Add(transcript);
 }

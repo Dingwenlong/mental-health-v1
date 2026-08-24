@@ -9,6 +9,7 @@ using MentalHealth.Application.Catalog;
 using MentalHealth.Application.Consultations;
 using MentalHealth.Application.Consultations.Media;
 using MentalHealth.Application.Consultations.Ai;
+using MentalHealth.Application.Analysis;
 using MentalHealth.Domain.Analysis;
 using MentalHealth.Infrastructure.Identity;
 using MentalHealth.Infrastructure.Content;
@@ -22,6 +23,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
 using System.Text;
@@ -34,6 +36,8 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        services.AddAnalysisInfrastructure(configuration);
+
         var uiCopyPath = configuration["UiCopy:Path"];
         if (string.IsNullOrWhiteSpace(uiCopyPath))
         {
@@ -60,14 +64,6 @@ public static class DependencyInjection
         services.AddSingleton<LocalNotificationSender>();
         services.AddSingleton<INotificationSender>(provider =>
             provider.GetRequiredService<LocalNotificationSender>());
-        services.AddSingleton<OutboxSaveChangesInterceptor>();
-        services.AddDbContextFactory<MentalHealthDbContext>((provider, options) =>
-            options
-                .UseNpgsql(RequireConnectionString(
-                    provider.GetRequiredService<IConfiguration>(),
-                    "MentalHealth"))
-                .AddInterceptors(provider.GetRequiredService<OutboxSaveChangesInterceptor>()));
-
         services
             .AddOptions<LocalObjectStorageOptions>()
             .Bind(configuration.GetSection(LocalObjectStorageOptions.SectionName))
@@ -86,7 +82,6 @@ public static class DependencyInjection
             .Bind(configuration.GetSection(JwtOptions.SectionName))
             .Validate(ValidateJwtOptions, "JWT configuration is invalid.")
             .ValidateOnStart();
-        services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
         services.AddSingleton<DemoPaymentGateway>();
         services.AddSingleton<IPaymentGateway>(provider =>
@@ -167,6 +162,29 @@ public static class DependencyInjection
                 };
             });
 
+        return services;
+    }
+
+    public static IServiceCollection AddAnalysisInfrastructure(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        services.TryAddSingleton<IClock, SystemClock>();
+        services.TryAddSingleton<OutboxSaveChangesInterceptor>();
+        services.AddDbContextFactory<MentalHealthDbContext>((provider, options) =>
+            options
+                .UseNpgsql(RequireConnectionString(
+                    provider.GetRequiredService<IConfiguration>(),
+                    "MentalHealth"))
+                .AddInterceptors(provider.GetRequiredService<OutboxSaveChangesInterceptor>()));
+        services.AddScoped<IAnalysisRepository>(provider =>
+            provider.GetRequiredService<MentalHealthDbContext>());
+        services.AddScoped<IManualTranscriptReader>(provider =>
+            provider.GetRequiredService<MentalHealthDbContext>());
+        services.AddScoped<RequestAnalysisHandler>();
+        services.AddScoped<SaveManualTranscriptHandler>();
+        services.AddScoped<ITranscriptionProvider, ManualTranscriptionProvider>();
+        services.AddSingleton<PostgresOutboxReader>();
         return services;
     }
 

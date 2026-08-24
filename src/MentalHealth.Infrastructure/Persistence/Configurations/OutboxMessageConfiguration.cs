@@ -30,7 +30,12 @@ public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outbox
         builder.Property(message => message.LastError)
             .HasColumnName("last_error")
             .HasMaxLength(1024);
+        builder.Property(message => message.LockedBy)
+            .HasColumnName("locked_by")
+            .HasMaxLength(128);
+        builder.Property(message => message.LockedUntil).HasColumnName("locked_until");
         builder.HasIndex(message => new { message.ProcessedAt, message.OccurredAt });
+        builder.HasIndex(message => new { message.ProcessedAt, message.LockedUntil, message.OccurredAt });
         builder.HasIndex(message => new { message.AggregateId, message.Type });
     }
 }

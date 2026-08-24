@@ -1,4 +1,6 @@
 using MentalHealth.Application.Abstractions.Providers;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace MentalHealth.ContractTests.Fakes;
 
@@ -17,7 +19,11 @@ internal sealed class FakeTranscriptionProvider : ITranscriptionProvider
         TranscriptDocument? document = string.IsNullOrWhiteSpace(request.SuppliedText)
             ? null
             : new TranscriptDocument(
+                request.SessionId,
+                request.Revision ?? 1,
+                "ManualUpload",
                 request.SuppliedText,
+                Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(request.SuppliedText))),
                 "zh-CN",
                 IsManual: true,
                 Segments: []);

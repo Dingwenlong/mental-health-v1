@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\MentalHealth.Domain\MentalHealth.Domain.csproj" />
     <ProjectReference Include="..\..\src\MentalHealth.Api\MentalHealth.Api.csproj" />
+    <ProjectReference Include="..\..\src\MentalHealth.AnalysisWorker\MentalHealth.AnalysisWorker.csproj" />
     <ProjectReference Include="..\..\src\MentalHealth.Infrastructure\MentalHealth.Infrastructure.csproj" />
   </ItemGroup>
 

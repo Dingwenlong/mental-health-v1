@@ -3,7 +3,8 @@ namespace MentalHealth.Application.Abstractions.Providers;
 public sealed record TranscriptionRequest(
     Guid SessionId,
     string ObjectKey,
-    string? SuppliedText);
+    string? SuppliedText,
+    int? Revision = null);
 
 public sealed record TranscriptSegment(
     int Index,
@@ -12,7 +13,11 @@ public sealed record TranscriptSegment(
     string Text);
 
 public sealed record TranscriptDocument(
+    Guid SessionId,
+    int Revision,
+    string Source,
     string Text,
+    string Sha256,
     string Language,
     bool IsManual,
     IReadOnlyList<TranscriptSegment> Segments);

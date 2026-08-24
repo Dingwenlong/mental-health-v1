@@ -55,6 +55,54 @@ public sealed class OutboxMessage
 
     public string? LastError { get; private set; }
 
+    public string? LockedBy { get; private set; }
+
+    public DateTimeOffset? LockedUntil { get; private set; }
+
+    internal void Lease(string workerId, DateTimeOffset lockedUntil)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(workerId);
+        LockedBy = workerId.Trim();
+        LockedUntil = lockedUntil;
+    }
+
+    internal void MarkProcessed(string workerId, DateTimeOffset now)
+    {
+        EnsureLeaseOwner(workerId);
+        ProcessedAt = now;
+        LockedBy = null;
+        LockedUntil = null;
+    }
+
+    internal int RecordFailure(
+        string workerId,
+        string errorCode,
+        DateTimeOffset now,
+        TimeSpan delay,
+        bool terminal)
+    {
+        EnsureLeaseOwner(workerId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(errorCode);
+        Attempts = checked(Attempts + 1);
+        LastError = errorCode.Trim();
+        LockedBy = null;
+        LockedUntil = terminal ? null : now.Add(delay);
+        if (terminal)
+        {
+            ProcessedAt = now;
+        }
+
+        return Attempts;
+    }
+
+    private void EnsureLeaseOwner(string workerId)
+    {
+        if (!string.Equals(LockedBy, workerId, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Outbox lease is not owned by this worker.");
+        }
+    }
+
     internal static OutboxMessage FromDomainEvent(IDomainEvent domainEvent)
     {
         var eventName = domainEvent.GetType().Name;

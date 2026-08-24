@@ -6,6 +6,9 @@ public static class ApiProblemCodes
     public const string InvalidSessionState = "INVALID_SESSION_STATE";
     public const string InvalidObjectKey = "INVALID_OBJECT_KEY";
     public const string TranscriptRequired = "TRANSCRIPT_REQUIRED";
+    public const string TranscriptSourceInvalid = "TRANSCRIPT_SOURCE_INVALID";
+    public const string TranscriptTextInvalid = "TRANSCRIPT_TEXT_INVALID";
+    public const string TranscriptSessionNotCompleted = "TRANSCRIPT_SESSION_NOT_COMPLETED";
     public const string MediaParseFailed = "MEDIA_PARSE_FAILED";
     public const string MediaHashMismatch = "MEDIA_HASH_MISMATCH";
     public const string InvalidChunkIndex = "INVALID_CHUNK_INDEX";
