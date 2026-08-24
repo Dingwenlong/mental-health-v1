@@ -23,6 +23,12 @@ public sealed class AnalysisJobConfiguration : IEntityTypeConfiguration<Analysis
             .HasMaxLength(128);
         builder.Property(job => job.CreatedAt).HasColumnName("created_at");
         builder.Property(job => job.UpdatedAt).HasColumnName("updated_at");
+        builder.Property(job => job.AssessmentId).HasColumnName("assessment_id");
+        builder.Property(job => job.CompletedAt).HasColumnName("completed_at");
+        builder.HasOne<RiskAssessment>()
+            .WithMany()
+            .HasForeignKey(job => job.AssessmentId)
+            .OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(job => job.SessionId).IsUnique();
         builder.HasIndex(job => new { job.Status, job.UpdatedAt });
     }

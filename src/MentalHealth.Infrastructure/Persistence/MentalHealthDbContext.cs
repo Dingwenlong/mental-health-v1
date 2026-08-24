@@ -28,8 +28,27 @@ public sealed class MentalHealthDbContext(DbContextOptions<MentalHealthDbContext
         IOrderRepository,
         IConsultationRepository,
         IMediaAssetRepository,
-        IAnalysisRepository
+        IAnalysisRepository,
+        IRiskRuleSetRepository,
+        IRiskAssessmentRepository
 {
+    public async Task ExecuteInTransactionAsync(
+        Func<CancellationToken, Task> action,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        if (Database.CurrentTransaction is not null)
+        {
+            await action(cancellationToken);
+            return;
+        }
+
+        await using var transaction = await Database.BeginTransactionAsync(
+            cancellationToken);
+        await action(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+    }
+
     public DbSet<Practitioner> Practitioners => Set<Practitioner>();
 
     public DbSet<AvailabilitySlot> AvailabilitySlots => Set<AvailabilitySlot>();
@@ -55,6 +74,10 @@ public sealed class MentalHealthDbContext(DbContextOptions<MentalHealthDbContext
     public DbSet<AnalysisJob> AnalysisJobs => Set<AnalysisJob>();
 
     public DbSet<ManualTranscript> ManualTranscripts => Set<ManualTranscript>();
+
+    public DbSet<RiskRuleSet> RiskRuleSets => Set<RiskRuleSet>();
+
+    public DbSet<RiskAssessment> RiskAssessments => Set<RiskAssessment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -398,4 +421,44 @@ public sealed class MentalHealthDbContext(DbContextOptions<MentalHealthDbContext
     }
 
     public void Add(ManualTranscript transcript) => ManualTranscripts.Add(transcript);
+
+    public Task<RiskRuleSet?> FindRuleSetAsync(
+        string version,
+        CancellationToken cancellationToken) =>
+        RiskRuleSets.SingleOrDefaultAsync(
+            rule => rule.Version == version,
+            cancellationToken);
+
+    public Task<RiskRuleSet?> FindActiveRuleSetAsync(
+        CancellationToken cancellationToken) =>
+        RiskRuleSets.SingleOrDefaultAsync(
+            rule => rule.Active,
+            cancellationToken);
+
+    public Task<RiskAssessment?> FindLatestAssessmentAsync(
+        Guid sessionId,
+        CancellationToken cancellationToken) =>
+        RiskAssessments
+            .Include(assessment => assessment.Evidence)
+            .Where(assessment => assessment.SessionId == sessionId)
+            .OrderByDescending(assessment => assessment.CreatedAt)
+            .ThenByDescending(assessment => assessment.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+    public Task<RiskAssessment?> FindAssessmentAsync(
+        Guid sessionId,
+        string ruleSetVersion,
+        int? transcriptRevision,
+        CancellationToken cancellationToken) =>
+        RiskAssessments
+            .Include(assessment => assessment.Evidence)
+            .SingleOrDefaultAsync(
+                assessment => assessment.SessionId == sessionId
+                    && assessment.RuleSetVersion == ruleSetVersion
+                    && assessment.TranscriptRevision == transcriptRevision,
+                cancellationToken);
+
+    public void Add(RiskRuleSet ruleSet) => RiskRuleSets.Add(ruleSet);
+
+    public void Add(RiskAssessment assessment) => RiskAssessments.Add(assessment);
 }

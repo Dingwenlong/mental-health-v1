@@ -16,7 +16,8 @@ internal static class ConsultationProblemMapper
                 ApiProblemCodes.OrderNotFound or
                 ApiProblemCodes.PlanNotAvailable or
                 ApiProblemCodes.PractitionerNotFound or
-                ApiProblemCodes.MediaNotFound => StatusCodes.Status404NotFound,
+                ApiProblemCodes.MediaNotFound or
+                ApiProblemCodes.ResultNotFound => StatusCodes.Status404NotFound,
             ApiProblemCodes.IdempotencyConflict or
                 ApiProblemCodes.MediaChunkConflict => StatusCodes.Status409Conflict,
             _ => StatusCodes.Status422UnprocessableEntity
@@ -40,6 +41,7 @@ internal static class ConsultationProblemMapper
             ApiProblemCodes.ClientMessageIdInvalid => "消息请求标识无效",
             ApiProblemCodes.MessageCursorInvalid => "消息位置无效",
             ApiProblemCodes.MediaNotFound => "没有找到这次媒体上传",
+            ApiProblemCodes.ResultNotFound => "这次咨询还没有关注指数结果",
             ApiProblemCodes.MediaChunkConflict => "这个分块已存在但内容不同",
             ApiProblemCodes.MediaChunkMissing => "还有分块没有上传",
             ApiProblemCodes.MediaHashMismatch => "媒体摘要不一致",

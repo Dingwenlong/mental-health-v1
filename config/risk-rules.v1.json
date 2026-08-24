@@ -1,5 +1,7 @@
 {
   "version": "risk-v1",
+  "attentionIndexRuleVersion": "risk-v1",
+  "crisisRulesRequired": true,
   "crisisReply": "先保证安全。请马上联系身边可信任的人，并拨打 12356。如果危险正在发生，请拨打 120 或 110。",
   "lookbackMessageCount": 8,
   "negationWindow": 8,

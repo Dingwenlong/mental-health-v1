@@ -5,7 +5,16 @@ public sealed record CrisisRule(
     IReadOnlyList<string> Any,
     IReadOnlyList<IReadOnlyList<string>> AllGroups);
 
-public sealed record CrisisResult(bool IsCrisis, string RuleId);
+public sealed record CrisisResult(bool IsCrisis, string RuleId)
+{
+    public static CrisisResult Match(string ruleId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(ruleId);
+        return new CrisisResult(true, ruleId.Trim());
+    }
+
+    public static CrisisResult None { get; } = new(false, "NO_CRISIS");
+}
 
 public sealed class CrisisRuleEngine
 {

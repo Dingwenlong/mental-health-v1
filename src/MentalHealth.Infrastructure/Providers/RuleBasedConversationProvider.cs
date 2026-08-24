@@ -39,7 +39,12 @@ public sealed class RuleBasedConversationProvider : IConversationProvider
     public static CrisisRuleEngine LoadCrisisRuleEngine(string rulesPath)
     {
         var file = ReadRequiredFile<RiskRuleFile>(rulesPath);
-        if (!string.Equals(file.Version, "risk-v1", StringComparison.Ordinal))
+        if (!string.Equals(file.Version, "risk-v1", StringComparison.Ordinal)
+            || !string.Equals(
+                file.AttentionIndexRuleVersion,
+                RiskRuleSet.V1.Version,
+                StringComparison.Ordinal)
+            || !file.CrisisRulesRequired)
         {
             throw new InvalidOperationException("Risk rule version is not supported.");
         }
@@ -109,6 +114,8 @@ public sealed class RuleBasedConversationProvider : IConversationProvider
 
     private sealed record RiskRuleFile(
         string Version,
+        string AttentionIndexRuleVersion,
+        bool CrisisRulesRequired,
         string CrisisReply,
         int LookbackMessageCount,
         int NegationWindow,

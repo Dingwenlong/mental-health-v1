@@ -195,10 +195,17 @@ public static class DependencyInjection
                 .AddInterceptors(provider.GetRequiredService<OutboxSaveChangesInterceptor>()));
         services.AddScoped<IAnalysisRepository>(provider =>
             provider.GetRequiredService<MentalHealthDbContext>());
+        services.AddScoped<IRiskRuleSetRepository>(provider =>
+            provider.GetRequiredService<MentalHealthDbContext>());
+        services.AddScoped<IRiskAssessmentRepository>(provider =>
+            provider.GetRequiredService<MentalHealthDbContext>());
         services.AddScoped<IManualTranscriptReader>(provider =>
             provider.GetRequiredService<MentalHealthDbContext>());
         services.AddScoped<RequestAnalysisHandler>();
         services.AddScoped<SaveManualTranscriptHandler>();
+        services.AddScoped<CreateRiskRuleSetHandler>();
+        services.AddScoped<RiskReportQueryHandler>();
+        services.TryAddSingleton<AttentionIndexCalculator>();
         services.AddScoped<ITranscriptionProvider, ManualTranscriptionProvider>();
         services.AddSingleton<PostgresOutboxReader>();
         return services;

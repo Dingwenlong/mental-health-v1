@@ -50,6 +50,10 @@ public sealed class AnalysisJob
 
     public DateTimeOffset UpdatedAt { get; private set; }
 
+    public Guid? AssessmentId { get; private set; }
+
+    public DateTimeOffset? CompletedAt { get; private set; }
+
     public static AnalysisJob Request(Guid sessionId, DateTimeOffset now)
     {
         if (sessionId == Guid.Empty)
@@ -71,6 +75,8 @@ public sealed class AnalysisJob
         Status = AnalysisJobStatus.Ready;
         Attempts = 0;
         FailureCode = null;
+        AssessmentId = null;
+        CompletedAt = null;
         UpdatedAt = now;
     }
 
@@ -88,6 +94,19 @@ public sealed class AnalysisJob
         Attempts = checked(Attempts + 1);
         FailureCode = failureCode.Trim();
         Status = terminal ? AnalysisJobStatus.NeedsManual : AnalysisJobStatus.Pending;
+        UpdatedAt = now;
+    }
+
+    public void Complete(Guid assessmentId, DateTimeOffset now)
+    {
+        if (assessmentId == Guid.Empty || Status != AnalysisJobStatus.Ready)
+        {
+            throw new DomainException("ANALYSIS_JOB_NOT_READY");
+        }
+
+        AssessmentId = assessmentId;
+        Status = AnalysisJobStatus.Completed;
+        CompletedAt = now;
         UpdatedAt = now;
     }
 }

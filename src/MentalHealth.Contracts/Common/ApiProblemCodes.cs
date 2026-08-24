@@ -50,4 +50,11 @@ public static class ApiProblemCodes
     public const string CrisisInProgress = "CRISIS_IN_PROGRESS";
     public const string AiChatSessionRequired = "AI_CHAT_SESSION_REQUIRED";
     public const string NoQualifiedSlotBeforeSla = "NO_QUALIFIED_SLOT_BEFORE_SLA";
+    public const string ResultNotFound = "RESULT_NOT_FOUND";
+    public const string RiskRuleVersionInvalid = "RISK_RULE_VERSION_INVALID";
+    public const string RiskRuleVersionExists = "RISK_RULE_VERSION_EXISTS";
+    public const string RiskRuleVersionNotFound = "RISK_RULE_VERSION_NOT_FOUND";
+    public const string RiskRuleWeightsInvalid = "RISK_RULE_WEIGHTS_INVALID";
+    public const string RiskRuleThresholdsInvalid = "RISK_RULE_THRESHOLDS_INVALID";
+    public const string CrisisRulesRequired = "CRISIS_RULES_REQUIRED";
 }

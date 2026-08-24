@@ -1,0 +1,18 @@
+{
+  "id": "DemoWellbeingScaleV1",
+  "displayName": "最近 7 天的情况（比赛演示，不是诊断）",
+  "version": "1.0.0",
+  "answerLabels": ["没有", "偶尔", "经常", "几乎每天"],
+  "answerValues": [0, 1, 2, 3],
+  "normalization": "sum / 21 * 100",
+  "notice": "这是比赛演示，不是诊断",
+  "items": [
+    { "id": "mood", "text": "心情低落，做事提不起劲" },
+    { "id": "worry", "text": "一直担心，很难放松" },
+    { "id": "sleep", "text": "睡不好，或作息乱了" },
+    { "id": "energy", "text": "很累，做小事也费劲" },
+    { "id": "withdrawal", "text": "不想见人，也不想说话" },
+    { "id": "hopelessness", "text": "觉得事情不会变好" },
+    { "id": "safety", "text": "担心自己或他人的安全" }
+  ]
+}
