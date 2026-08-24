@@ -29,11 +29,15 @@ if ([string]::IsNullOrWhiteSpace($localValues['MH_POSTGRES_PASSWORD'])) {
 }
 
 $environmentName = 'ConnectionStrings__MentalHealth'
+$storageEnvironmentName = 'LocalObjectStorage__RootPath'
 $previous = Get-Item "Env:$environmentName" -ErrorAction SilentlyContinue
+$previousStorage = Get-Item "Env:$storageEnvironmentName" -ErrorAction SilentlyContinue
 try {
     Set-Item "Env:$environmentName" (
         "Host=127.0.0.1;Port=54329;Database=mental_health;" +
         "Username=mental_health;Password=$($localValues['MH_POSTGRES_PASSWORD'])")
+    Set-Item "Env:$storageEnvironmentName" (
+        Join-Path $repoRoot 'tests\output\local-object-storage')
     & dotnet run --project $workerProject --no-launch-profile
     if ($LASTEXITCODE -ne 0) {
         throw "分析任务进程退出，退出码：$LASTEXITCODE"
@@ -45,5 +49,12 @@ finally {
     }
     else {
         Set-Item "Env:$environmentName" $previous.Value
+    }
+
+    if ($null -eq $previousStorage) {
+        Remove-Item "Env:$storageEnvironmentName" -ErrorAction SilentlyContinue
+    }
+    else {
+        Set-Item "Env:$storageEnvironmentName" $previousStorage.Value
     }
 }

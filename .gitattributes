@@ -1,0 +1,4 @@
+config/opencv/*.xml -text
+tests/fixtures/audio/* binary
+tests/fixtures/video/*.mp4 binary
+tests/fixtures/video/*.png binary

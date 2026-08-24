@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\MentalHealth.Infrastructure\MentalHealth.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\MentalHealth.Domain\MentalHealth.Domain.csproj" />
   </ItemGroup>
 

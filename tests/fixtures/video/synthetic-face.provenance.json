@@ -1,0 +1,8 @@
+{
+  "synthetic": true,
+  "generatedDate": "2026-08-24",
+  "tool": "OpenAI built-in image_gen",
+  "sha256": "26F96840452A2A4657A1E16B90712DCD5ED30B9A77DD408A008C744B324D7A39",
+  "prompt": "Use case: photorealistic-natural\nAsset type: repository-only computer-vision test fixture\nPrimary request: create one entirely fictional adult person who does not resemble any real person, shown from the shoulders up and facing the camera\nScene/backdrop: plain solid light-gray background\nSubject: one fictional adult, neutral relaxed expression, eyes open, full face unobstructed, no glasses, no hat, no jewelry\nStyle/medium: photorealistic synthetic portrait with natural skin texture\nComposition/framing: centered symmetrical head-and-shoulders portrait, eye-level, face large enough for a conventional Haar cascade detector, generous margin around the head\nLighting/mood: soft even frontal studio lighting, low shadow, clear facial landmarks\nConstraints: synthetic non-existent person only; one face; no text; no logo; no watermark; no border\nAvoid: celebrity resemblance, dramatic angle, profile pose, heavy retouching, stylization, painterly rendering, face occlusion, busy background",
+  "usage": "Static repository test fixture only. The application does not call image generation at runtime."
+}

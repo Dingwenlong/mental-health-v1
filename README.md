@@ -13,6 +13,8 @@
 - Docker Desktop
 - FFmpeg 8
 
+OpenCV 的 Windows 运行库已经锁进 NuGet 依赖，不需要单独安装。当前只验收本机 Windows；以后部署到 Linux 时再更换对应运行库包。
+
 工具链采用便携安装，不写入用户或系统 `Path`。打开 PowerShell 后先在仓库根目录执行：
 
 ```powershell

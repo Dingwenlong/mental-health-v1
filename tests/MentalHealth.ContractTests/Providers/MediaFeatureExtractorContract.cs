@@ -19,14 +19,18 @@ public abstract class MediaFeatureExtractorContract
 
         var result = await extractor.ExtractAsync(request, CancellationToken.None);
 
+        Assert.True(result.Success);
         Assert.Equal(extractor.Modality, result.Modality);
         Assert.False(string.IsNullOrWhiteSpace(result.Modality));
-        Assert.NotEmpty(result.Features);
-        Assert.All(result.Features, feature =>
+        Assert.Null(result.FailureCode);
+        Assert.NotEmpty(result.Observations);
+        Assert.All(result.Observations, feature =>
         {
-            Assert.False(string.IsNullOrWhiteSpace(feature.Name));
+            Assert.False(string.IsNullOrWhiteSpace(feature.Code));
             Assert.True(double.IsFinite(feature.Value));
             Assert.InRange(feature.Quality, 0d, 1d);
+            Assert.False(string.IsNullOrWhiteSpace(feature.SourceRange));
+            Assert.False(string.IsNullOrWhiteSpace(feature.ExtractorVersion));
         });
     }
 

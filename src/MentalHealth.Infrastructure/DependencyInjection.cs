@@ -17,6 +17,7 @@ using MentalHealth.Infrastructure.Outbox;
 using MentalHealth.Infrastructure.Persistence;
 using MentalHealth.Infrastructure.Storage;
 using MentalHealth.Infrastructure.Providers;
+using MentalHealth.Infrastructure.Media;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -64,14 +65,6 @@ public static class DependencyInjection
         services.AddSingleton<LocalNotificationSender>();
         services.AddSingleton<INotificationSender>(provider =>
             provider.GetRequiredService<LocalNotificationSender>());
-        services
-            .AddOptions<LocalObjectStorageOptions>()
-            .Bind(configuration.GetSection(LocalObjectStorageOptions.SectionName))
-            .Validate(
-                options => !string.IsNullOrWhiteSpace(options.RootPath),
-                "Local object storage root is required.")
-            .ValidateOnStart();
-        services.AddSingleton<IObjectStorage, LocalObjectStorage>();
         services.AddSingleton<IConnectionMultiplexer>(provider =>
             ConnectionMultiplexer.Connect(RequireConnectionString(
                 provider.GetRequiredService<IConfiguration>(),
@@ -171,6 +164,29 @@ public static class DependencyInjection
     {
         services.TryAddSingleton<IClock, SystemClock>();
         services.TryAddSingleton<OutboxSaveChangesInterceptor>();
+        services
+            .AddOptions<LocalObjectStorageOptions>()
+            .Bind(configuration.GetSection(LocalObjectStorageOptions.SectionName))
+            .Validate(
+                options => !string.IsNullOrWhiteSpace(options.RootPath),
+                "Local object storage root is required.")
+            .ValidateOnStart();
+        services.TryAddSingleton<IObjectStorage, LocalObjectStorage>();
+        services
+            .AddOptions<MediaFeatureOptions>()
+            .Bind(configuration.GetSection(MediaFeatureOptions.SectionName))
+            .Validate(
+                options => !string.IsNullOrWhiteSpace(options.FfprobePath)
+                    && !string.IsNullOrWhiteSpace(options.FfmpegPath)
+                    && !string.IsNullOrWhiteSpace(options.CascadePath)
+                    && !string.IsNullOrWhiteSpace(options.TemporaryRootPath),
+                "Local media feature configuration is invalid.")
+            .ValidateOnStart();
+        services.TryAddSingleton<FfprobeRunner>();
+        services.TryAddSingleton<OpenCvFacePresenceDetector>();
+        services.TryAddSingleton<TextFeatureExtractor>();
+        services.AddScoped<IMediaFeatureExtractor, AudioFeatureExtractor>();
+        services.AddScoped<IMediaFeatureExtractor, VideoFeatureExtractor>();
         services.AddDbContextFactory<MentalHealthDbContext>((provider, options) =>
             options
                 .UseNpgsql(RequireConnectionString(

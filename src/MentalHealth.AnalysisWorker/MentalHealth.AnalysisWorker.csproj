@@ -15,4 +15,11 @@
     <ProjectReference Include="..\MentalHealth.Application\MentalHealth.Application.csproj" />
     <ProjectReference Include="..\MentalHealth.Infrastructure\MentalHealth.Infrastructure.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\config\opencv\haarcascade_frontalface_default.xml">
+      <Link>config\opencv\haarcascade_frontalface_default.xml</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 </Project>

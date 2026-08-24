@@ -17,8 +17,10 @@ internal sealed class FakeMediaFeatureExtractor : IMediaFeatureExtractor
         }
 
         return Task.FromResult(new FeatureExtractionResult(
+            Success: true,
             Modality,
-            [new ExtractedFeature("speechRatio", 0.5, 1)],
+            [new FeatureObservation("speech_ratio", 0.5, 1, "audio:0-1s", "fake-v1")],
+            FailureCode: null,
             []));
     }
 }
