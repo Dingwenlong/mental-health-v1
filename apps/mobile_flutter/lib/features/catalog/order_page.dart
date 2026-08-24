@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/api/api_client.dart';
 import '../../generated/ui_copy.g.dart';
+import '../ai_consultation/ai_consultation_page.dart';
+import '../ai_consultation/ai_session_launcher.dart';
 import 'catalog_repository.dart';
 import '../consultation/chat_connection.dart';
 import '../consultation/chat_page.dart';
@@ -15,6 +17,7 @@ class OrderPage extends StatefulWidget {
     this.repository,
     this.chatLauncher,
     this.videoLauncher,
+    this.aiLauncher,
     super.key,
   });
 
@@ -23,6 +26,7 @@ class OrderPage extends StatefulWidget {
   final DemoOrderRepository? repository;
   final ChatSessionLauncher? chatLauncher;
   final VideoSessionLauncher? videoLauncher;
+  final AiSessionLauncher? aiLauncher;
 
   @override
   State<OrderPage> createState() => _OrderPageState();
@@ -90,6 +94,14 @@ class _OrderPageState extends State<OrderPage> {
                 child: Text(UiCopy.get('video.start')),
               ),
             ],
+            if (!awaiting && _canStartAiChat) ...<Widget>[
+              const SizedBox(height: 20),
+              FilledButton(
+                key: const Key('start-ai-chat'),
+                onPressed: _isBusy ? null : _startAiChat,
+                child: Text(UiCopy.get('ai.start')),
+              ),
+            ],
           ],
         ),
       ),
@@ -105,6 +117,11 @@ class _OrderPageState extends State<OrderPage> {
       widget.videoLauncher != null &&
       widget.plan?.kind == ServiceKind.human &&
       widget.plan?.channel == ServiceChannel.video;
+
+  bool get _canStartAiChat =>
+      widget.aiLauncher != null &&
+      widget.plan?.kind == ServiceKind.ai &&
+      widget.plan?.channel == ServiceChannel.chat;
 
   Future<void> _confirm() async {
     setState(() {
@@ -185,6 +202,36 @@ class _OrderPageState extends State<OrderPage> {
                 ),
               );
             },
+          ),
+        ),
+      );
+    } on ApiFailure catch (failure) {
+      if (mounted) {
+        setState(() {
+          _errorCopyKey = failure.code == 'FORBIDDEN_RESOURCE'
+              ? 'error.forbidden'
+              : 'error.retry';
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _isBusy = false);
+    }
+  }
+
+  Future<void> _startAiChat() async {
+    setState(() {
+      _isBusy = true;
+      _errorCopyKey = null;
+    });
+    try {
+      final ai = await widget.aiLauncher!.startAiChat(_order.id);
+      if (!mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => AiConsultationPage(
+            sessionId: ai.sessionId,
+            gateway: ai.gateway,
+            speech: ai.speech,
           ),
         ),
       );

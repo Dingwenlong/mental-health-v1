@@ -7,6 +7,7 @@ environment:
   sdk: ^3.13.0
 
 dependencies:
+  audioplayers: 6.8.1
   crypto: ^3.0.7
   dio: ^5.11.0
   flutter:
@@ -29,4 +30,5 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - assets/audio/fallback-chime.wav
     - assets/certs/demo_root.crt

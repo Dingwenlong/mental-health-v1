@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/api/api_client.dart';
 import '../../generated/ui_copy.g.dart';
+import '../ai_consultation/ai_session_launcher.dart';
 import 'catalog_repository.dart';
 import '../consultation/chat_connection.dart';
 import '../consultation/video_session_launcher.dart';
@@ -13,6 +14,7 @@ class CatalogPage extends StatefulWidget {
     required this.repository,
     this.chatLauncher,
     this.videoLauncher,
+    this.aiLauncher,
     this.onLogout,
     super.key,
   });
@@ -20,6 +22,7 @@ class CatalogPage extends StatefulWidget {
   final CatalogRepository repository;
   final ChatSessionLauncher? chatLauncher;
   final VideoSessionLauncher? videoLauncher;
+  final AiSessionLauncher? aiLauncher;
   final VoidCallback? onLogout;
 
   @override
@@ -94,6 +97,7 @@ class _CatalogPageState extends State<CatalogPage> {
                       repository: widget.repository,
                       chatLauncher: widget.chatLauncher,
                       videoLauncher: widget.videoLauncher,
+                      aiLauncher: widget.aiLauncher,
                     ),
                   ),
                 ),

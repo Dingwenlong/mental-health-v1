@@ -4,11 +4,14 @@ import 'core/api/api_client.dart';
 import 'core/auth/auth_store.dart';
 import 'core/network/demo_certificate_trust.dart';
 import 'features/auth/login_page.dart';
+import 'features/ai_consultation/ai_session_launcher.dart';
 import 'features/catalog/catalog_page.dart';
 import 'features/catalog/catalog_repository.dart';
 import 'features/consultation/chat_connection.dart';
 import 'features/consultation/video_session_launcher.dart';
 import 'generated/ui_copy.g.dart';
+import 'providers/speech/chime_fallback_speech_provider.dart';
+import 'providers/speech/flutter_tts_speech_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,6 +41,13 @@ Future<void> main() async {
     ),
     chatHubUrl,
   );
+  final aiLauncher = ApiAiSessionLauncher(
+    client,
+    speechFactory: () => FlutterTtsSpeechProvider(
+      engine: FlutterTtsEngine(),
+      fallback: ChimeFallbackSpeechProvider(player: AssetChimePlayer()),
+    ),
+  );
   await authStore.restore();
   runApp(
     MentalHealthApp(
@@ -45,6 +55,7 @@ Future<void> main() async {
       catalogRepository: ApiCatalogRepository(client),
       chatLauncher: chatLauncher,
       videoLauncher: videoLauncher,
+      aiLauncher: aiLauncher,
     ),
   );
 }
@@ -55,6 +66,7 @@ class MentalHealthApp extends StatelessWidget {
     this.catalogRepository,
     this.chatLauncher,
     this.videoLauncher,
+    this.aiLauncher,
     super.key,
   });
 
@@ -62,6 +74,7 @@ class MentalHealthApp extends StatelessWidget {
   final CatalogRepository? catalogRepository;
   final ChatSessionLauncher? chatLauncher;
   final VideoSessionLauncher? videoLauncher;
+  final AiSessionLauncher? aiLauncher;
 
   @override
   Widget build(BuildContext context) {
@@ -81,6 +94,7 @@ class MentalHealthApp extends StatelessWidget {
                       repository: catalogRepository!,
                       chatLauncher: chatLauncher,
                       videoLauncher: videoLauncher,
+                      aiLauncher: aiLauncher,
                       onLogout: authStore!.logout,
                     )
                   : LoginPage(authStore: authStore!),

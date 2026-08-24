@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/api/api_client.dart';
 import '../../generated/ui_copy.g.dart';
+import '../ai_consultation/ai_session_launcher.dart';
 import 'catalog_repository.dart';
 import 'order_page.dart';
 import '../consultation/chat_connection.dart';
@@ -13,6 +14,7 @@ class ConsentPage extends StatefulWidget {
     required this.repository,
     this.chatLauncher,
     this.videoLauncher,
+    this.aiLauncher,
     super.key,
   });
 
@@ -20,6 +22,7 @@ class ConsentPage extends StatefulWidget {
   final CatalogRepository repository;
   final ChatSessionLauncher? chatLauncher;
   final VideoSessionLauncher? videoLauncher;
+  final AiSessionLauncher? aiLauncher;
 
   @override
   State<ConsentPage> createState() => _ConsentPageState();
@@ -122,6 +125,7 @@ class _ConsentPageState extends State<ConsentPage> {
                 : null,
             chatLauncher: widget.chatLauncher,
             videoLauncher: widget.videoLauncher,
+            aiLauncher: widget.aiLauncher,
           ),
         ),
       );
