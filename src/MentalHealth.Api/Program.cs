@@ -1,6 +1,7 @@
 using MentalHealth.Api.Authorization;
 using MentalHealth.Api.Hubs;
 using MentalHealth.Api.Services;
+using MentalHealth.Api.Middleware;
 using MentalHealth.Infrastructure;
 using MentalHealth.Infrastructure.Identity;
 using MentalHealth.Infrastructure.Persistence;
@@ -61,6 +62,7 @@ if (builder.Configuration.GetValue<bool>("Database:InitializeOnStartup"))
     await scope.ServiceProvider.GetRequiredService<DemoCatalogSeeder>().SeedAsync();
 }
 
+app.UseMiddleware<SensitiveLogRedactionMiddleware>();
 app.UseExceptionHandler();
 app.UseCors(LocalClientCorsPolicy);
 app.UseAuthentication();

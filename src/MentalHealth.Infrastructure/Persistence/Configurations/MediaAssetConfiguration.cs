@@ -42,6 +42,8 @@ public sealed class MediaAssetConfiguration : IEntityTypeConfiguration<MediaAsse
         builder.Property(asset => asset.CompletedAt).HasColumnName("completed_at");
         builder.Property(asset => asset.ChunksDeletedAt)
             .HasColumnName("chunks_deleted_at");
+        builder.Property(asset => asset.RawMediaDeletedAt)
+            .HasColumnName("raw_media_deleted_at");
         builder.Property(asset => asset.CompletionIdempotencyKey)
             .HasColumnName("completion_idempotency_key")
             .HasMaxLength(100);

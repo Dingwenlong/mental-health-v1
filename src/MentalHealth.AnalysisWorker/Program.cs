@@ -12,6 +12,7 @@ public static class Program
         builder.Services.AddAnalysisInfrastructure(builder.Configuration);
         builder.Services.AddScoped<ConsultationCompletedConsumer>();
         builder.Services.AddScoped<ScoreAssessmentStage>();
+        builder.Services.AddHostedService<DemoRetentionWorker>();
         builder.Services.AddScoped(provider => new AnalysisPipeline(
             provider.GetRequiredService<MentalHealth.Infrastructure.Outbox.PostgresOutboxReader>(),
             provider.GetRequiredService<ConsultationCompletedConsumer>(),

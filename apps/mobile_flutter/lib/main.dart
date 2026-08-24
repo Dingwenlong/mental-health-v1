@@ -8,6 +8,7 @@ import 'features/ai_consultation/ai_session_launcher.dart';
 import 'features/catalog/catalog_repository.dart';
 import 'features/consultation/chat_connection.dart';
 import 'features/consultation/video_session_launcher.dart';
+import 'features/data_rights/data_rights_page.dart';
 import 'features/follow_ups/follow_up_list_page.dart';
 import 'features/follow_ups/local_reminder_service.dart';
 import 'features/home/patient_home_page.dart';
@@ -93,6 +94,8 @@ Future<void> main() async {
       resultGateway: ApiResultGateway(client),
       followUpRepository: ApiFollowUpRepository(client),
       reminders: DeviceLocalReminderService(),
+      dataRightsGateway: ApiDataRightsGateway(client),
+      dataExportSaver: const AndroidDownloadsDataExportSaver(),
     ),
   );
 }
@@ -107,6 +110,8 @@ class MentalHealthApp extends StatelessWidget {
     this.resultGateway,
     this.followUpRepository,
     this.reminders,
+    this.dataRightsGateway,
+    this.dataExportSaver,
     super.key,
   });
 
@@ -118,6 +123,8 @@ class MentalHealthApp extends StatelessWidget {
   final ResultGateway? resultGateway;
   final FollowUpRepository? followUpRepository;
   final LocalReminderService? reminders;
+  final DataRightsGateway? dataRightsGateway;
+  final DataExportSaver? dataExportSaver;
 
   @override
   Widget build(BuildContext context) {
@@ -130,7 +137,9 @@ class MentalHealthApp extends StatelessWidget {
               catalogRepository == null ||
               resultGateway == null ||
               followUpRepository == null ||
-              reminders == null
+              reminders == null ||
+              dataRightsGateway == null ||
+              dataExportSaver == null
           ? const Scaffold()
           : AnimatedBuilder(
               animation: authStore!,
@@ -143,6 +152,8 @@ class MentalHealthApp extends StatelessWidget {
                       resultGateway: resultGateway!,
                       followUpRepository: followUpRepository!,
                       reminders: reminders!,
+                      dataRightsGateway: dataRightsGateway!,
+                      dataExportSaver: dataExportSaver!,
                       onLogout: authStore!.logout,
                     )
                   : LoginPage(authStore: authStore!),

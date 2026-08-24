@@ -66,4 +66,6 @@ public static class ApiProblemCodes
     public const string FollowUpSlotNotQualified = "FOLLOW_UP_SLOT_NOT_QUALIFIED";
     public const string FollowUpDueAtInvalid = "FOLLOW_UP_DUE_AT_INVALID";
     public const string InvalidFollowUpState = "INVALID_FOLLOW_UP_STATE";
+    public const string RawMediaConfirmationRequired = "RAW_MEDIA_CONFIRMATION_REQUIRED";
+    public const string MediaTicketInvalid = "MEDIA_TICKET_INVALID";
 }

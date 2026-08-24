@@ -122,7 +122,15 @@ public sealed class LocalObjectStorage : IObjectStorage
     {
         cancellationToken.ThrowIfCancellationRequested();
         var targetPath = ResolveObjectPath(objectKey);
-        File.Delete(targetPath);
+        try
+        {
+            File.Delete(targetPath);
+        }
+        catch (DirectoryNotFoundException)
+        {
+            // A missing object is already deleted.
+        }
+
         return Task.CompletedTask;
     }
 

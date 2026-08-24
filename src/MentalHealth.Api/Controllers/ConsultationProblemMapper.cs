@@ -13,6 +13,7 @@ internal static class ConsultationProblemMapper
         {
             ApiProblemCodes.ForbiddenResource => StatusCodes.Status403Forbidden,
             ApiProblemCodes.DoctorReviewRequired => StatusCodes.Status403Forbidden,
+            ApiProblemCodes.MediaTicketInvalid => StatusCodes.Status403Forbidden,
             ApiProblemCodes.SessionNotFound or
                 ApiProblemCodes.OrderNotFound or
                 ApiProblemCodes.PlanNotAvailable or
@@ -54,6 +55,8 @@ internal static class ConsultationProblemMapper
             ApiProblemCodes.FollowUpSlotNotQualified => "这个时段不能用于本次回访",
             ApiProblemCodes.FollowUpDueAtInvalid => "所选时段已过期或超过最晚回访时间",
             ApiProblemCodes.InvalidFollowUpState => "这项回访当前不能执行该操作",
+            ApiProblemCodes.RawMediaConfirmationRequired => "如需包含原始录音或录像，请再次确认",
+            ApiProblemCodes.MediaTicketInvalid => "媒体访问凭据无效或已过期",
             ApiProblemCodes.NoQualifiedSlotBeforeSla => "要求时间内没有可用医生时段",
             ApiProblemCodes.MediaChunkConflict => "这个分块已存在但内容不同",
             ApiProblemCodes.MediaChunkMissing => "还有分块没有上传",

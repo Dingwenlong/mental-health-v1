@@ -7,6 +7,7 @@ import '../catalog/catalog_page.dart';
 import '../catalog/catalog_repository.dart';
 import '../consultation/chat_connection.dart';
 import '../consultation/video_session_launcher.dart';
+import '../data_rights/data_rights_page.dart';
 import '../follow_ups/follow_up_list_page.dart';
 import '../follow_ups/local_reminder_service.dart';
 import '../results/analysis_progress_page.dart';
@@ -17,6 +18,8 @@ class PatientHomePage extends StatefulWidget {
     required this.resultGateway,
     required this.followUpRepository,
     required this.reminders,
+    required this.dataRightsGateway,
+    required this.dataExportSaver,
     this.chatLauncher,
     this.videoLauncher,
     this.aiLauncher,
@@ -28,6 +31,8 @@ class PatientHomePage extends StatefulWidget {
   final ResultGateway resultGateway;
   final FollowUpRepository followUpRepository;
   final LocalReminderService reminders;
+  final DataRightsGateway dataRightsGateway;
+  final DataExportSaver dataExportSaver;
   final ChatSessionLauncher? chatLauncher;
   final VideoSessionLauncher? videoLauncher;
   final AiSessionLauncher? aiLauncher;
@@ -57,6 +62,10 @@ class _PatientHomePageState extends State<PatientHomePage> {
           repository: widget.followUpRepository,
           reminders: widget.reminders,
         ),
+        DataRightsPage(
+          gateway: widget.dataRightsGateway,
+          saver: widget.dataExportSaver,
+        ),
       ],
     ),
     bottomNavigationBar: NavigationBar(
@@ -77,6 +86,11 @@ class _PatientHomePageState extends State<PatientHomePage> {
           icon: const Icon(Icons.event_note_outlined),
           selectedIcon: const Icon(Icons.event_note),
           label: UiCopy.get('home.followUp'),
+        ),
+        NavigationDestination(
+          icon: const Icon(Icons.folder_outlined),
+          selectedIcon: const Icon(Icons.folder),
+          label: UiCopy.get('home.dataRights'),
         ),
       ],
     ),

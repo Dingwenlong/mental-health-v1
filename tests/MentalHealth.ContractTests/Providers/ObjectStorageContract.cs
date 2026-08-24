@@ -82,6 +82,16 @@ public abstract class ObjectStorageContract
     }
 
     [Fact]
+    public async Task Delete_missing_object_is_idempotent()
+    {
+        var storage = CreateStorage();
+
+        await storage.DeleteAsync(
+            $"missing/{Guid.NewGuid():N}/file.bin",
+            CancellationToken.None);
+    }
+
+    [Fact]
     public async Task Put_rejects_blank_content_type()
     {
         var storage = CreateStorage();

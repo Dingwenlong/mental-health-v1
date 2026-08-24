@@ -11,6 +11,7 @@ using MentalHealth.Application.Consultations.Media;
 using MentalHealth.Application.Consultations.Ai;
 using MentalHealth.Application.Analysis;
 using MentalHealth.Application.FollowUps;
+using MentalHealth.Application.DataRights;
 using MentalHealth.Domain.Analysis;
 using MentalHealth.Domain.FollowUps;
 using MentalHealth.Infrastructure.Identity;
@@ -131,6 +132,13 @@ public static class DependencyInjection
         services.AddScoped<WriteChunkHandler>();
         services.AddScoped<CompleteUploadHandler>();
         services.AddScoped<ExpiredUploadCleanupHandler>();
+        services.AddSingleton<MediaAccessTicketService>();
+        services.AddSingleton<IMediaAccessTicketService>(provider =>
+            provider.GetRequiredService<MediaAccessTicketService>());
+        services.AddScoped<ExportSubjectDataHandler>();
+        services.AddScoped<DeleteDemoSubjectHandler>();
+        services.AddScoped<MediaContentAccessHandler>();
+        services.AddScoped<AuditQueryHandler>();
 
         services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -195,6 +203,9 @@ public static class DependencyInjection
                     provider.GetRequiredService<IConfiguration>(),
                     "MentalHealth"))
                 .AddInterceptors(provider.GetRequiredService<OutboxSaveChangesInterceptor>()));
+        services.AddScoped<IDataRightsRepository>(provider =>
+            provider.GetRequiredService<MentalHealthDbContext>());
+        services.AddScoped<DemoRetentionHandler>();
         services.AddScoped<IAnalysisRepository>(provider =>
             provider.GetRequiredService<MentalHealthDbContext>());
         services.AddScoped<IRiskRuleSetRepository>(provider =>

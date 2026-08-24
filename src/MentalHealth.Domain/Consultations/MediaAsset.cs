@@ -6,7 +6,8 @@ public enum MediaAssetStatus
 {
     Uploading,
     Completed,
-    Expired
+    Expired,
+    Purged
 }
 
 public sealed class MediaAsset
@@ -68,6 +69,8 @@ public sealed class MediaAsset
     public DateTimeOffset? CompletedAt { get; private set; }
 
     public DateTimeOffset? ChunksDeletedAt { get; private set; }
+
+    public DateTimeOffset? RawMediaDeletedAt { get; private set; }
 
     public string? CompletionIdempotencyKey { get; private set; }
 
@@ -140,6 +143,23 @@ public sealed class MediaAsset
         }
 
         ChunksDeletedAt ??= deletedAt.ToUniversalTime();
+    }
+
+    public void PurgeRawMedia(DateTimeOffset deletedAt)
+    {
+        if (Status == MediaAssetStatus.Purged)
+        {
+            return;
+        }
+
+        if (Status != MediaAssetStatus.Completed || string.IsNullOrWhiteSpace(ObjectKey))
+        {
+            throw new DomainException("INVALID_MEDIA_STATE");
+        }
+
+        ObjectKey = null;
+        RawMediaDeletedAt = deletedAt.ToUniversalTime();
+        Status = MediaAssetStatus.Purged;
     }
 
     private void EnsureActiveUpload(DateTimeOffset now)

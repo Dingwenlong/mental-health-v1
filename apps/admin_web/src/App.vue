@@ -11,6 +11,7 @@ import AnalysisJobView from "./features/consultations/AnalysisJobView.vue";
 import FollowUpCalendarView from "./features/follow_ups/FollowUpCalendarView.vue";
 import RiskQueueView from "./features/risk_cases/RiskQueueView.vue";
 import RiskRuleVersionsView from "./features/risk_cases/RiskRuleVersionsView.vue";
+import AuditView from "./features/audit/AuditView.vue";
 import { notificationConnection } from "./features/notifications/notificationConnection";
 
 const auth = useAuthStore();
@@ -24,6 +25,7 @@ const activeView = ref<
   | "riskCases"
   | "followUps"
   | "riskRules"
+  | "audit"
 >("catalog");
 const credentials = reactive({ email: "", password: "", totpCode: "" });
 
@@ -169,6 +171,13 @@ async function logout(): Promise<void> {
           >
             {{ getUiCopy("admin.riskRules") }}
           </button>
+          <button
+            type="button"
+            :class="{ active: activeView === 'audit' }"
+            @click="activeView = 'audit'"
+          >
+            {{ getUiCopy("admin.audit") }}
+          </button>
         </nav>
         <section class="admin-content">
           <CatalogView v-if="activeView === 'catalog'" />
@@ -188,7 +197,8 @@ async function logout(): Promise<void> {
             v-else-if="activeView === 'followUps'"
             :notifications="notificationConnection"
           />
-          <RiskRuleVersionsView v-else />
+          <RiskRuleVersionsView v-else-if="activeView === 'riskRules'" />
+          <AuditView v-else />
         </section>
       </div>
     </template>

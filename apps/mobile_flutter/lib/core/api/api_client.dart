@@ -1,5 +1,12 @@
 import 'package:dio/dio.dart';
 
+class ApiBinaryResponse {
+  const ApiBinaryResponse({required this.bytes, required this.fileName});
+
+  final List<int> bytes;
+  final String fileName;
+}
+
 typedef AccessTokenReader = Future<String?> Function();
 
 class ApiFailure implements Exception {
@@ -106,6 +113,34 @@ class ApiClient {
     await _request<dynamic>('DELETE', path);
   }
 
+  Future<ApiBinaryResponse> getBytes(String path) async {
+    try {
+      final token = await readAccessToken();
+      final response = await _dio.get<List<int>>(
+        path,
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: token == null || token.isEmpty
+              ? null
+              : <String, String>{'Authorization': 'Bearer $token'},
+        ),
+      );
+      final bytes = response.data;
+      if (bytes == null) {
+        throw const ApiFailure(
+          code: 'INVALID_RESPONSE',
+          message: 'Expected binary response',
+        );
+      }
+      return ApiBinaryResponse(
+        bytes: bytes,
+        fileName: _fileNameFrom(response.headers) ?? 'my-demo-data.zip',
+      );
+    } on DioException catch (error) {
+      throw ApiFailure.fromDio(error);
+    }
+  }
+
   Future<Map<String, dynamic>> putBytes(String path, List<int> bytes) async {
     try {
       final token = await readAccessToken();
@@ -153,5 +188,21 @@ class ApiClient {
     } on DioException catch (error) {
       throw ApiFailure.fromDio(error);
     }
+  }
+
+  static String? _fileNameFrom(Headers headers) {
+    final disposition = headers.value('content-disposition');
+    if (disposition == null) return null;
+    final encoded = RegExp(
+      r"filename\*=UTF-8''([^;]+)",
+      caseSensitive: false,
+    ).firstMatch(disposition)?.group(1);
+    if (encoded != null && encoded.isNotEmpty) {
+      return Uri.decodeComponent(encoded);
+    }
+    return RegExp(
+      r'filename="?([^";]+)"?',
+      caseSensitive: false,
+    ).firstMatch(disposition)?.group(1);
   }
 }

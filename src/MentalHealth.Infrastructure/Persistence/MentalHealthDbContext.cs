@@ -6,11 +6,13 @@ using MentalHealth.Application.Consultations;
 using MentalHealth.Application.Consultations.Media;
 using MentalHealth.Application.Analysis;
 using MentalHealth.Application.FollowUps;
+using MentalHealth.Application.DataRights;
 using MentalHealth.Domain.Audit;
 using MentalHealth.Domain.Analysis;
 using MentalHealth.Domain.Consents;
 using MentalHealth.Domain.Consultations;
 using MentalHealth.Domain.FollowUps;
+using MentalHealth.Domain.DataRights;
 using MentalHealth.Domain.Shared;
 using MentalHealth.Infrastructure.Outbox;
 using MentalHealth.Infrastructure.Identity;
@@ -33,7 +35,8 @@ public sealed class MentalHealthDbContext(DbContextOptions<MentalHealthDbContext
         IRiskRuleSetRepository,
         IRiskAssessmentRepository,
         IObservationCaseRepository,
-        IFollowUpRepository
+        IFollowUpRepository,
+        IDataRightsRepository
 {
     public async Task ExecuteInTransactionAsync(
         Func<CancellationToken, Task> action,
@@ -85,6 +88,8 @@ public sealed class MentalHealthDbContext(DbContextOptions<MentalHealthDbContext
     public DbSet<ObservationCase> ObservationCases => Set<ObservationCase>();
 
     public DbSet<ClinicalReview> ClinicalReviews => Set<ClinicalReview>();
+
+    public DbSet<DemoDataDeletion> DemoDataDeletions => Set<DemoDataDeletion>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -651,4 +656,272 @@ public sealed class MentalHealthDbContext(DbContextOptions<MentalHealthDbContext
             .ToArrayAsync(cancellationToken);
 
     public void Add(FollowUpTask task) => FollowUpTasks.Add(task);
+
+    public async Task<SubjectDataSnapshot> ReadSubjectDataAsync(
+        Guid subjectId,
+        CancellationToken cancellationToken)
+    {
+        var sessions = await ConsultationSessions
+            .AsNoTracking()
+            .Where(session => session.SubjectId == subjectId)
+            .OrderBy(session => session.ScheduledAt)
+            .ThenBy(session => session.Id)
+            .ToArrayAsync(cancellationToken);
+        var sessionIds = sessions.Select(session => session.Id).ToArray();
+        var messages = sessionIds.Length == 0
+            ? []
+            : await Messages
+                .AsNoTracking()
+                .Where(message => sessionIds.Contains(message.SessionId))
+                .OrderBy(message => message.SessionId)
+                .ThenBy(message => message.Sequence)
+                .ToArrayAsync(cancellationToken);
+        var transcripts = sessionIds.Length == 0
+            ? []
+            : await ManualTranscripts
+                .AsNoTracking()
+                .Where(transcript => sessionIds.Contains(transcript.SessionId))
+                .OrderBy(transcript => transcript.SessionId)
+                .ThenBy(transcript => transcript.Revision)
+                .ToArrayAsync(cancellationToken);
+        var consents = await ConsentRecords
+            .AsNoTracking()
+            .Where(consent => consent.SubjectId == subjectId)
+            .OrderBy(consent => consent.GrantedAt)
+            .ToArrayAsync(cancellationToken);
+        var assessments = await RiskAssessments
+            .AsNoTracking()
+            .Where(assessment => assessment.SubjectId == subjectId)
+            .OrderBy(assessment => assessment.CreatedAt)
+            .ToArrayAsync(cancellationToken);
+        var followUps = await FollowUpTasks
+            .AsNoTracking()
+            .Where(task => task.SubjectId == subjectId)
+            .OrderBy(task => task.ProposedAt)
+            .ToArrayAsync(cancellationToken);
+
+        return new SubjectDataSnapshot(
+            subjectId,
+            sessions.Select(session => new SubjectConsultationExport(
+                session.Id,
+                session.Kind.ToString(),
+                session.Channel.ToString(),
+                session.Status.ToString(),
+                session.ScheduledAt,
+                session.StartedAt,
+                session.CompletedAt)).ToArray(),
+            messages.Select(message => new SubjectMessageExport(
+                message.Id,
+                message.SessionId,
+                message.SenderKind.ToString(),
+                message.Text,
+                message.Sequence,
+                message.SentAt)).ToArray(),
+            transcripts.Select(transcript => new SubjectTranscriptExport(
+                transcript.SessionId,
+                transcript.Revision,
+                transcript.Source.ToString(),
+                transcript.Text,
+                transcript.Sha256,
+                transcript.CreatedAt)).ToArray(),
+            consents.Select(consent => new SubjectConsentExport(
+                consent.Id,
+                consent.Kind,
+                consent.TextVersion,
+                consent.GrantedAt,
+                consent.WithdrawnAt)).ToArray(),
+            assessments.Select(assessment => new SubjectAssessmentExport(
+                assessment.Id,
+                assessment.SessionId,
+                assessment.Score,
+                assessment.Level.ToString(),
+                assessment.Confidence,
+                assessment.IsCrisis,
+                assessment.CreatedAt)).ToArray(),
+            followUps.Select(task => new SubjectFollowUpExport(
+                task.Id,
+                task.AssessmentId,
+                task.Status.ToString(),
+                task.DueAt,
+                task.Deadline,
+                task.CompletedAt,
+                task.CancelledAt)).ToArray());
+    }
+
+    public async Task<SubjectMediaReference?> FindOwnedMediaAsync(
+        Guid subjectId,
+        Guid assetId,
+        CancellationToken cancellationToken)
+    {
+        var asset = await MediaAssets
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                media => media.Id == assetId
+                    && media.SubjectId == subjectId
+                    && media.Status == MediaAssetStatus.Completed,
+                cancellationToken);
+        return asset is null ? null : ToMediaReference(asset);
+    }
+
+    public async Task<IReadOnlyList<SubjectMediaReference>> ListSubjectMediaAsync(
+        Guid subjectId,
+        CancellationToken cancellationToken)
+    {
+        var media = await MediaAssets
+            .AsNoTracking()
+            .Where(asset => asset.SubjectId == subjectId)
+            .OrderBy(asset => asset.CapturedAt)
+            .ThenBy(asset => asset.Id)
+            .ToArrayAsync(cancellationToken);
+        return media.Select(ToMediaReference).ToArray();
+    }
+
+    public Task<DemoDataDeletion?> FindDeletionAsync(
+        Guid subjectId,
+        CancellationToken cancellationToken) =>
+        DemoDataDeletions.SingleOrDefaultAsync(
+            deletion => deletion.SubjectId == subjectId,
+            cancellationToken);
+
+    public void Add(DemoDataDeletion deletion) =>
+        DemoDataDeletions.Add(deletion);
+
+    public async Task DeleteSubjectDataAsync(
+        Guid subjectId,
+        CancellationToken cancellationToken)
+    {
+        var sessionIds = await ConsultationSessions
+            .Where(session => session.SubjectId == subjectId)
+            .Select(session => session.Id)
+            .ToArrayAsync(cancellationToken);
+        var assessmentIds = await RiskAssessments
+            .Where(assessment => assessment.SubjectId == subjectId)
+            .Select(assessment => assessment.Id)
+            .ToArrayAsync(cancellationToken);
+        var observationIds = assessmentIds.Length == 0
+            ? []
+            : await ObservationCases
+                .Where(item => assessmentIds.Contains(item.AssessmentId))
+                .Select(item => item.Id)
+                .ToArrayAsync(cancellationToken);
+        var followUpIds = await FollowUpTasks
+            .Where(task => task.SubjectId == subjectId)
+            .Select(task => task.Id)
+            .ToArrayAsync(cancellationToken);
+
+        if (assessmentIds.Length > 0)
+        {
+            await ClinicalReviews
+                .Where(review => assessmentIds.Contains(review.AssessmentId))
+                .ExecuteDeleteAsync(cancellationToken);
+        }
+
+        if (observationIds.Length > 0)
+        {
+            await ObservationCases
+                .Where(item => observationIds.Contains(item.Id))
+                .ExecuteDeleteAsync(cancellationToken);
+        }
+
+        await FollowUpTasks
+            .Where(task => task.SubjectId == subjectId)
+            .ExecuteDeleteAsync(cancellationToken);
+        if (sessionIds.Length > 0)
+        {
+            await AnalysisJobs
+                .Where(job => sessionIds.Contains(job.SessionId))
+                .ExecuteDeleteAsync(cancellationToken);
+        }
+
+        await RiskAssessments
+            .Where(assessment => assessment.SubjectId == subjectId)
+            .ExecuteDeleteAsync(cancellationToken);
+        if (sessionIds.Length > 0)
+        {
+            await ManualTranscripts
+                .Where(transcript => sessionIds.Contains(transcript.SessionId))
+                .ExecuteDeleteAsync(cancellationToken);
+        }
+
+        await MediaAssets
+            .Where(asset => asset.SubjectId == subjectId)
+            .ExecuteDeleteAsync(cancellationToken);
+        if (sessionIds.Length > 0)
+        {
+            await Messages
+                .Where(message => sessionIds.Contains(message.SessionId))
+                .ExecuteDeleteAsync(cancellationToken);
+            await OutboxMessages
+                .Where(message => sessionIds.Contains(message.AggregateId))
+                .ExecuteDeleteAsync(cancellationToken);
+        }
+
+        if (followUpIds.Length > 0)
+        {
+            await OutboxMessages
+                .Where(message => followUpIds.Contains(message.AggregateId))
+                .ExecuteDeleteAsync(cancellationToken);
+        }
+
+        await ConsultationSessions
+            .Where(session => session.SubjectId == subjectId)
+            .ExecuteDeleteAsync(cancellationToken);
+        await DemoOrders
+            .Where(order => order.SubjectId == subjectId)
+            .ExecuteDeleteAsync(cancellationToken);
+        await ConsentRecords
+            .Where(consent => consent.SubjectId == subjectId)
+            .ExecuteDeleteAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<MediaAsset>> ListRetentionCandidatesAsync(
+        DateTimeOffset capturedBefore,
+        int maximumCount,
+        CancellationToken cancellationToken) =>
+        await MediaAssets
+            .Where(asset => asset.IsDemo
+                && asset.Status == MediaAssetStatus.Completed
+                && asset.ObjectKey != null
+                && asset.CapturedAt < capturedBefore)
+            .OrderBy(asset => asset.CapturedAt)
+            .ThenBy(asset => asset.Id)
+            .Take(maximumCount)
+            .ToArrayAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<SafeAuditRecord>> ListAuditAsync(
+        int maximumCount,
+        CancellationToken cancellationToken)
+    {
+        var allowedActions = new[]
+        {
+            "ConsentGranted",
+            "ConsentWithdrawn",
+            "RecordViewed",
+            "RiskReviewed",
+            "FollowUpRescheduled",
+            "DemoDataDeleted"
+        };
+        return await AuditEvents
+            .AsNoTracking()
+            .Where(audit => allowedActions.Contains(audit.Action))
+            .OrderByDescending(audit => audit.OccurredAt)
+            .ThenByDescending(audit => audit.Id)
+            .Take(maximumCount)
+            .Select(audit => new SafeAuditRecord(
+                audit.OccurredAt,
+                audit.ActorUserId,
+                audit.Action,
+                audit.ResourceId,
+                audit.Reason))
+            .ToArrayAsync(cancellationToken);
+    }
+
+    private static SubjectMediaReference ToMediaReference(MediaAsset asset) =>
+        new(
+            asset.Id,
+            asset.SubjectId,
+            asset.ContentType,
+            asset.ObjectKey,
+            asset.ExpectedChunks,
+            asset.CapturedAt);
 }
