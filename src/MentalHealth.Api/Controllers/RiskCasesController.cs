@@ -3,6 +3,7 @@ using MentalHealth.Application.Analysis;
 using MentalHealth.Application.Security;
 using MentalHealth.Domain.Analysis;
 using MentalHealth.Domain.Shared;
+using MentalHealth.Api.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,7 +15,8 @@ namespace MentalHealth.Api.Controllers;
 [Route("api/v1/risk-cases")]
 public sealed class RiskCasesController(
     RiskCaseQueryHandler query,
-    ReviewRiskCaseHandler review) : ControllerBase
+    ReviewRiskCaseHandler review,
+    NotificationPublisher notifications) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> List(
@@ -88,6 +90,11 @@ public sealed class RiskCasesController(
                 caseId,
                 ParseLevel(request.ReviewedLevel),
                 request.Reason ?? string.Empty,
+                cancellationToken);
+            await notifications.RiskCaseChangedAsync(
+                caseId,
+                saved.ReviewedLevel.ToString(),
+                "Open",
                 cancellationToken);
             return Created(
                 $"/api/v1/risk-cases/{caseId}",

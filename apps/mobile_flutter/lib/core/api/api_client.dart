@@ -71,6 +71,17 @@ class ApiClient {
     return response;
   }
 
+  Future<Map<String, dynamic>> get(String path) async {
+    final response = await _request<dynamic>('GET', path);
+    if (response is! Map) {
+      throw const ApiFailure(
+        code: 'INVALID_RESPONSE',
+        message: 'Expected a JSON object',
+      );
+    }
+    return Map<String, dynamic>.from(response);
+  }
+
   Future<Map<String, dynamic>> post(
     String path, {
     Map<String, dynamic>? data,

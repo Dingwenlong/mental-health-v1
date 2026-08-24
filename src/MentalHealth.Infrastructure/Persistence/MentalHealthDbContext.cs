@@ -442,6 +442,15 @@ public sealed class MentalHealthDbContext(DbContextOptions<MentalHealthDbContext
             rule => rule.Active,
             cancellationToken);
 
+    public async Task<IReadOnlyList<RiskRuleSet>> ListRuleSetsAsync(
+        CancellationToken cancellationToken) =>
+        await RiskRuleSets
+            .AsNoTracking()
+            .OrderByDescending(rule => rule.Active)
+            .ThenByDescending(rule => rule.CreatedAt)
+            .ThenBy(rule => rule.Version)
+            .ToArrayAsync(cancellationToken);
+
     public Task<RiskAssessment?> FindLatestAssessmentAsync(
         Guid sessionId,
         CancellationToken cancellationToken) =>

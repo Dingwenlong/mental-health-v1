@@ -17,6 +17,28 @@ namespace MentalHealth.IntegrationTests.Analysis;
 public sealed class RiskReportTests(AuthApiFixture fixture)
 {
     [Fact]
+    public async Task Operations_admin_can_list_rule_versions_with_the_active_version_first()
+    {
+        using var admin = await fixture.CreateTrustedApiClientForAsync(
+            "admin@demo.local");
+
+        using var response = await admin.GetAsync("/api/v1/admin/risk-rules");
+
+        response.EnsureSuccessStatusCode();
+        var versions = await ConsultationScenario.ReadJsonAsync(response);
+        var items = versions.EnumerateArray().ToArray();
+        Assert.NotEmpty(items);
+        Assert.True(items[0].GetProperty("active").GetBoolean());
+        var active = Assert.Single(
+            items,
+            item => item.GetProperty("active").GetBoolean());
+        Assert.True(active.GetProperty("crisisRulesEnabled").GetBoolean());
+        Assert.Contains(
+            items,
+            item => item.GetProperty("version").GetString() == "risk-v1");
+    }
+
+    [Fact]
     public async Task Report_is_explainable_private_and_unchanged_after_rule_activation()
     {
         using var started = await ConsultationScenario.StartVideoAsync(fixture);

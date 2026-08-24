@@ -15,6 +15,18 @@ namespace MentalHealth.Api.Controllers;
 public sealed class AdminRiskRulesController(CreateRiskRuleSetHandler handler)
     : ControllerBase
 {
+    [HttpGet]
+    public async Task<IActionResult> List(CancellationToken cancellationToken)
+    {
+        if (!TryActor(out _))
+        {
+            return ProblemFor(ApiProblemCodes.ForbiddenResource);
+        }
+
+        var versions = await handler.ListAsync(cancellationToken);
+        return Ok(versions.Select(RiskRuleSetResponse.From).ToArray());
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create(
         RiskRuleSetRequest request,

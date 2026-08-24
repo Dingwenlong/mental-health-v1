@@ -3,6 +3,7 @@ using MentalHealth.Application.Consultations;
 using MentalHealth.Application.FollowUps;
 using MentalHealth.Domain.FollowUps;
 using MentalHealth.Domain.Shared;
+using MentalHealth.Api.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,7 +14,8 @@ namespace MentalHealth.Api.Controllers;
 [Route("api/v1/follow-ups")]
 public sealed class FollowUpsController(
     FollowUpQueryHandler query,
-    RescheduleFollowUpHandler commands) : ControllerBase
+    RescheduleFollowUpHandler commands,
+    NotificationPublisher notifications) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> List(CancellationToken cancellationToken)
@@ -99,12 +101,14 @@ public sealed class FollowUpsController(
 
         try
         {
-            return Ok(FollowUpResponse.From(await command(
+            var task = await command(
                 actor,
                 taskId,
                 request.AvailabilitySlotId,
                 request.Reason ?? string.Empty,
-                cancellationToken)));
+                cancellationToken);
+            await notifications.FollowUpChangedAsync(task, cancellationToken);
+            return Ok(FollowUpResponse.From(task));
         }
         catch (DomainException exception)
         {
@@ -131,11 +135,13 @@ public sealed class FollowUpsController(
 
         try
         {
-            return Ok(FollowUpResponse.From(await command(
+            var task = await command(
                 actor,
                 taskId,
                 request.Reason ?? string.Empty,
-                cancellationToken)));
+                cancellationToken);
+            await notifications.FollowUpChangedAsync(task, cancellationToken);
+            return Ok(FollowUpResponse.From(task));
         }
         catch (DomainException exception)
         {

@@ -1,6 +1,7 @@
 using MentalHealth.Api.Authorization;
 using MentalHealth.Application.Analysis;
 using MentalHealth.Domain.Shared;
+using MentalHealth.Api.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,7 +10,9 @@ namespace MentalHealth.Api.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/v1/consultations/{sessionId:guid}/transcript")]
-public sealed class TranscriptsController(SaveManualTranscriptHandler save)
+public sealed class TranscriptsController(
+    SaveManualTranscriptHandler save,
+    NotificationPublisher notifications)
     : ControllerBase
 {
     [HttpPost]
@@ -31,6 +34,11 @@ public sealed class TranscriptsController(SaveManualTranscriptHandler save)
                 sessionId,
                 request.Source,
                 request.Text,
+                cancellationToken);
+            await notifications.AnalysisStatusChangedAsync(
+                sessionId,
+                "Queued",
+                transcript.Revision,
                 cancellationToken);
             return Created(
                 $"/api/v1/consultations/{sessionId}/transcript?revision={transcript.Revision}",

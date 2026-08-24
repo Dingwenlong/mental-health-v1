@@ -23,6 +23,9 @@ public interface IRiskRuleSetRepository
 
     Task<RiskRuleSet?> FindActiveRuleSetAsync(CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<RiskRuleSet>> ListRuleSetsAsync(
+        CancellationToken cancellationToken);
+
     void Add(RiskRuleSet ruleSet);
 }
 
@@ -51,6 +54,10 @@ public sealed class CreateRiskRuleSetHandler(
     IUnitOfWork unitOfWork,
     IClock clock)
 {
+    public Task<IReadOnlyList<RiskRuleSet>> ListAsync(
+        CancellationToken cancellationToken) =>
+        rules.ListRuleSetsAsync(cancellationToken);
+
     public async Task<RiskRuleSet> CreateAsync(
         Guid actorUserId,
         RiskRuleSetInput input,
