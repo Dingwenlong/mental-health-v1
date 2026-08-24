@@ -6,5 +6,6 @@ public enum FollowUpStatus
     Scheduled,
     Due,
     Completed,
-    Overdue
+    Overdue,
+    Cancelled
 }

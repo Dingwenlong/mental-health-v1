@@ -5,6 +5,7 @@ using MentalHealth.Application.Catalog;
 using MentalHealth.Application.Consultations;
 using MentalHealth.Application.Consultations.Media;
 using MentalHealth.Application.Analysis;
+using MentalHealth.Application.FollowUps;
 using MentalHealth.Domain.Audit;
 using MentalHealth.Domain.Analysis;
 using MentalHealth.Domain.Consents;
@@ -30,7 +31,9 @@ public sealed class MentalHealthDbContext(DbContextOptions<MentalHealthDbContext
         IMediaAssetRepository,
         IAnalysisRepository,
         IRiskRuleSetRepository,
-        IRiskAssessmentRepository
+        IRiskAssessmentRepository,
+        IObservationCaseRepository,
+        IFollowUpRepository
 {
     public async Task ExecuteInTransactionAsync(
         Func<CancellationToken, Task> action,
@@ -78,6 +81,10 @@ public sealed class MentalHealthDbContext(DbContextOptions<MentalHealthDbContext
     public DbSet<RiskRuleSet> RiskRuleSets => Set<RiskRuleSet>();
 
     public DbSet<RiskAssessment> RiskAssessments => Set<RiskAssessment>();
+
+    public DbSet<ObservationCase> ObservationCases => Set<ObservationCase>();
+
+    public DbSet<ClinicalReview> ClinicalReviews => Set<ClinicalReview>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -445,6 +452,15 @@ public sealed class MentalHealthDbContext(DbContextOptions<MentalHealthDbContext
             .ThenByDescending(assessment => assessment.Id)
             .FirstOrDefaultAsync(cancellationToken);
 
+    public Task<RiskAssessment?> FindAssessmentByIdAsync(
+        Guid assessmentId,
+        CancellationToken cancellationToken) =>
+        RiskAssessments
+            .Include(assessment => assessment.Evidence)
+            .SingleOrDefaultAsync(
+                assessment => assessment.Id == assessmentId,
+                cancellationToken);
+
     public Task<RiskAssessment?> FindAssessmentAsync(
         Guid sessionId,
         string ruleSetVersion,
@@ -461,4 +477,169 @@ public sealed class MentalHealthDbContext(DbContextOptions<MentalHealthDbContext
     public void Add(RiskRuleSet ruleSet) => RiskRuleSets.Add(ruleSet);
 
     public void Add(RiskAssessment assessment) => RiskAssessments.Add(assessment);
+
+    public Task<ObservationCase?> FindObservationByAssessmentAsync(
+        Guid assessmentId,
+        CancellationToken cancellationToken) =>
+        ObservationCases.SingleOrDefaultAsync(
+            item => item.AssessmentId == assessmentId,
+            cancellationToken);
+
+    public Task<ObservationCase?> FindObservationCaseAsync(
+        Guid caseId,
+        CancellationToken cancellationToken) =>
+        ObservationCases.SingleOrDefaultAsync(
+            item => item.Id == caseId,
+            cancellationToken);
+
+    public async Task<IReadOnlyList<ObservationCase>> ListCasesAsync(
+        RiskLevel? level,
+        ObservationCaseStatus? status,
+        CancellationToken cancellationToken)
+    {
+        var query = ObservationCases.AsNoTracking().AsQueryable();
+        if (level is { } exactLevel)
+        {
+            query = query.Where(item => item.CurrentLevel == exactLevel);
+        }
+
+        if (status is { } exactStatus)
+        {
+            query = query.Where(item => item.Status == exactStatus);
+        }
+
+        return await query
+            .OrderBy(item => item.CurrentLevel == RiskLevel.Crisis
+                ? 0
+                : item.CurrentLevel == RiskLevel.L3
+                    ? 1
+                    : item.CurrentLevel == RiskLevel.L2 ? 2 : 3)
+            .ThenBy(item => item.CreatedAt)
+            .ThenBy(item => item.Id)
+            .ToArrayAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<ClinicalReview>> ListReviewsAsync(
+        Guid caseId,
+        CancellationToken cancellationToken) =>
+        await ClinicalReviews
+            .AsNoTracking()
+            .Where(review => review.ObservationCaseId == caseId)
+            .OrderBy(review => review.ReviewedAt)
+            .ThenBy(review => review.Id)
+            .ToArrayAsync(cancellationToken);
+
+    public void Add(ObservationCase observationCase) =>
+        ObservationCases.Add(observationCase);
+
+    public void Add(ClinicalReview review) => ClinicalReviews.Add(review);
+
+    public Task<FollowUpTask?> FindFollowUpByAssessmentAsync(
+        Guid assessmentId,
+        CancellationToken cancellationToken) =>
+        FollowUpTasks.SingleOrDefaultAsync(
+            task => task.AssessmentId == assessmentId,
+            cancellationToken);
+
+    public Task<FollowUpTask?> FindFollowUpAsync(
+        Guid taskId,
+        CancellationToken cancellationToken) =>
+        FollowUpTasks.SingleOrDefaultAsync(
+            task => task.Id == taskId,
+            cancellationToken);
+
+    public async Task<IReadOnlyList<FollowUpCandidate>> ListCandidatesAsync(
+        DateTimeOffset now,
+        DateTimeOffset deadline,
+        CancellationToken cancellationToken)
+    {
+        var rows = await (
+            from slot in AvailabilitySlots.AsNoTracking()
+            join practitioner in Practitioners.AsNoTracking()
+                on slot.PractitionerId equals practitioner.Id
+            where slot.Active
+                && practitioner.Active
+                && practitioner.Role == PractitionerRole.Doctor
+                && slot.StartAt >= now
+                && slot.StartAt <= deadline
+                && !FollowUpTasks.Any(task =>
+                    task.AvailabilitySlotId == slot.Id
+                    && task.Status != FollowUpStatus.Completed
+                    && task.Status != FollowUpStatus.Cancelled)
+            select new
+            {
+                Slot = slot,
+                practitioner.Role,
+                Incomplete = FollowUpTasks.Count(task =>
+                    task.AssigneeId == practitioner.Id
+                    && task.Status != FollowUpStatus.Completed
+                    && task.Status != FollowUpStatus.Cancelled)
+            }).ToArrayAsync(cancellationToken);
+        return rows.Select(row => new FollowUpCandidate(
+            row.Slot.Id,
+            row.Slot.PractitionerId,
+            row.Role,
+            true,
+            row.Slot.StartAt,
+            row.Slot.EndAt,
+            row.Incomplete)).ToArray();
+    }
+
+    public async Task<FollowUpCandidate?> FindCandidateAsync(
+        Guid availabilitySlotId,
+        CancellationToken cancellationToken)
+    {
+        var row = await (
+            from slot in AvailabilitySlots.AsNoTracking()
+            join practitioner in Practitioners.AsNoTracking()
+                on slot.PractitionerId equals practitioner.Id
+            where slot.Id == availabilitySlotId
+            select new
+            {
+                Slot = slot,
+                practitioner.Role,
+                Active = slot.Active
+                    && practitioner.Active
+                    && !FollowUpTasks.Any(task =>
+                        task.AvailabilitySlotId == slot.Id
+                        && task.Status != FollowUpStatus.Completed
+                        && task.Status != FollowUpStatus.Cancelled),
+                Incomplete = FollowUpTasks.Count(task =>
+                    task.AssigneeId == practitioner.Id
+                    && task.Status != FollowUpStatus.Completed
+                    && task.Status != FollowUpStatus.Cancelled)
+            }).SingleOrDefaultAsync(cancellationToken);
+        return row is null
+            ? null
+            : new FollowUpCandidate(
+                row.Slot.Id,
+                row.Slot.PractitionerId,
+                row.Role,
+                row.Active,
+                row.Slot.StartAt,
+                row.Slot.EndAt,
+                row.Incomplete);
+    }
+
+    public async Task<IReadOnlyList<FollowUpTask>> ListForSubjectAsync(
+        Guid subjectId,
+        CancellationToken cancellationToken) =>
+        await FollowUpTasks
+            .AsNoTracking()
+            .Where(task => task.SubjectId == subjectId)
+            .OrderBy(task => task.DueAt ?? task.Deadline)
+            .ThenBy(task => task.Id)
+            .ToArrayAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<FollowUpTask>> ListForAssigneeAsync(
+        Guid practitionerId,
+        CancellationToken cancellationToken) =>
+        await FollowUpTasks
+            .AsNoTracking()
+            .Where(task => task.AssigneeId == practitionerId)
+            .OrderBy(task => task.DueAt ?? task.Deadline)
+            .ThenBy(task => task.Id)
+            .ToArrayAsync(cancellationToken);
+
+    public void Add(FollowUpTask task) => FollowUpTasks.Add(task);
 }

@@ -28,6 +28,10 @@ public interface IRiskRuleSetRepository
 
 public interface IRiskAssessmentRepository
 {
+    Task<RiskAssessment?> FindAssessmentByIdAsync(
+        Guid assessmentId,
+        CancellationToken cancellationToken);
+
     Task<RiskAssessment?> FindLatestAssessmentAsync(
         Guid sessionId,
         CancellationToken cancellationToken);

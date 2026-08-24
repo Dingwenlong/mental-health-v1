@@ -12,12 +12,15 @@ internal static class ConsultationProblemMapper
         var status = exception.Code switch
         {
             ApiProblemCodes.ForbiddenResource => StatusCodes.Status403Forbidden,
+            ApiProblemCodes.DoctorReviewRequired => StatusCodes.Status403Forbidden,
             ApiProblemCodes.SessionNotFound or
                 ApiProblemCodes.OrderNotFound or
                 ApiProblemCodes.PlanNotAvailable or
                 ApiProblemCodes.PractitionerNotFound or
                 ApiProblemCodes.MediaNotFound or
                 ApiProblemCodes.ResultNotFound => StatusCodes.Status404NotFound,
+            ApiProblemCodes.RiskCaseNotFound or
+                ApiProblemCodes.FollowUpNotFound => StatusCodes.Status404NotFound,
             ApiProblemCodes.IdempotencyConflict or
                 ApiProblemCodes.MediaChunkConflict => StatusCodes.Status409Conflict,
             _ => StatusCodes.Status422UnprocessableEntity
@@ -42,6 +45,16 @@ internal static class ConsultationProblemMapper
             ApiProblemCodes.MessageCursorInvalid => "消息位置无效",
             ApiProblemCodes.MediaNotFound => "没有找到这次媒体上传",
             ApiProblemCodes.ResultNotFound => "这次咨询还没有关注指数结果",
+            ApiProblemCodes.DoctorReviewRequired => "只有精神科医生可以执行这项操作",
+            ApiProblemCodes.RiskCaseNotFound => "没有找到这条重点观察记录",
+            ApiProblemCodes.ReviewReasonRequired => "请填写复核原因",
+            ApiProblemCodes.ReviewLevelInvalid => "请选择有效的复核等级",
+            ApiProblemCodes.FollowUpNotFound => "没有找到这项回访安排",
+            ApiProblemCodes.FollowUpReasonRequired => "请填写操作原因",
+            ApiProblemCodes.FollowUpSlotNotQualified => "这个时段不能用于本次回访",
+            ApiProblemCodes.FollowUpDueAtInvalid => "所选时段已过期或超过最晚回访时间",
+            ApiProblemCodes.InvalidFollowUpState => "这项回访当前不能执行该操作",
+            ApiProblemCodes.NoQualifiedSlotBeforeSla => "要求时间内没有可用医生时段",
             ApiProblemCodes.MediaChunkConflict => "这个分块已存在但内容不同",
             ApiProblemCodes.MediaChunkMissing => "还有分块没有上传",
             ApiProblemCodes.MediaHashMismatch => "媒体摘要不一致",

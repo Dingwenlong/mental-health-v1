@@ -12,7 +12,8 @@ public sealed class ScoreAssessmentStage(
     IAnalysisRepository analysisJobs,
     IUnitOfWork unitOfWork,
     IClock clock,
-    AttentionIndexCalculator calculator)
+    AttentionIndexCalculator calculator,
+    CreateObservationCaseHandler observationCases)
 {
     public async Task<RiskAssessment> RunAsync(
         Guid sessionId,
@@ -32,6 +33,7 @@ public sealed class ScoreAssessmentStage(
             cancellationToken);
         if (existing is not null)
         {
+            await observationCases.HandleAsync(existing, cancellationToken);
             return existing;
         }
 
@@ -53,6 +55,7 @@ public sealed class ScoreAssessmentStage(
             cancellationToken);
         job.Complete(assessment.Id, clock.UtcNow);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+        await observationCases.HandleAsync(assessment, cancellationToken);
         return assessment;
     }
 

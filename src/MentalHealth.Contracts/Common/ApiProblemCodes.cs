@@ -57,4 +57,13 @@ public static class ApiProblemCodes
     public const string RiskRuleWeightsInvalid = "RISK_RULE_WEIGHTS_INVALID";
     public const string RiskRuleThresholdsInvalid = "RISK_RULE_THRESHOLDS_INVALID";
     public const string CrisisRulesRequired = "CRISIS_RULES_REQUIRED";
+    public const string DoctorReviewRequired = "DOCTOR_REVIEW_REQUIRED";
+    public const string RiskCaseNotFound = "RISK_CASE_NOT_FOUND";
+    public const string ReviewReasonRequired = "REVIEW_REASON_REQUIRED";
+    public const string ReviewLevelInvalid = "REVIEW_LEVEL_INVALID";
+    public const string FollowUpNotFound = "FOLLOW_UP_NOT_FOUND";
+    public const string FollowUpReasonRequired = "FOLLOW_UP_REASON_REQUIRED";
+    public const string FollowUpSlotNotQualified = "FOLLOW_UP_SLOT_NOT_QUALIFIED";
+    public const string FollowUpDueAtInvalid = "FOLLOW_UP_DUE_AT_INVALID";
+    public const string InvalidFollowUpState = "INVALID_FOLLOW_UP_STATE";
 }

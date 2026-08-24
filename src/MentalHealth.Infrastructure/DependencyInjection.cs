@@ -10,7 +10,9 @@ using MentalHealth.Application.Consultations;
 using MentalHealth.Application.Consultations.Media;
 using MentalHealth.Application.Consultations.Ai;
 using MentalHealth.Application.Analysis;
+using MentalHealth.Application.FollowUps;
 using MentalHealth.Domain.Analysis;
+using MentalHealth.Domain.FollowUps;
 using MentalHealth.Infrastructure.Identity;
 using MentalHealth.Infrastructure.Content;
 using MentalHealth.Infrastructure.Outbox;
@@ -199,13 +201,24 @@ public static class DependencyInjection
             provider.GetRequiredService<MentalHealthDbContext>());
         services.AddScoped<IRiskAssessmentRepository>(provider =>
             provider.GetRequiredService<MentalHealthDbContext>());
+        services.AddScoped<IObservationCaseRepository>(provider =>
+            provider.GetRequiredService<MentalHealthDbContext>());
+        services.AddScoped<IFollowUpRepository>(provider =>
+            provider.GetRequiredService<MentalHealthDbContext>());
         services.AddScoped<IManualTranscriptReader>(provider =>
             provider.GetRequiredService<MentalHealthDbContext>());
         services.AddScoped<RequestAnalysisHandler>();
         services.AddScoped<SaveManualTranscriptHandler>();
         services.AddScoped<CreateRiskRuleSetHandler>();
         services.AddScoped<RiskReportQueryHandler>();
+        services.AddScoped<CreateObservationCaseHandler>();
+        services.AddScoped<ReviewRiskCaseHandler>();
+        services.AddScoped<RiskCaseQueryHandler>();
+        services.AddScoped<ProposeFollowUpHandler>();
+        services.AddScoped<RescheduleFollowUpHandler>();
+        services.AddScoped<FollowUpQueryHandler>();
         services.TryAddSingleton<AttentionIndexCalculator>();
+        services.TryAddSingleton<FollowUpScheduler>();
         services.AddScoped<ITranscriptionProvider, ManualTranscriptionProvider>();
         services.AddSingleton<PostgresOutboxReader>();
         return services;

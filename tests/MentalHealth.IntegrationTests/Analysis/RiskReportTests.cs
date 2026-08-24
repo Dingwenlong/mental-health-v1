@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using MentalHealth.AnalysisWorker.Pipeline;
 using MentalHealth.Application.Abstractions.Clock;
 using MentalHealth.Application.Abstractions.Providers;
+using MentalHealth.Application.Analysis;
 using MentalHealth.Domain.Analysis;
 using MentalHealth.Infrastructure.Persistence;
 using MentalHealth.IntegrationTests.Auth;
@@ -42,7 +43,8 @@ public sealed class RiskReportTests(AuthApiFixture fixture)
                 db,
                 db,
                 clock,
-                calculator);
+                calculator,
+                scope.ServiceProvider.GetRequiredService<CreateObservationCaseHandler>());
             var observations = new Dictionary<Modality, IReadOnlyCollection<FeatureObservation>>
             {
                 [Modality.Scale] =

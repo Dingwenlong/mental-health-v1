@@ -13,7 +13,8 @@ public sealed class AuditEvent
         string action,
         string resourceType,
         Guid resourceId,
-        DateTimeOffset occurredAt)
+        DateTimeOffset occurredAt,
+        string? reason)
     {
         if (actorUserId == Guid.Empty
             || resourceId == Guid.Empty
@@ -31,6 +32,7 @@ public sealed class AuditEvent
         ResourceType = resourceType;
         ResourceId = resourceId;
         OccurredAt = occurredAt;
+        Reason = NormalizeReason(reason);
     }
 
     public Guid Id { get; private set; }
@@ -45,11 +47,30 @@ public sealed class AuditEvent
 
     public DateTimeOffset OccurredAt { get; private set; }
 
+    public string? Reason { get; private set; }
+
     public static AuditEvent Create(
         Guid actorUserId,
         string action,
         string resourceType,
         Guid resourceId,
-        DateTimeOffset occurredAt) =>
-        new(actorUserId, action, resourceType, resourceId, occurredAt);
+        DateTimeOffset occurredAt,
+        string? reason = null) =>
+        new(actorUserId, action, resourceType, resourceId, occurredAt, reason);
+
+    private static string? NormalizeReason(string? reason)
+    {
+        if (reason is null)
+        {
+            return null;
+        }
+
+        var normalized = reason.Trim();
+        if (normalized.Length == 0 || normalized.Length > 1000)
+        {
+            throw new DomainException("AUDIT_REASON_INVALID");
+        }
+
+        return normalized;
+    }
 }

@@ -39,4 +39,16 @@ public sealed record ConsultationActor(
 
         throw new DomainException("FORBIDDEN_RESOURCE");
     }
+
+    public Guid RequireDoctor()
+    {
+        if (UserId == Guid.Empty
+            || PractitionerId is not { } practitionerId
+            || !Roles.Contains(AppRoles.Doctor, StringComparer.Ordinal))
+        {
+            throw new DomainException("DOCTOR_REVIEW_REQUIRED");
+        }
+
+        return practitionerId;
+    }
 }

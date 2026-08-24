@@ -23,6 +23,9 @@ public sealed class AuditEventConfiguration : IEntityTypeConfiguration<AuditEven
             .HasMaxLength(64);
         builder.Property(audit => audit.ResourceId).HasColumnName("resource_id");
         builder.Property(audit => audit.OccurredAt).HasColumnName("occurred_at");
+        builder.Property(audit => audit.Reason)
+            .HasColumnName("reason")
+            .HasMaxLength(1000);
         builder.HasIndex(audit => new
         {
             audit.ResourceType,
