@@ -270,28 +270,41 @@ public sealed class AuthController(
             return InvalidSmsCode();
         }
 
-        var user = await userManager.FindByIdAsync(challenge.UserId.Value.ToString());
-        if (user is null)
+        try
+        {
+            var user = await userManager.FindByIdAsync(challenge.UserId.Value.ToString());
+            if (user is null)
+            {
+                await DelayFailureAsync(startedTimestamp, cancellationToken);
+                return InvalidSmsCode();
+            }
+
+            user.PhoneNumberConfirmed = true;
+            var update = await userManager.UpdateAsync(user);
+            if (!update.Succeeded)
+            {
+                await DelayFailureAsync(startedTimestamp, cancellationToken);
+                return ProviderUnavailable();
+            }
+
+            var roles = await userManager.GetRolesAsync(user);
+            var token = tokenService.Issue(new JwtTokenSubject(
+                user.Id,
+                challenge.NationalPhoneNumber,
+                roles.ToArray(),
+                user.SubjectId,
+                user.PractitionerId));
+            return Ok(new TokenResponse(token.Value, token.ExpiresAt));
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
         {
             await DelayFailureAsync(startedTimestamp, cancellationToken);
-            return InvalidSmsCode();
+            return ProviderUnavailable();
         }
-
-        user.PhoneNumberConfirmed = true;
-        var update = await userManager.UpdateAsync(user);
-        if (!update.Succeeded)
-        {
-            throw new InvalidOperationException("Failed to confirm the login phone number.");
-        }
-
-        var roles = await userManager.GetRolesAsync(user);
-        var token = tokenService.Issue(new JwtTokenSubject(
-            user.Id,
-            challenge.NationalPhoneNumber,
-            roles.ToArray(),
-            user.SubjectId,
-            user.PractitionerId));
-        return Ok(new TokenResponse(token.Value, token.ExpiresAt));
     }
 
     private async Task<bool> TryReleaseLeaseAsync(

@@ -229,6 +229,52 @@ public sealed class PhoneSmsLoginTests(AuthApiFixture fixture)
     }
 
     [Fact]
+    public async Task Post_consumption_completion_failure_is_delayed_and_returns_503()
+    {
+        await fixture.ResetPhoneLoginAsync();
+        var challenge = await CreateRegisteredChallengeAsync();
+        fixture.Jwt.ThrowOnIssue = true;
+        fixture.ClearCapturedLogs();
+
+        using var failed = await VerifyAsync(
+            challenge.ChallengeToken,
+            FakeSmsVerificationProvider.ValidCode);
+
+        Assert.DoesNotContain(
+            "accessToken",
+            await failed.Content.ReadAsStringAsync(),
+            StringComparison.OrdinalIgnoreCase);
+        await AssertProblemAsync(
+            failed,
+            HttpStatusCode.ServiceUnavailable,
+            ApiProblemCodes.AuthProviderUnavailable);
+        var target = Assert.Single(fixture.FailureDelay.Targets);
+        Assert.InRange(
+            target,
+            TimeSpan.FromMilliseconds(800),
+            TimeSpan.FromMilliseconds(1000));
+        Assert.DoesNotContain(
+            fixture.CapturedLogs,
+            entry => new[]
+            {
+                ControllableJwtTokenService.FailureMessage,
+                "+8613800138001",
+                FakeSmsVerificationProvider.ValidCode,
+                challenge.ChallengeToken,
+                challenge.ChallengeId
+            }.Any(value => entry.Message.Contains(value, StringComparison.Ordinal)));
+
+        fixture.Jwt.ThrowOnIssue = false;
+        using var consumed = await VerifyAsync(
+            challenge.ChallengeToken,
+            FakeSmsVerificationProvider.ValidCode);
+        await AssertProblemAsync(
+            consumed,
+            HttpStatusCode.Unauthorized,
+            ApiProblemCodes.InvalidSmsCode);
+    }
+
+    [Fact]
     public async Task Password_and_Mfa_routes_are_removed()
     {
         using var login = await fixture.Client.PostAsJsonAsync(

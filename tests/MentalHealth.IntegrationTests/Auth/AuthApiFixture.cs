@@ -82,6 +82,9 @@ public sealed class AuthApiFixture : IAsyncLifetime
 
     public FakeLoginFailureDelay FailureDelay => _failureDelay;
 
+    public ControllableJwtTokenService Jwt =>
+        Services.GetRequiredService<ControllableJwtTokenService>();
+
     public ControllableLoginChallengeStore ChallengeStore =>
         Services.GetRequiredService<ControllableLoginChallengeStore>();
 
@@ -154,9 +157,16 @@ public sealed class AuthApiFixture : IAsyncLifetime
                 services.RemoveAll<ISmsVerificationProvider>();
                 services.RemoveAll<ILoginChallengeStore>();
                 services.RemoveAll<ILoginFailureDelay>();
+                services.RemoveAll<IJwtTokenService>();
                 services.AddSingleton<ICaptchaVerifier>(_captcha);
                 services.AddSingleton<ISmsVerificationProvider>(_sms);
                 services.AddSingleton<ILoginFailureDelay>(_failureDelay);
+                services.AddSingleton<JwtTokenService>();
+                services.AddSingleton<ControllableJwtTokenService>(provider =>
+                    new ControllableJwtTokenService(
+                        provider.GetRequiredService<JwtTokenService>()));
+                services.AddSingleton<IJwtTokenService>(provider =>
+                    provider.GetRequiredService<ControllableJwtTokenService>());
                 services.AddSingleton<RedisLoginChallengeStore>();
                 services.AddSingleton<ControllableLoginChallengeStore>(provider =>
                     new ControllableLoginChallengeStore(
@@ -175,6 +185,7 @@ public sealed class AuthApiFixture : IAsyncLifetime
         _captcha.Reset();
         _sms.Reset();
         _failureDelay.Reset();
+        Jwt.ThrowOnIssue = false;
 
         var redis = Services.GetRequiredService<IConnectionMultiplexer>();
         var database = redis.GetDatabase();
