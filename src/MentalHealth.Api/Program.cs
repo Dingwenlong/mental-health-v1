@@ -66,6 +66,7 @@ if (builder.Configuration.GetValue<bool>("Database:InitializeOnStartup"))
 
 app.UseMiddleware<SensitiveLogRedactionMiddleware>();
 app.UseExceptionHandler();
+app.UseStaticFiles();
 app.UseCors(LocalClientCorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();

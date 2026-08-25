@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -27,16 +29,43 @@ class SecureTokenStorage implements TokenStorage {
   Future<void> clearAccessToken() => _storage.delete(key: _accessTokenKey);
 }
 
-abstract interface class AuthGateway {
-  Future<String> login({
-    required String email,
-    required String password,
-    String? totpCode,
+class CaptchaBootstrap {
+  const CaptchaBootstrap({
+    required this.preChallengeToken,
+    required this.prefix,
+    required this.encryptedSceneId,
+    required this.expiresAt,
   });
 
-  Future<String> beginMfaSetup(String setupToken);
+  final String preChallengeToken;
+  final String prefix;
+  final String encryptedSceneId;
+  final DateTime expiresAt;
+}
 
-  Future<void> confirmMfaSetup(String setupToken, String totpCode);
+class SmsChallenge {
+  const SmsChallenge({
+    required this.challengeToken,
+    required this.expiresAt,
+    required this.resendAt,
+  });
+
+  final String challengeToken;
+  final DateTime expiresAt;
+  final DateTime resendAt;
+}
+
+typedef CaptchaExecutor = Future<String?> Function(CaptchaBootstrap bootstrap);
+
+abstract interface class AuthGateway {
+  Future<CaptchaBootstrap> bootstrapPhone(String phoneNumber);
+
+  Future<SmsChallenge> createSmsChallenge(
+    String preChallengeToken,
+    String captchaVerifyParam,
+  );
+
+  Future<String> verifySmsCode(String challengeToken, String code);
 }
 
 class ApiAuthGateway implements AuthGateway {
@@ -45,6 +74,47 @@ class ApiAuthGateway implements AuthGateway {
   final ApiClient _client;
 
   @override
+  Future<CaptchaBootstrap> bootstrapPhone(String phoneNumber) async {
+    final response = await _client.post(
+      'auth/captcha/bootstrap',
+      data: <String, dynamic>{'phoneNumber': phoneNumber, 'client': 'android'},
+    );
+    return CaptchaBootstrap(
+      preChallengeToken: response['preChallengeToken'] as String,
+      prefix: response['prefix'] as String,
+      encryptedSceneId: response['encryptedSceneId'] as String,
+      expiresAt: DateTime.parse(response['expiresAt'] as String).toUtc(),
+    );
+  }
+
+  @override
+  Future<SmsChallenge> createSmsChallenge(
+    String preChallengeToken,
+    String captchaVerifyParam,
+  ) async {
+    final response = await _client.post(
+      'auth/sms/challenges',
+      data: <String, dynamic>{
+        'preChallengeToken': preChallengeToken,
+        'captchaVerifyParam': captchaVerifyParam,
+      },
+    );
+    return SmsChallenge(
+      challengeToken: response['challengeToken'] as String,
+      expiresAt: DateTime.parse(response['expiresAt'] as String).toUtc(),
+      resendAt: DateTime.parse(response['resendAt'] as String).toUtc(),
+    );
+  }
+
+  @override
+  Future<String> verifySmsCode(String challengeToken, String code) async {
+    final response = await _client.post(
+      'auth/sms/verify',
+      data: <String, dynamic>{'challengeToken': challengeToken, 'code': code},
+    );
+    return response['accessToken'] as String;
+  }
+
   Future<String> login({
     required String email,
     required String password,
@@ -60,25 +130,6 @@ class ApiAuthGateway implements AuthGateway {
     );
     return response['accessToken'] as String;
   }
-
-  @override
-  Future<String> beginMfaSetup(String setupToken) async {
-    final response = await _client.post(
-      'auth/mfa/setup',
-      data: const <String, dynamic>{'totpCode': null},
-      bearerToken: setupToken,
-    );
-    return response['manualKey'] as String;
-  }
-
-  @override
-  Future<void> confirmMfaSetup(String setupToken, String totpCode) async {
-    await _client.post(
-      'auth/mfa/setup',
-      data: <String, dynamic>{'totpCode': totpCode},
-      bearerToken: setupToken,
-    );
-  }
 }
 
 class AuthStore extends ChangeNotifier {
@@ -89,33 +140,29 @@ class AuthStore extends ChangeNotifier {
 
   bool isAuthenticated = false;
   bool isBusy = false;
-  bool needsMfaCode = false;
-  bool needsMfaSetup = false;
-  String? mfaManualKey;
+  String? phoneNumber;
+  int secondsUntilResend = 0;
   String? errorCopyKey;
-  String? serverMessage;
-  String? _setupToken;
-  String _email = '';
-  String _password = '';
+
+  String? _challengeToken;
+  Timer? _countdown;
+
+  bool get hasChallenge => _challengeToken != null;
 
   Future<void> restore() async {
     isAuthenticated = (await storage.readAccessToken())?.isNotEmpty ?? false;
     notifyListeners();
   }
 
-  Future<bool> login({
-    required String email,
-    required String password,
-    String? totpCode,
-  }) async {
-    _email = email.trim();
-    _password = password;
-    return _runLogin(totpCode: totpCode);
-  }
-
-  Future<bool> completeMfaSetup(String totpCode) async {
-    final setupToken = _setupToken;
-    if (setupToken == null) {
+  Future<bool> sendCode(
+    String phoneNumberInput,
+    CaptchaExecutor captchaExecutor,
+  ) async {
+    if (isBusy || secondsUntilResend > 0) return false;
+    final normalizedInput = phoneNumberInput.trim();
+    if (!RegExp(r'^1\d{10}$').hasMatch(normalizedInput)) {
+      errorCopyKey = 'auth.phoneRequired';
+      notifyListeners();
       return false;
     }
 
@@ -123,9 +170,51 @@ class AuthStore extends ChangeNotifier {
     errorCopyKey = null;
     notifyListeners();
     try {
-      await gateway.confirmMfaSetup(setupToken, totpCode);
-      needsMfaSetup = false;
-      return await _runLogin(totpCode: totpCode, manageBusy: false);
+      final bootstrap = await gateway.bootstrapPhone(normalizedInput);
+      final captchaVerifyParam = await captchaExecutor(bootstrap);
+      if (captchaVerifyParam == null || captchaVerifyParam.isEmpty) {
+        errorCopyKey = 'auth.captchaFailed';
+        return false;
+      }
+      final challenge = await gateway.createSmsChallenge(
+        bootstrap.preChallengeToken,
+        captchaVerifyParam,
+      );
+      phoneNumber = normalizedInput;
+      _challengeToken = challenge.challengeToken;
+      _startCountdown(_secondsUntil(challenge.resendAt));
+      return true;
+    } on ApiFailure catch (failure) {
+      _setFailure(failure);
+      return false;
+    } catch (_) {
+      errorCopyKey = 'error.retry';
+      return false;
+    } finally {
+      isBusy = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> verifySmsCode(String code) async {
+    final challengeToken = _challengeToken;
+    if (challengeToken == null || !RegExp(r'^\d{6}$').hasMatch(code)) {
+      errorCopyKey = 'auth.invalidSmsCode';
+      notifyListeners();
+      return false;
+    }
+
+    isBusy = true;
+    errorCopyKey = null;
+    notifyListeners();
+    try {
+      final token = await gateway.verifySmsCode(challengeToken, code);
+      await storage.writeAccessToken(token);
+      isAuthenticated = true;
+      _challengeToken = null;
+      _countdown?.cancel();
+      secondsUntilResend = 0;
+      return true;
     } on ApiFailure catch (failure) {
       _setFailure(failure);
       return false;
@@ -137,68 +226,56 @@ class AuthStore extends ChangeNotifier {
 
   Future<void> logout() async {
     await storage.clearAccessToken();
+    _countdown?.cancel();
     isAuthenticated = false;
-    needsMfaCode = false;
-    needsMfaSetup = false;
-    _password = '';
+    phoneNumber = null;
+    _challengeToken = null;
+    secondsUntilResend = 0;
+    errorCopyKey = null;
     notifyListeners();
-  }
-
-  Future<bool> _runLogin({String? totpCode, bool manageBusy = true}) async {
-    if (manageBusy) {
-      isBusy = true;
-      errorCopyKey = null;
-      serverMessage = null;
-      notifyListeners();
-    }
-    try {
-      final token = await gateway.login(
-        email: _email,
-        password: _password,
-        totpCode: totpCode,
-      );
-      await storage.writeAccessToken(token);
-      isAuthenticated = true;
-      needsMfaCode = false;
-      needsMfaSetup = false;
-      _password = '';
-      return true;
-    } on ApiFailure catch (failure) {
-      if (failure.code == 'MFA_REQUIRED') {
-        final setupToken = failure.data['setupToken']?.toString();
-        if (setupToken != null && setupToken.isNotEmpty) {
-          _setupToken = setupToken;
-          try {
-            mfaManualKey = await gateway.beginMfaSetup(setupToken);
-            needsMfaSetup = true;
-            needsMfaCode = false;
-          } on ApiFailure catch (setupFailure) {
-            _setFailure(setupFailure);
-            return false;
-          }
-        } else {
-          needsMfaCode = true;
-          needsMfaSetup = false;
-        }
-      }
-      _setFailure(failure);
-      return false;
-    } finally {
-      if (manageBusy) {
-        isBusy = false;
-        notifyListeners();
-      }
-    }
   }
 
   void _setFailure(ApiFailure failure) {
     errorCopyKey = switch (failure.code) {
-      'INVALID_CREDENTIALS' => 'auth.invalidCredentials',
-      'INVALID_MFA_CODE' => 'auth.invalidMfaCode',
-      'MFA_REQUIRED' => 'auth.mfaRequired',
+      'INVALID_PHONE_NUMBER' => 'auth.phoneRequired',
+      'CAPTCHA_FAILED' => 'auth.captchaFailed',
+      'LOGIN_CHALLENGE_INVALID' => 'auth.challengeInvalid',
+      'SMS_RATE_LIMITED' => 'auth.smsRateLimited',
+      'INVALID_SMS_CODE' => 'auth.invalidSmsCode',
+      'AUTH_PROVIDER_UNAVAILABLE' => 'auth.providerUnavailable',
       'FORBIDDEN_RESOURCE' => 'error.forbidden',
       _ => 'error.retry',
     };
-    serverMessage = failure.message;
+    final retryAfterSeconds = failure.retryAfterSeconds;
+    if (failure.code == 'SMS_RATE_LIMITED' &&
+        retryAfterSeconds != null &&
+        retryAfterSeconds > 0) {
+      _startCountdown(retryAfterSeconds);
+    }
+  }
+
+  int _secondsUntil(DateTime target) {
+    final milliseconds = target
+        .difference(DateTime.now().toUtc())
+        .inMilliseconds;
+    if (milliseconds <= 0) return 60;
+    return (milliseconds / Duration.millisecondsPerSecond).ceil();
+  }
+
+  void _startCountdown(int seconds) {
+    _countdown?.cancel();
+    secondsUntilResend = seconds < 0 ? 0 : seconds;
+    if (secondsUntilResend == 0) return;
+    _countdown = Timer.periodic(const Duration(seconds: 1), (timer) {
+      secondsUntilResend = secondsUntilResend > 0 ? secondsUntilResend - 1 : 0;
+      if (secondsUntilResend == 0) timer.cancel();
+      notifyListeners();
+    });
+  }
+
+  @override
+  void dispose() {
+    _countdown?.cancel();
+    super.dispose();
   }
 }

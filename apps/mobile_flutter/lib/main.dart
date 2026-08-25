@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import 'core/account/contact_email_gateway.dart';
 import 'core/api/api_client.dart';
 import 'core/auth/auth_store.dart';
 import 'core/network/demo_certificate_trust.dart';
 import 'features/auth/login_page.dart';
+import 'features/auth/captcha_runner.dart';
 import 'features/ai_consultation/ai_session_launcher.dart';
 import 'features/catalog/catalog_repository.dart';
 import 'features/consultation/chat_connection.dart';
@@ -96,6 +98,8 @@ Future<void> main() async {
       reminders: DeviceLocalReminderService(),
       dataRightsGateway: ApiDataRightsGateway(client),
       dataExportSaver: const AndroidDownloadsDataExportSaver(),
+      contactEmailGateway: ApiContactEmailGateway(client),
+      captchaRunner: WebViewCaptchaRunner(apiBaseUri: client.baseUri),
     ),
   );
 }
@@ -112,6 +116,8 @@ class MentalHealthApp extends StatelessWidget {
     this.reminders,
     this.dataRightsGateway,
     this.dataExportSaver,
+    this.contactEmailGateway,
+    this.captchaRunner,
     super.key,
   });
 
@@ -125,6 +131,8 @@ class MentalHealthApp extends StatelessWidget {
   final LocalReminderService? reminders;
   final DataRightsGateway? dataRightsGateway;
   final DataExportSaver? dataExportSaver;
+  final ContactEmailGateway? contactEmailGateway;
+  final CaptchaRunner? captchaRunner;
 
   @override
   Widget build(BuildContext context) {
@@ -154,9 +162,15 @@ class MentalHealthApp extends StatelessWidget {
                       reminders: reminders!,
                       dataRightsGateway: dataRightsGateway!,
                       dataExportSaver: dataExportSaver!,
+                      contactEmailGateway: contactEmailGateway,
                       onLogout: authStore!.logout,
                     )
-                  : LoginPage(authStore: authStore!),
+                  : captchaRunner == null
+                  ? const Scaffold()
+                  : LoginPage(
+                      authStore: authStore!,
+                      captchaRunner: captchaRunner!,
+                    ),
             ),
     );
   }

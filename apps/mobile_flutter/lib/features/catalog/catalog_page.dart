@@ -15,6 +15,7 @@ class CatalogPage extends StatefulWidget {
     this.chatLauncher,
     this.videoLauncher,
     this.aiLauncher,
+    this.onOpenAccount,
     this.onLogout,
     super.key,
   });
@@ -23,6 +24,7 @@ class CatalogPage extends StatefulWidget {
   final ChatSessionLauncher? chatLauncher;
   final VideoSessionLauncher? videoLauncher;
   final AiSessionLauncher? aiLauncher;
+  final VoidCallback? onOpenAccount;
   final VoidCallback? onLogout;
 
   @override
@@ -43,13 +45,21 @@ class _CatalogPageState extends State<CatalogPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(UiCopy.get('catalog.title')),
-        actions: widget.onLogout == null
+        actions: widget.onOpenAccount == null && widget.onLogout == null
             ? null
             : <Widget>[
-                TextButton(
-                  onPressed: widget.onLogout,
-                  child: Text(UiCopy.get('auth.logout')),
-                ),
+                if (widget.onOpenAccount != null)
+                  IconButton(
+                    key: const Key('account-settings'),
+                    tooltip: UiCopy.get('account.contactEmail.title'),
+                    onPressed: widget.onOpenAccount,
+                    icon: const Icon(Icons.manage_accounts_outlined),
+                  ),
+                if (widget.onLogout != null)
+                  TextButton(
+                    onPressed: widget.onLogout,
+                    child: Text(UiCopy.get('auth.logout')),
+                  ),
               ],
       ),
       body: FutureBuilder<List<ServicePlanSummary>>(

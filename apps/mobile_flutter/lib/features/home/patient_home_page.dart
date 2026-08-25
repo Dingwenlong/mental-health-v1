@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../core/account/contact_email_gateway.dart';
 import '../../generated/ui_copy.g.dart';
+import '../account/contact_email_page.dart';
 import '../ai_consultation/ai_session_launcher.dart';
 import '../ai_consultation/demo_questionnaire_page.dart';
 import '../catalog/catalog_page.dart';
@@ -20,6 +22,7 @@ class PatientHomePage extends StatefulWidget {
     required this.reminders,
     required this.dataRightsGateway,
     required this.dataExportSaver,
+    this.contactEmailGateway,
     this.chatLauncher,
     this.videoLauncher,
     this.aiLauncher,
@@ -33,6 +36,7 @@ class PatientHomePage extends StatefulWidget {
   final LocalReminderService reminders;
   final DataRightsGateway dataRightsGateway;
   final DataExportSaver dataExportSaver;
+  final ContactEmailGateway? contactEmailGateway;
   final ChatSessionLauncher? chatLauncher;
   final VideoSessionLauncher? videoLauncher;
   final AiSessionLauncher? aiLauncher;
@@ -55,6 +59,14 @@ class _PatientHomePageState extends State<PatientHomePage> {
           chatLauncher: widget.chatLauncher,
           videoLauncher: widget.videoLauncher,
           aiLauncher: widget.aiLauncher,
+          onOpenAccount: widget.contactEmailGateway == null
+              ? null
+              : () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) =>
+                        ContactEmailPage(gateway: widget.contactEmailGateway!),
+                  ),
+                ),
           onLogout: widget.onLogout,
         ),
         _ResultLookupPage(gateway: widget.resultGateway),

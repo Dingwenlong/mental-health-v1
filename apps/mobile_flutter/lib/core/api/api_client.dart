@@ -14,12 +14,14 @@ class ApiFailure implements Exception {
     required this.code,
     required this.message,
     this.status,
+    this.retryAfterSeconds,
     this.data = const <String, dynamic>{},
   });
 
   final String code;
   final String message;
   final int? status;
+  final int? retryAfterSeconds;
   final Map<String, dynamic> data;
 
   factory ApiFailure.fromDio(DioException error) {
@@ -39,6 +41,9 @@ class ApiFailure implements Exception {
           (networkMessage.isEmpty ? null : networkMessage) ??
           'Request failed',
       status: error.response?.statusCode,
+      retryAfterSeconds: int.tryParse(
+        error.response?.headers.value('retry-after') ?? '',
+      ),
       data: problem,
     );
   }
@@ -49,7 +54,8 @@ class ApiFailure implements Exception {
 
 class ApiClient {
   ApiClient({required String baseUrl, required this.readAccessToken, Dio? dio})
-    : _dio =
+    : baseUri = Uri.parse(baseUrl),
+      _dio =
           dio ??
           Dio(
             BaseOptions(
@@ -65,6 +71,7 @@ class ApiClient {
           );
 
   final Dio _dio;
+  final Uri baseUri;
   final AccessTokenReader readAccessToken;
 
   Future<List<dynamic>> getList(String path) async {
@@ -107,6 +114,10 @@ class ApiClient {
       );
     }
     return Map<String, dynamic>.from(response);
+  }
+
+  Future<void> put(String path, {Map<String, dynamic>? data}) async {
+    await _request<dynamic>('PUT', path, data: data);
   }
 
   Future<void> delete(String path) async {
