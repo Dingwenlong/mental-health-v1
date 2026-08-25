@@ -72,6 +72,7 @@ public static class DependencyInjection
             ConnectionMultiplexer.Connect(RequireConnectionString(
                 provider.GetRequiredService<IConfiguration>(),
                 "Redis")));
+        services.TryAddSingleton<TimeProvider>(TimeProvider.System);
 
         services
             .AddOptions<JwtOptions>()

@@ -1,5 +1,11 @@
 namespace MentalHealth.Application.Security;
 
+public sealed record PhoneLoginPreChallengeDraft(
+    string NationalPhoneNumber,
+    Guid? UserId,
+    string Client,
+    string SceneId);
+
 public sealed record PhoneLoginPreChallenge(
     string NationalPhoneNumber,
     Guid? UserId,
@@ -12,9 +18,7 @@ public sealed record PhoneLoginChallengeDraft(
     string NationalPhoneNumber,
     Guid? UserId,
     string Client,
-    string SceneId,
-    DateTimeOffset SentAt,
-    DateTimeOffset ExpiresAt);
+    string SceneId);
 
 public sealed record PhoneLoginChallenge(
     string ChallengeId,
@@ -50,3 +54,25 @@ public sealed record VerificationLease(
 public readonly record struct ChallengeConsumption(
     bool WasConsumed,
     Guid? UserId);
+
+public enum SmsDispatchLeaseState
+{
+    Missing = 0,
+    Acquired = 1,
+    Busy = 2,
+    Sent = 3,
+    Terminal = 4
+}
+
+public sealed record SmsDispatchLease(
+    SmsDispatchLeaseState State,
+    string? LeaseId,
+    PhoneLoginChallenge? Challenge,
+    int Attempt);
+
+public enum SmsDispatchFailureState
+{
+    LostLease = 0,
+    Retryable = 1,
+    Terminal = 2
+}

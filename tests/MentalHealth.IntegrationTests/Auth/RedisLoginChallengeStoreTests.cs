@@ -13,6 +13,8 @@ namespace MentalHealth.IntegrationTests.Auth;
 [Collection(RedisLoginCollection.Name)]
 public sealed class RedisLoginChallengeStoreTests(RedisLoginFixture fixture)
 {
+    private const string KeyPrefix = "auth:{phone-login}";
+
     [Fact]
     public async Task Prechallenge_uses_hashed_key_expires_in_300_seconds_and_is_taken_once()
     {
@@ -24,11 +26,46 @@ public sealed class RedisLoginChallengeStoreTests(RedisLoginFixture fixture)
 
         Assert.DoesNotContain(ticket.Token, ticket.Id, StringComparison.Ordinal);
         Assert.Equal(Sha256(ticket.Token), ticket.Id);
-        var key = $"auth:pre:{ticket.Id}";
+        var key = $"{KeyPrefix}:pre:{ticket.Id}";
         var ttl = await fixture.Database.KeyTimeToLiveAsync(key);
         Assert.InRange(ttl!.Value.TotalSeconds, 298, 300);
-        Assert.Equal(state, await store.TakePreChallengeAsync(ticket.Token));
+        var taken = await store.TakePreChallengeAsync(ticket.Token);
+        Assert.NotNull(taken);
+        Assert.Equal(state.NationalPhoneNumber, taken.NationalPhoneNumber);
+        Assert.Equal(state.UserId, taken.UserId);
+        Assert.Equal(state.Client, taken.Client);
+        Assert.Equal(state.SceneId, taken.SceneId);
+        Assert.Equal(ticket.ExpiresAt, taken.ExpiresAt);
         Assert.Null(await store.TakePreChallengeAsync(ticket.Token));
+    }
+
+    [Fact]
+    public async Task Store_owns_one_300_second_expiry_for_ticket_state_and_redis_ttl()
+    {
+        await fixture.ResetAsync();
+        var now = new DateTimeOffset(2026, 8, 25, 12, 0, 0, TimeSpan.Zero);
+        var timeProvider = new ManualTimeProvider(now);
+        var store = fixture.CreateStore(timeProvider);
+
+        var preTicket = await store.CreatePreChallengeAsync(
+            PreChallenge("+8613800138016"));
+        var preState = await store.TakePreChallengeAsync(preTicket.Token);
+
+        Assert.Equal(now.AddSeconds(300), preTicket.ExpiresAt);
+        Assert.Equal(now, preState!.CreatedAt);
+        Assert.Equal(preTicket.ExpiresAt, preState.ExpiresAt);
+
+        timeProvider.UtcNow = now.AddDays(1);
+        var challengeTicket = await store.CreateChallengeAsync(
+            Challenge("+8613800138016", Guid.NewGuid()));
+        var challengeState = await store.GetChallengeForDispatchAsync(challengeTicket.Id);
+        var challengeTtl = await fixture.Database.KeyTimeToLiveAsync(
+            $"{KeyPrefix}:challenge:{challengeTicket.Id}");
+
+        Assert.Equal(timeProvider.UtcNow.AddSeconds(300), challengeTicket.ExpiresAt);
+        Assert.Equal(timeProvider.UtcNow, challengeState!.SentAt);
+        Assert.Equal(challengeTicket.ExpiresAt, challengeState.ExpiresAt);
+        Assert.InRange(challengeTtl!.Value.TotalSeconds, 298, 300);
     }
 
     [Fact]
@@ -41,7 +78,7 @@ public sealed class RedisLoginChallengeStoreTests(RedisLoginFixture fixture)
 
         Assert.True((await store.CheckSmsSendRateAsync(phone, ip)).IsAllowed);
         await fixture.Database.KeyExpireAsync(
-            $"auth:rate:phone:60s:{Sha256(phone)}",
+            $"{KeyPrefix}:rate:phone:60s:{Sha256(phone)}",
             TimeSpan.FromSeconds(17));
 
         var denied = await store.CheckSmsSendRateAsync(phone, ip);
@@ -63,7 +100,7 @@ public sealed class RedisLoginChallengeStoreTests(RedisLoginFixture fixture)
 
         Assert.Single(decisions, decision => decision.IsAllowed);
         await fixture.Database.KeyDeleteAsync(
-            $"auth:rate:phone:60s:{Sha256(phone)}");
+            $"{KeyPrefix}:rate:phone:60s:{Sha256(phone)}");
         Assert.True((await store.CheckSmsSendRateAsync(
             phone,
             "203.0.113.14")).IsAllowed);
@@ -83,7 +120,7 @@ public sealed class RedisLoginChallengeStoreTests(RedisLoginFixture fixture)
                 hourlyPhone,
                 $"203.0.113.{attempt + 10}")).IsAllowed);
             await fixture.Database.KeyDeleteAsync(
-                $"auth:rate:phone:60s:{Sha256(hourlyPhone)}");
+                $"{KeyPrefix}:rate:phone:60s:{Sha256(hourlyPhone)}");
         }
 
         var hourlyDenied = await store.CheckSmsSendRateAsync(
@@ -98,8 +135,8 @@ public sealed class RedisLoginChallengeStoreTests(RedisLoginFixture fixture)
                 dailyPhone,
                 $"198.51.100.{attempt}")).IsAllowed);
             await fixture.Database.KeyDeleteAsync([
-                $"auth:rate:phone:60s:{Sha256(dailyPhone)}",
-                $"auth:rate:phone:hour:{Sha256(dailyPhone)}"
+                $"{KeyPrefix}:rate:phone:60s:{Sha256(dailyPhone)}",
+                $"{KeyPrefix}:rate:phone:hour:{Sha256(dailyPhone)}"
             ]);
         }
 
@@ -137,7 +174,7 @@ public sealed class RedisLoginChallengeStoreTests(RedisLoginFixture fixture)
                 $"+86139{attempt:D8}",
                 dailyIp)).IsAllowed);
             await fixture.Database.KeyDeleteAsync(
-                $"auth:rate:ip:minute:{Sha256(dailyIp)}");
+                $"{KeyPrefix}:rate:ip:minute:{Sha256(dailyIp)}");
         }
 
         var dailyDenied = await store.CheckSmsSendRateAsync(
@@ -170,7 +207,7 @@ public sealed class RedisLoginChallengeStoreTests(RedisLoginFixture fixture)
         await fixture.ResetAsync();
         var store = fixture.CreateStore();
         var ticket = await store.CreateChallengeAsync(Challenge("+8613800138005", Guid.NewGuid()));
-        var ttl = await fixture.Database.KeyTimeToLiveAsync($"auth:challenge:{ticket.Id}");
+        var ttl = await fixture.Database.KeyTimeToLiveAsync($"{KeyPrefix}:challenge:{ticket.Id}");
         Assert.InRange(ttl!.Value.TotalSeconds, 298, 300);
 
         for (var attempt = 1; attempt <= 5; attempt++)
@@ -179,7 +216,7 @@ public sealed class RedisLoginChallengeStoreTests(RedisLoginFixture fixture)
             Assert.True(lease.IsAcquired);
             Assert.Equal(attempt, lease.Challenge!.FailedAttempts);
             var lockTtl = await fixture.Database.KeyTimeToLiveAsync(
-                $"auth:verify-lock:{ticket.Id}");
+                $"{KeyPrefix}:verify-lock:{ticket.Id}");
             Assert.InRange(lockTtl!.Value.TotalSeconds, 28, 30);
             await store.ReleaseVerificationLeaseAsync(ticket.Id, lease.LeaseId!);
         }
@@ -245,7 +282,7 @@ public sealed class RedisLoginChallengeStoreTests(RedisLoginFixture fixture)
         var staleLease = await store.TryAcquireVerificationAsync(ticket.Token);
         Assert.True(staleLease.IsAcquired);
         const string successorLeaseId = "synthetic-successor-lease";
-        var lockKey = $"auth:verify-lock:{ticket.Id}";
+        var lockKey = $"{KeyPrefix}:verify-lock:{ticket.Id}";
         await fixture.Database.StringSetAsync(
             lockKey,
             successorLeaseId,
@@ -269,7 +306,7 @@ public sealed class RedisLoginChallengeStoreTests(RedisLoginFixture fixture)
         var store = fixture.CreateStore();
         var ticket = await store.CreateChallengeAsync(Challenge("+8613800138009", Guid.NewGuid()));
 
-        var entries = await fixture.Database.StreamRangeAsync("auth:sms:dispatch");
+        var entries = await fixture.Database.StreamRangeAsync($"{KeyPrefix}:sms:dispatch");
         var entry = Assert.Single(entries);
         var field = Assert.Single(entry.Values);
         Assert.Equal("challengeId", field.Name.ToString());
@@ -300,7 +337,7 @@ public sealed class RedisLoginChallengeStoreTests(RedisLoginFixture fixture)
             Assert.Equal(3, sms.SendAttempts);
             await WaitUntilAsync(async () =>
                 (await fixture.Database.StreamPendingAsync(
-                    "auth:sms:dispatch",
+                    $"{KeyPrefix}:sms:dispatch",
                     SmsDispatchWorker.ConsumerGroup)).PendingMessageCount == 0);
         }
         finally
@@ -335,9 +372,10 @@ public sealed class RedisLoginChallengeStoreTests(RedisLoginFixture fixture)
                 try
                 {
                     var pending = await fixture.Database.StreamPendingAsync(
-                        "auth:sms:dispatch",
+                        $"{KeyPrefix}:sms:dispatch",
                         SmsDispatchWorker.ConsumerGroup);
-                    var groups = await fixture.Database.StreamGroupInfoAsync("auth:sms:dispatch");
+                    var groups = await fixture.Database.StreamGroupInfoAsync(
+                        $"{KeyPrefix}:sms:dispatch");
                     return pending.PendingMessageCount == 0
                         && groups.Single().LastDeliveredId != "0-0";
                 }
@@ -363,11 +401,11 @@ public sealed class RedisLoginChallengeStoreTests(RedisLoginFixture fixture)
         var sms = new FakeSmsVerificationProvider();
         var ticket = await store.CreateChallengeAsync(Challenge("+8613800138012", Guid.NewGuid()));
         await fixture.Database.StreamCreateConsumerGroupAsync(
-            "auth:sms:dispatch",
+            $"{KeyPrefix}:sms:dispatch",
             SmsDispatchWorker.ConsumerGroup,
             "0-0");
         var abandoned = await fixture.Database.StreamReadGroupAsync(
-            "auth:sms:dispatch",
+            $"{KeyPrefix}:sms:dispatch",
             SmsDispatchWorker.ConsumerGroup,
             "previous-consumer",
             ">",
@@ -390,7 +428,7 @@ public sealed class RedisLoginChallengeStoreTests(RedisLoginFixture fixture)
             await sms.WaitUntilSentAsync(ticket.Id, TimeSpan.FromMilliseconds(500));
             await WaitUntilAsync(async () =>
                 (await fixture.Database.StreamPendingAsync(
-                    "auth:sms:dispatch",
+                    $"{KeyPrefix}:sms:dispatch",
                     SmsDispatchWorker.ConsumerGroup)).PendingMessageCount == 0);
         }
         finally
@@ -429,7 +467,7 @@ public sealed class RedisLoginChallengeStoreTests(RedisLoginFixture fixture)
                 {
                     return sms.SendAttempts == 3
                         && (await fixture.Database.StreamPendingAsync(
-                            "auth:sms:dispatch",
+                            $"{KeyPrefix}:sms:dispatch",
                             SmsDispatchWorker.ConsumerGroup)).PendingMessageCount == 0;
                 }
                 catch (RedisServerException)
@@ -449,32 +487,340 @@ public sealed class RedisLoginChallengeStoreTests(RedisLoginFixture fixture)
         }
     }
 
-    private static PhoneLoginPreChallenge PreChallenge(string phone)
+    [Fact]
+    public async Task Worker_deletes_many_terminal_entries_after_acknowledging_them()
     {
-        var createdAt = DateTimeOffset.UtcNow;
-        return new PhoneLoginPreChallenge(
+        await fixture.ResetAsync();
+        var store = fixture.CreateStore();
+        var sms = new FakeSmsVerificationProvider();
+        for (var index = 0; index < 50; index++)
+        {
+            _ = await store.CreateChallengeAsync(
+                Challenge($"+86137{index:D8}", null));
+        }
+
+        var worker = new SmsDispatchWorker(
+            fixture.Connection,
+            store,
+            sms,
+            NullLogger<SmsDispatchWorker>.Instance,
+            new SmsDispatchWorkerSettings(
+                ClaimIdleTime: TimeSpan.FromMilliseconds(10),
+                PollDelay: TimeSpan.FromMilliseconds(10),
+                MaxAttempts: 3));
+
+        await worker.StartAsync(CancellationToken.None);
+        try
+        {
+            await WaitUntilAsync(async () =>
+            {
+                try
+                {
+                    var groups = await fixture.Database.StreamGroupInfoAsync(
+                        $"{KeyPrefix}:sms:dispatch");
+                    return groups.Length == 1
+                        && groups[0].PendingMessageCount == 0
+                        && groups[0].Lag == 0;
+                }
+                catch (RedisServerException)
+                {
+                    return false;
+                }
+            });
+            Assert.Equal(
+                0,
+                await fixture.Database.StreamLengthAsync($"{KeyPrefix}:sms:dispatch"));
+            Assert.Equal(0, sms.SendAttempts);
+        }
+        finally
+        {
+            await worker.StopAsync(CancellationToken.None);
+            worker.Dispose();
+        }
+    }
+
+    [Fact]
+    public async Task Ack_delete_removes_only_the_acknowledged_entry_and_keeps_other_pending_entries()
+    {
+        await fixture.ResetAsync();
+        var store = fixture.CreateStore();
+        _ = await store.CreateChallengeAsync(Challenge("+8613800138017", null));
+        _ = await store.CreateChallengeAsync(Challenge("+8613800138018", null));
+        var stream = $"{KeyPrefix}:sms:dispatch";
+        await fixture.Database.StreamCreateConsumerGroupAsync(
+            stream,
+            SmsDispatchWorker.ConsumerGroup,
+            "0-0");
+        var pendingEntries = await fixture.Database.StreamReadGroupAsync(
+            stream,
+            SmsDispatchWorker.ConsumerGroup,
+            "pending-owner",
+            ">",
+            count: 2);
+        Assert.Equal(2, pendingEntries.Length);
+
+        Assert.True(await store.AcknowledgeAndDeleteSmsDispatchAsync(
+            pendingEntries[0].Id!));
+
+        var remaining = await fixture.Database.StreamRangeAsync(stream);
+        Assert.Single(remaining);
+        Assert.Equal(pendingEntries[1].Id, remaining[0].Id);
+        Assert.Equal(
+            1,
+            (await fixture.Database.StreamPendingAsync(
+                stream,
+                SmsDispatchWorker.ConsumerGroup)).PendingMessageCount);
+    }
+
+    [Fact]
+    public async Task Dispatch_attempts_are_persisted_and_capped_across_owner_leases()
+    {
+        await fixture.ResetAsync();
+        var store = fixture.CreateStore();
+        var ticket = await store.CreateChallengeAsync(
+            Challenge("+8613800138019", Guid.NewGuid()));
+
+        for (var attempt = 1; attempt <= 3; attempt++)
+        {
+            var lease = await store.TryAcquireSmsDispatchAsync(ticket.Id);
+            Assert.Equal(SmsDispatchLeaseState.Acquired, lease.State);
+            Assert.Equal(attempt, lease.Attempt);
+            var failure = await store.FailSmsDispatchAsync(
+                ticket.Id,
+                lease.LeaseId!,
+                terminal: false);
+            Assert.Equal(
+                attempt == 3
+                    ? SmsDispatchFailureState.Terminal
+                    : SmsDispatchFailureState.Retryable,
+                failure);
+        }
+
+        var exhausted = await store.TryAcquireSmsDispatchAsync(ticket.Id);
+        Assert.Equal(SmsDispatchLeaseState.Terminal, exhausted.State);
+        Assert.Equal(3, exhausted.Attempt);
+    }
+
+    [Fact]
+    public async Task Persisted_sent_state_prevents_resend_when_pending_message_is_reclaimed()
+    {
+        await fixture.ResetAsync();
+        var store = fixture.CreateStore();
+        var sms = new FakeSmsVerificationProvider();
+        var ticket = await store.CreateChallengeAsync(
+            Challenge("+8613800138020", Guid.NewGuid()));
+        var stream = $"{KeyPrefix}:sms:dispatch";
+        await fixture.Database.StreamCreateConsumerGroupAsync(
+            stream,
+            SmsDispatchWorker.ConsumerGroup,
+            "0-0");
+        var pending = await fixture.Database.StreamReadGroupAsync(
+            stream,
+            SmsDispatchWorker.ConsumerGroup,
+            "crashed-after-success",
+            ">",
+            count: 1);
+        Assert.Single(pending);
+        var dispatch = await store.TryAcquireSmsDispatchAsync(ticket.Id);
+        Assert.Equal(SmsDispatchLeaseState.Acquired, dispatch.State);
+        Assert.True(await store.CompleteSmsDispatchAsync(
+            ticket.Id,
+            dispatch.LeaseId!));
+        await Task.Delay(20);
+        var worker = CreateWorker(fixture, store, sms);
+
+        await worker.StartAsync(CancellationToken.None);
+        try
+        {
+            await WaitUntilAsync(async () =>
+                await fixture.Database.StreamLengthAsync(stream) == 0);
+            Assert.Equal(0, sms.SendAttempts);
+            Assert.Equal(
+                SmsDispatchLeaseState.Sent,
+                (await store.TryAcquireSmsDispatchAsync(ticket.Id)).State);
+        }
+        finally
+        {
+            await worker.StopAsync(CancellationToken.None);
+            worker.Dispose();
+        }
+    }
+
+    [Fact]
+    public async Task Persisted_attempts_limit_worker_to_one_final_try_after_restart()
+    {
+        await fixture.ResetAsync();
+        var store = fixture.CreateStore();
+        var sms = new FakeSmsVerificationProvider { TemporaryFailuresRemaining = 10 };
+        var ticket = await store.CreateChallengeAsync(
+            Challenge("+8613800138021", Guid.NewGuid()));
+        for (var attempt = 0; attempt < 2; attempt++)
+        {
+            var seeded = await store.TryAcquireSmsDispatchAsync(ticket.Id);
+            Assert.Equal(SmsDispatchLeaseState.Acquired, seeded.State);
+            Assert.Equal(
+                SmsDispatchFailureState.Retryable,
+                await store.FailSmsDispatchAsync(
+                    ticket.Id,
+                    seeded.LeaseId!,
+                    terminal: false));
+        }
+
+        var firstWorker = CreateWorker(fixture, store, sms);
+        await firstWorker.StartAsync(CancellationToken.None);
+        try
+        {
+            await WaitUntilAsync(async () =>
+                sms.SendAttempts == 1
+                && await fixture.Database.StreamLengthAsync(
+                    $"{KeyPrefix}:sms:dispatch") == 0);
+        }
+        finally
+        {
+            await firstWorker.StopAsync(CancellationToken.None);
+            firstWorker.Dispose();
+        }
+
+        await fixture.Database.StreamAddAsync(
+            $"{KeyPrefix}:sms:dispatch",
+            "challengeId",
+            ticket.Id);
+        var restartedWorker = CreateWorker(fixture, store, sms);
+        await restartedWorker.StartAsync(CancellationToken.None);
+        try
+        {
+            await WaitUntilAsync(async () =>
+                await fixture.Database.StreamLengthAsync(
+                    $"{KeyPrefix}:sms:dispatch") == 0);
+            Assert.Equal(1, sms.SendAttempts);
+            var exhausted = await store.TryAcquireSmsDispatchAsync(ticket.Id);
+            Assert.Equal(SmsDispatchLeaseState.Terminal, exhausted.State);
+            Assert.Equal(3, exhausted.Attempt);
+        }
+        finally
+        {
+            await restartedWorker.StopAsync(CancellationToken.None);
+            restartedWorker.Dispose();
+        }
+    }
+
+    [Fact]
+    public async Task Owner_lease_prevents_parallel_send_when_slow_message_is_claimed()
+    {
+        await fixture.ResetAsync();
+        var store = fixture.CreateStore();
+        var slowSms = new BlockingSmsVerificationProvider();
+        var competingSms = new FakeSmsVerificationProvider();
+        var ticket = await store.CreateChallengeAsync(
+            Challenge("+8613800138022", Guid.NewGuid()));
+        var firstWorker = CreateWorker(fixture, store, slowSms);
+        var secondWorker = CreateWorker(fixture, store, competingSms);
+
+        await firstWorker.StartAsync(CancellationToken.None);
+        try
+        {
+            await slowSms.WaitUntilStartedAsync();
+            await secondWorker.StartAsync(CancellationToken.None);
+            await Task.Delay(150);
+            Assert.Equal(0, competingSms.SendAttempts);
+            slowSms.Release();
+            await WaitUntilAsync(async () =>
+                await fixture.Database.StreamLengthAsync(
+                    $"{KeyPrefix}:sms:dispatch") == 0);
+            Assert.Equal(1, slowSms.SendAttempts);
+            Assert.Equal(0, competingSms.SendAttempts);
+            Assert.Equal(
+                SmsDispatchLeaseState.Sent,
+                (await store.TryAcquireSmsDispatchAsync(ticket.Id)).State);
+        }
+        finally
+        {
+            slowSms.Release();
+            await secondWorker.StopAsync(CancellationToken.None);
+            secondWorker.Dispose();
+            await firstWorker.StopAsync(CancellationToken.None);
+            firstWorker.Dispose();
+        }
+    }
+
+    [Fact]
+    public async Task All_phone_login_keys_share_one_explicit_cluster_hash_slot()
+    {
+        await fixture.ResetAsync();
+        var store = fixture.CreateStore();
+        _ = await store.CreatePreChallengeAsync(PreChallenge("+8613800138015"));
+        _ = await store.CheckBootstrapRateAsync("203.0.113.15");
+        _ = await store.CheckSmsSendRateAsync("+8613800138015", "203.0.113.15");
+        var challenge = await store.CreateChallengeAsync(
+            Challenge("+8613800138015", Guid.NewGuid()));
+        Assert.True((await store.TryAcquireVerificationAsync(challenge.Token)).IsAcquired);
+        var server = fixture.Connection.GetServer(fixture.Connection.GetEndPoints().Single());
+
+        var keys = server.Keys(pattern: "auth:*")
+            .Select(key => key.ToString())
+            .ToArray();
+
+        Assert.Contains(keys, key => key.Contains(":pre:", StringComparison.Ordinal));
+        Assert.Contains(keys, key => key.Contains(":challenge:", StringComparison.Ordinal));
+        Assert.Contains(keys, key => key.Contains(":verify-lock:", StringComparison.Ordinal));
+        Assert.Contains(keys, key => key.Contains(":rate:", StringComparison.Ordinal));
+        Assert.Contains($"{KeyPrefix}:sms:dispatch", keys);
+        Assert.All(keys, key => Assert.Contains("{phone-login}", key, StringComparison.Ordinal));
+        Assert.Single(keys.Select(RedisClusterSlot).Distinct());
+    }
+
+    private static PhoneLoginPreChallengeDraft PreChallenge(string phone) =>
+        new(
             phone,
             Guid.NewGuid(),
             "android",
-            "android-scene",
-            createdAt,
-            createdAt.AddMinutes(5));
-    }
+            "android-scene");
 
-    private static PhoneLoginChallengeDraft Challenge(string phone, Guid? userId)
-    {
-        var sentAt = DateTimeOffset.UtcNow;
-        return new PhoneLoginChallengeDraft(
+    private static PhoneLoginChallengeDraft Challenge(string phone, Guid? userId) =>
+        new(
             phone,
             userId,
             "android",
-            "android-scene",
-            sentAt,
-            sentAt.AddMinutes(5));
-    }
+            "android-scene");
+
+    private static SmsDispatchWorker CreateWorker(
+        RedisLoginFixture fixture,
+        ILoginChallengeStore store,
+        ISmsVerificationProvider sms) =>
+        new(
+            fixture.Connection,
+            store,
+            sms,
+            NullLogger<SmsDispatchWorker>.Instance,
+            new SmsDispatchWorkerSettings(
+                ClaimIdleTime: TimeSpan.FromMilliseconds(10),
+                PollDelay: TimeSpan.FromMilliseconds(10),
+                MaxAttempts: 3));
 
     private static string Sha256(string value) =>
         Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
+
+    private static int RedisClusterSlot(string key)
+    {
+        var open = key.IndexOf('{');
+        var close = open < 0 ? -1 : key.IndexOf('}', open + 1);
+        var hashInput = open >= 0 && close > open + 1
+            ? key[(open + 1)..close]
+            : key;
+        ushort crc = 0;
+        foreach (var value in Encoding.UTF8.GetBytes(hashInput))
+        {
+            crc ^= (ushort)(value << 8);
+            for (var bit = 0; bit < 8; bit++)
+            {
+                crc = (ushort)((crc & 0x8000) != 0
+                    ? (crc << 1) ^ 0x1021
+                    : crc << 1);
+            }
+        }
+
+        return crc % 16_384;
+    }
 
     private static async Task WaitUntilAsync(Func<Task<bool>> condition)
     {
@@ -530,6 +876,38 @@ file sealed class CollectingLogger<T> : ILogger<T>
     }
 }
 
+file sealed class BlockingSmsVerificationProvider : ISmsVerificationProvider
+{
+    private readonly TaskCompletionSource _started = new(
+        TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource _released = new(
+        TaskCreationOptions.RunContinuationsAsynchronously);
+    private int _sendAttempts;
+
+    public int SendAttempts => Volatile.Read(ref _sendAttempts);
+
+    public async Task SendAsync(
+        string nationalPhoneNumber,
+        string outId,
+        CancellationToken cancellationToken)
+    {
+        Interlocked.Increment(ref _sendAttempts);
+        _started.TrySetResult();
+        await _released.Task.WaitAsync(cancellationToken);
+    }
+
+    public Task<bool> CheckAsync(
+        string nationalPhoneNumber,
+        string outId,
+        string code,
+        CancellationToken cancellationToken) => Task.FromResult(false);
+
+    public Task WaitUntilStartedAsync() =>
+        _started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+    public void Release() => _released.TrySetResult();
+}
+
 [CollectionDefinition(Name, DisableParallelization = true)]
 public sealed class RedisLoginCollection : ICollectionFixture<RedisLoginFixture>
 {
@@ -558,7 +936,8 @@ public sealed class RedisLoginFixture : IAsyncLifetime
         await _redis.DisposeAsync();
     }
 
-    public RedisLoginChallengeStore CreateStore() => new(Connection);
+    public RedisLoginChallengeStore CreateStore(TimeProvider? timeProvider = null) =>
+        new(Connection, timeProvider ?? TimeProvider.System);
 
     public async Task ResetAsync()
     {
@@ -567,4 +946,11 @@ public sealed class RedisLoginFixture : IAsyncLifetime
             await Connection.GetServer(endpoint).FlushDatabaseAsync();
         }
     }
+}
+
+file sealed class ManualTimeProvider(DateTimeOffset utcNow) : TimeProvider
+{
+    public DateTimeOffset UtcNow { get; set; } = utcNow;
+
+    public override DateTimeOffset GetUtcNow() => UtcNow;
 }

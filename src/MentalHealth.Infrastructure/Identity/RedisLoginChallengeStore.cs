@@ -7,15 +7,32 @@ using StackExchange.Redis;
 
 namespace MentalHealth.Infrastructure.Identity;
 
-public sealed class RedisLoginChallengeStore(IConnectionMultiplexer redis)
-    : ILoginChallengeStore
+public sealed class RedisLoginChallengeStore : ILoginChallengeStore
 {
-    public const string SmsDispatchStream = "auth:sms:dispatch";
+    public const string KeyPrefix = "auth:{phone-login}";
+    public const string SmsDispatchStream = $"{KeyPrefix}:sms:dispatch";
+    public const string SmsDispatchConsumerGroup = "sms-dispatchers";
 
-    private const int StateTtlMilliseconds = 300_000;
+    private static readonly TimeSpan StateLifetime = TimeSpan.FromSeconds(300);
     private const int VerificationLeaseMilliseconds = 30_000;
     private const int VerificationAttemptLimit = 5;
-    private readonly IDatabase _database = redis.GetDatabase();
+    private const int SmsDispatchLeaseMilliseconds = 120_000;
+    private const int SmsDispatchAttemptLimit = 3;
+    private readonly IDatabase _database;
+    private readonly TimeProvider _timeProvider;
+
+    public RedisLoginChallengeStore(IConnectionMultiplexer redis)
+        : this(redis, TimeProvider.System)
+    {
+    }
+
+    public RedisLoginChallengeStore(
+        IConnectionMultiplexer redis,
+        TimeProvider timeProvider)
+    {
+        _database = redis.GetDatabase();
+        _timeProvider = timeProvider;
+    }
 
     private const string RateLimitScript = """
         local retryAfter = 0
@@ -56,7 +73,9 @@ public sealed class RedisLoginChallengeStore(IConnectionMultiplexer redis)
             'outId', ARGV[1],
             'sentAt', ARGV[6],
             'expiresAt', ARGV[7],
-            'attempts', 0)
+            'attempts', 0,
+            'dispatchStatus', 'pending',
+            'dispatchAttempts', 0)
         redis.call('PEXPIRE', KEYS[1], ARGV[8])
         redis.call('XADD', KEYS[2], '*', 'challengeId', ARGV[1])
         return 1
@@ -110,16 +129,101 @@ public sealed class RedisLoginChallengeStore(IConnectionMultiplexer redis)
         return 0
         """;
 
+    private const string AcknowledgeAndDeleteDispatchScript = """
+        local acknowledged = redis.call('XACK', KEYS[1], ARGV[1], ARGV[2])
+        if acknowledged == 1 then
+            redis.call('XDEL', KEYS[1], ARGV[2])
+        end
+        return acknowledged
+        """;
+
+    private const string AcquireSmsDispatchScript = """
+        if redis.call('EXISTS', KEYS[1]) == 0 or redis.call('PTTL', KEYS[1]) <= 0 then
+            return {0, 0}
+        end
+        local status = redis.call('HGET', KEYS[1], 'dispatchStatus') or 'pending'
+        local attempts = tonumber(redis.call('HGET', KEYS[1], 'dispatchAttempts') or '0')
+        if status == 'sent' then
+            return {3, attempts}
+        end
+        local serverTime = redis.call('TIME')
+        local now = tonumber(serverTime[1]) * 1000 + math.floor(tonumber(serverTime[2]) / 1000)
+        local leaseOwner = redis.call('HGET', KEYS[1], 'dispatchLeaseOwner') or ''
+        local leaseUntil = tonumber(redis.call('HGET', KEYS[1], 'dispatchLeaseUntil') or '0')
+        if status == 'sending' and leaseOwner ~= '' and leaseUntil > now then
+            return {2, attempts}
+        end
+        if status == 'terminal' or attempts >= tonumber(ARGV[3]) then
+            redis.call('HSET', KEYS[1], 'dispatchStatus', 'terminal')
+            return {4, attempts}
+        end
+        attempts = redis.call('HINCRBY', KEYS[1], 'dispatchAttempts', 1)
+        redis.call('HSET', KEYS[1],
+            'dispatchStatus', 'sending',
+            'dispatchLeaseOwner', ARGV[1],
+            'dispatchLeaseUntil', now + tonumber(ARGV[2]))
+        return {
+            1,
+            attempts,
+            redis.call('HGET', KEYS[1], 'id'),
+            redis.call('HGET', KEYS[1], 'phone'),
+            redis.call('HGET', KEYS[1], 'userId'),
+            redis.call('HGET', KEYS[1], 'client'),
+            redis.call('HGET', KEYS[1], 'sceneId'),
+            redis.call('HGET', KEYS[1], 'outId'),
+            redis.call('HGET', KEYS[1], 'sentAt'),
+            redis.call('HGET', KEYS[1], 'expiresAt'),
+            tonumber(redis.call('HGET', KEYS[1], 'attempts') or '0')
+        }
+        """;
+
+    private const string CompleteSmsDispatchScript = """
+        if redis.call('EXISTS', KEYS[1]) == 0 then
+            return 0
+        end
+        if redis.call('HGET', KEYS[1], 'dispatchStatus') ~= 'sending'
+            or redis.call('HGET', KEYS[1], 'dispatchLeaseOwner') ~= ARGV[1] then
+            return 0
+        end
+        redis.call('HSET', KEYS[1], 'dispatchStatus', 'sent')
+        redis.call('HDEL', KEYS[1], 'dispatchLeaseOwner', 'dispatchLeaseUntil')
+        return 1
+        """;
+
+    private const string FailSmsDispatchScript = """
+        if redis.call('EXISTS', KEYS[1]) == 0 then
+            return 0
+        end
+        if redis.call('HGET', KEYS[1], 'dispatchStatus') ~= 'sending'
+            or redis.call('HGET', KEYS[1], 'dispatchLeaseOwner') ~= ARGV[1] then
+            return 0
+        end
+        local attempts = tonumber(redis.call('HGET', KEYS[1], 'dispatchAttempts') or '0')
+        local terminal = ARGV[2] == '1' or attempts >= tonumber(ARGV[3])
+        redis.call('HSET', KEYS[1], 'dispatchStatus', terminal and 'terminal' or 'pending')
+        redis.call('HDEL', KEYS[1], 'dispatchLeaseOwner', 'dispatchLeaseUntil')
+        return terminal and 2 or 1
+        """;
+
     public async Task<PhoneLoginTicket> CreatePreChallengeAsync(
-        PhoneLoginPreChallenge preChallenge,
+        PhoneLoginPreChallengeDraft preChallenge,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var ticket = CreateTicket(preChallenge.ExpiresAt);
+        var now = _timeProvider.GetUtcNow();
+        var expiresAt = now.Add(StateLifetime);
+        var state = new PhoneLoginPreChallenge(
+            preChallenge.NationalPhoneNumber,
+            preChallenge.UserId,
+            preChallenge.Client,
+            preChallenge.SceneId,
+            now,
+            expiresAt);
+        var ticket = CreateTicket(expiresAt);
         var created = await _database.StringSetAsync(
             PreChallengeKey(ticket.Id),
-            JsonSerializer.Serialize(preChallenge),
-            TimeSpan.FromMilliseconds(StateTtlMilliseconds),
+            JsonSerializer.Serialize(state),
+            expiresAt - now,
             When.NotExists);
         return created
             ? ticket
@@ -155,11 +259,11 @@ public sealed class RedisLoginChallengeStore(IConnectionMultiplexer redis)
         var ipHash = Hash(sourceIp);
         return CheckRatesAsync(
             [
-                $"auth:rate:phone:60s:{phoneHash}",
-                $"auth:rate:phone:hour:{phoneHash}",
-                $"auth:rate:phone:day:{phoneHash}",
-                $"auth:rate:ip:minute:{ipHash}",
-                $"auth:rate:ip:day:{ipHash}"
+                $"{KeyPrefix}:rate:phone:60s:{phoneHash}",
+                $"{KeyPrefix}:rate:phone:hour:{phoneHash}",
+                $"{KeyPrefix}:rate:phone:day:{phoneHash}",
+                $"{KeyPrefix}:rate:ip:minute:{ipHash}",
+                $"{KeyPrefix}:rate:ip:day:{ipHash}"
             ],
             [
                 (1, 60_000),
@@ -176,7 +280,9 @@ public sealed class RedisLoginChallengeStore(IConnectionMultiplexer redis)
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var ticket = CreateTicket(challenge.ExpiresAt);
+        var now = _timeProvider.GetUtcNow();
+        var expiresAt = now.Add(StateLifetime);
+        var ticket = CreateTicket(expiresAt);
         await _database.ScriptEvaluateAsync(
             CreateChallengeScript,
             [ChallengeKey(ticket.Id), SmsDispatchStream],
@@ -186,9 +292,9 @@ public sealed class RedisLoginChallengeStore(IConnectionMultiplexer redis)
                 challenge.UserId?.ToString("D") ?? string.Empty,
                 challenge.Client,
                 challenge.SceneId,
-                challenge.SentAt.ToString("O", CultureInfo.InvariantCulture),
-                challenge.ExpiresAt.ToString("O", CultureInfo.InvariantCulture),
-                StateTtlMilliseconds
+                now.ToString("O", CultureInfo.InvariantCulture),
+                expiresAt.ToString("O", CultureInfo.InvariantCulture),
+                checked((long)(expiresAt - now).TotalMilliseconds)
             ]);
         return ticket;
     }
@@ -260,6 +366,80 @@ public sealed class RedisLoginChallengeStore(IConnectionMultiplexer redis)
             : new ChallengeConsumption(false, null);
     }
 
+    public async Task<bool> AcknowledgeAndDeleteSmsDispatchAsync(
+        string messageId,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var result = await _database.ScriptEvaluateAsync(
+            AcknowledgeAndDeleteDispatchScript,
+            [SmsDispatchStream],
+            [SmsDispatchConsumerGroup, messageId]);
+        return (long)result == 1;
+    }
+
+    public async Task<SmsDispatchLease> TryAcquireSmsDispatchAsync(
+        string challengeId,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var leaseId = CreateSecretToken();
+        var result = (RedisResult[]?)await _database.ScriptEvaluateAsync(
+            AcquireSmsDispatchScript,
+            [ChallengeKey(challengeId)],
+            [leaseId, SmsDispatchLeaseMilliseconds, SmsDispatchAttemptLimit]);
+        var state = result is null
+            ? SmsDispatchLeaseState.Missing
+            : (SmsDispatchLeaseState)checked((int)(long)result[0]);
+        var attempt = result is null ? 0 : checked((int)(long)result[1]);
+        if (state != SmsDispatchLeaseState.Acquired)
+        {
+            return new SmsDispatchLease(state, null, null, attempt);
+        }
+
+        return new SmsDispatchLease(
+            state,
+            leaseId,
+            new PhoneLoginChallenge(
+                (string)result![2]!,
+                (string)result[3]!,
+                ParseUserId((string)result[4]!),
+                (string)result[5]!,
+                (string)result[6]!,
+                (string)result[7]!,
+                DateTimeOffset.Parse((string)result[8]!, CultureInfo.InvariantCulture),
+                DateTimeOffset.Parse((string)result[9]!, CultureInfo.InvariantCulture),
+                checked((int)(long)result[10])),
+            attempt);
+    }
+
+    public async Task<bool> CompleteSmsDispatchAsync(
+        string challengeId,
+        string leaseId,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var result = await _database.ScriptEvaluateAsync(
+            CompleteSmsDispatchScript,
+            [ChallengeKey(challengeId)],
+            [leaseId]);
+        return (long)result == 1;
+    }
+
+    public async Task<SmsDispatchFailureState> FailSmsDispatchAsync(
+        string challengeId,
+        string leaseId,
+        bool terminal,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var result = await _database.ScriptEvaluateAsync(
+            FailSmsDispatchScript,
+            [ChallengeKey(challengeId)],
+            [leaseId, terminal ? 1 : 0, SmsDispatchAttemptLimit]);
+        return (SmsDispatchFailureState)checked((int)(long)result);
+    }
+
     private async Task<RateLimitDecision> CheckRatesAsync(
         RedisKey[] keys,
         (int Limit, int TtlMilliseconds)[] limits,
@@ -314,12 +494,13 @@ public sealed class RedisLoginChallengeStore(IConnectionMultiplexer redis)
     private static string Hash(string value) =>
         Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
 
-    private static RedisKey PreChallengeKey(string id) => $"auth:pre:{id}";
+    private static RedisKey PreChallengeKey(string id) => $"{KeyPrefix}:pre:{id}";
 
-    private static RedisKey ChallengeKey(string id) => $"auth:challenge:{id}";
+    private static RedisKey ChallengeKey(string id) => $"{KeyPrefix}:challenge:{id}";
 
-    private static RedisKey VerificationLockKey(string id) => $"auth:verify-lock:{id}";
+    private static RedisKey VerificationLockKey(string id) =>
+        $"{KeyPrefix}:verify-lock:{id}";
 
     private static RedisKey RateKey(string window, string subject) =>
-        $"auth:rate:{window}:{Hash(subject)}";
+        $"{KeyPrefix}:rate:{window}:{Hash(subject)}";
 }

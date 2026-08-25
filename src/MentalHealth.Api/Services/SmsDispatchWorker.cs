@@ -10,14 +10,14 @@ public sealed record SmsDispatchWorkerSettings(
     int MaxAttempts)
 {
     public static SmsDispatchWorkerSettings Default { get; } = new(
-        TimeSpan.FromSeconds(30),
+        TimeSpan.FromMinutes(2),
         TimeSpan.FromMilliseconds(250),
         3);
 }
 
 public sealed class SmsDispatchWorker : BackgroundService
 {
-    public const string ConsumerGroup = "sms-dispatchers";
+    public const string ConsumerGroup = RedisLoginChallengeStore.SmsDispatchConsumerGroup;
 
     private const string ChallengeIdField = "challengeId";
     private readonly IDatabase _database;
@@ -44,7 +44,20 @@ public sealed class SmsDispatchWorker : BackgroundService
         ILogger<SmsDispatchWorker> logger,
         SmsDispatchWorkerSettings settings)
     {
-        ArgumentOutOfRangeException.ThrowIfLessThan(settings.MaxAttempts, 1);
+        if (settings.MaxAttempts != 3)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(settings),
+                "SMS dispatch requires exactly three persisted attempts.");
+        }
+        if (settings.ClaimIdleTime <= TimeSpan.Zero
+            || settings.PollDelay <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(settings),
+                "SMS dispatch timing values must be positive.");
+        }
+
         _database = redis.GetDatabase();
         _store = store;
         _sms = sms;
@@ -66,7 +79,7 @@ public sealed class SmsDispatchWorker : BackgroundService
                     _consumerName,
                     checked((long)_settings.ClaimIdleTime.TotalMilliseconds),
                     "0-0",
-                    count: 10);
+                    count: 1);
                 if (!claimed.IsNull && claimed.ClaimedEntries.Length > 0)
                 {
                     await ProcessEntriesAsync(claimed.ClaimedEntries, stoppingToken);
@@ -78,7 +91,7 @@ public sealed class SmsDispatchWorker : BackgroundService
                     ConsumerGroup,
                     _consumerName,
                     ">",
-                    count: 10);
+                    count: 1);
                 if (entries.Length == 0)
                 {
                     await Task.Delay(_settings.PollDelay, stoppingToken);
@@ -132,71 +145,116 @@ public sealed class SmsDispatchWorker : BackgroundService
                 continue;
             }
 
-            var challenge = await _store.GetChallengeForDispatchAsync(
-                challengeId!,
-                cancellationToken);
-            if (challenge?.UserId is null)
-            {
-                await AcknowledgeAsync(entry.Id);
-                continue;
-            }
-
-            var acknowledged = await TrySendAsync(challenge, cancellationToken);
-            if (acknowledged)
-            {
-                await AcknowledgeAsync(entry.Id);
-            }
+            await ProcessDispatchAsync(challengeId!, entry.Id, cancellationToken);
         }
     }
 
-    private async Task<bool> TrySendAsync(
-        PhoneLoginChallenge challenge,
+    private async Task ProcessDispatchAsync(
+        string challengeId,
+        RedisValue messageId,
         CancellationToken cancellationToken)
     {
-        for (var attempt = 1; attempt <= _settings.MaxAttempts; attempt++)
+        while (!cancellationToken.IsCancellationRequested)
         {
+            var dispatch = await _store.TryAcquireSmsDispatchAsync(
+                challengeId,
+                cancellationToken);
+            if (dispatch.State is SmsDispatchLeaseState.Missing
+                or SmsDispatchLeaseState.Sent
+                or SmsDispatchLeaseState.Terminal)
+            {
+                await AcknowledgeAsync(messageId);
+                return;
+            }
+
+            if (dispatch.State == SmsDispatchLeaseState.Busy)
+            {
+                return;
+            }
+
+            var challenge = dispatch.Challenge!;
+            if (challenge.UserId is null)
+            {
+                if (await _store.CompleteSmsDispatchAsync(
+                    challengeId,
+                    dispatch.LeaseId!,
+                    cancellationToken))
+                {
+                    await AcknowledgeAsync(messageId);
+                }
+
+                return;
+            }
+
             try
             {
                 await _sms.SendAsync(
                     challenge.NationalPhoneNumber,
                     challenge.OutId,
                     cancellationToken);
-                return true;
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                return false;
+                return;
             }
             catch (PhoneLoginProviderException exception)
             {
-                if (exception.Code != "SMS_PROVIDER_UNAVAILABLE"
-                    || attempt == _settings.MaxAttempts)
+                var failure = await _store.FailSmsDispatchAsync(
+                    challengeId,
+                    dispatch.LeaseId!,
+                    terminal: exception.Code != "SMS_PROVIDER_UNAVAILABLE",
+                    cancellationToken);
+                if (failure == SmsDispatchFailureState.Retryable)
+                {
+                    continue;
+                }
+
+                if (failure == SmsDispatchFailureState.Terminal)
                 {
                     _logger.LogWarning(
                         "SMS dispatch stopped after {AttemptCount} attempts with result {ResultCode}.",
-                        attempt,
+                        dispatch.Attempt,
                         exception.Code);
-                    return true;
+                    await AcknowledgeAsync(messageId);
                 }
+
+                return;
             }
             catch (Exception)
             {
-                if (attempt == _settings.MaxAttempts)
+                var failure = await _store.FailSmsDispatchAsync(
+                    challengeId,
+                    dispatch.LeaseId!,
+                    terminal: false,
+                    cancellationToken);
+                if (failure == SmsDispatchFailureState.Retryable)
+                {
+                    continue;
+                }
+
+                if (failure == SmsDispatchFailureState.Terminal)
                 {
                     _logger.LogWarning(
                         "SMS dispatch stopped after {AttemptCount} attempts with an unexpected result.",
-                        attempt);
-                    return true;
+                        dispatch.Attempt);
+                    await AcknowledgeAsync(messageId);
                 }
-            }
-        }
 
-        return true;
+                return;
+            }
+
+            if (await _store.CompleteSmsDispatchAsync(
+                challengeId,
+                dispatch.LeaseId!,
+                cancellationToken))
+            {
+                await AcknowledgeAsync(messageId);
+            }
+
+            return;
+        }
     }
 
-    private Task AcknowledgeAsync(RedisValue messageId) =>
-        _database.StreamAcknowledgeAsync(
-            RedisLoginChallengeStore.SmsDispatchStream,
-            ConsumerGroup,
-            messageId);
+    private async Task AcknowledgeAsync(RedisValue messageId) =>
+        _ = await _store.AcknowledgeAndDeleteSmsDispatchAsync(messageId!);
 }

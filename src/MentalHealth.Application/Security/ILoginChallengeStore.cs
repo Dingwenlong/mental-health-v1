@@ -3,7 +3,7 @@ namespace MentalHealth.Application.Security;
 public interface ILoginChallengeStore
 {
     Task<PhoneLoginTicket> CreatePreChallengeAsync(
-        PhoneLoginPreChallenge preChallenge,
+        PhoneLoginPreChallengeDraft preChallenge,
         CancellationToken cancellationToken = default);
 
     Task<PhoneLoginPreChallenge?> TakePreChallengeAsync(
@@ -39,5 +39,24 @@ public interface ILoginChallengeStore
     Task<ChallengeConsumption> ConsumeChallengeAsync(
         string challengeId,
         string leaseId,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> AcknowledgeAndDeleteSmsDispatchAsync(
+        string messageId,
+        CancellationToken cancellationToken = default);
+
+    Task<SmsDispatchLease> TryAcquireSmsDispatchAsync(
+        string challengeId,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> CompleteSmsDispatchAsync(
+        string challengeId,
+        string leaseId,
+        CancellationToken cancellationToken = default);
+
+    Task<SmsDispatchFailureState> FailSmsDispatchAsync(
+        string challengeId,
+        string leaseId,
+        bool terminal,
         CancellationToken cancellationToken = default);
 }
