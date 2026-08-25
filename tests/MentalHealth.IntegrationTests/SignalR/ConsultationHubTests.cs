@@ -185,7 +185,8 @@ public sealed class ConsultationHubTests(AuthApiFixture fixture)
             UserName = email,
             Email = email,
             EmailConfirmed = true,
-            PhoneNumber = "+8613900000002",
+            PhoneNumber = AuthApiFixture.CreateSyntheticPhoneNumber(
+                $"consultation-hub:{suffix}"),
             SubjectId = Guid.NewGuid()
         };
         EnsureSucceeded(await userManager.CreateAsync(

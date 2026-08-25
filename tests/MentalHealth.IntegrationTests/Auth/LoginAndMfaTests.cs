@@ -3,7 +3,10 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text.Json;
+using MentalHealth.Application.Security;
 using MentalHealth.Infrastructure.Persistence;
+using MentalHealth.Infrastructure.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -30,14 +33,15 @@ public sealed class LoginAndMfaTests(AuthApiFixture fixture)
     }
 
     [Fact]
-    public async Task Doctor_login_without_totp_returns_mfa_required_problem()
+    public async Task Isolated_doctor_login_without_totp_returns_mfa_required_problem()
     {
+        var user = await CreatePasswordUserAsync(AppRoles.Doctor, requiresMfa: true);
         var response = await fixture.Client.PostAsJsonAsync(
             "/api/v1/auth/login",
             new
             {
-                email = "doctor@demo.local",
-                password = AuthApiFixture.InitialPassword
+                email = user.Email,
+                password = user.Password
             });
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -47,14 +51,15 @@ public sealed class LoginAndMfaTests(AuthApiFixture fixture)
     }
 
     [Fact]
-    public async Task Regular_user_login_returns_api_access_token()
+    public async Task Isolated_regular_user_login_returns_api_access_token()
     {
+        var user = await CreatePasswordUserAsync(AppRoles.User, requiresMfa: false);
         var response = await fixture.Client.PostAsJsonAsync(
             "/api/v1/auth/login",
             new
             {
-                email = "abc@qq.com",
-                password = AuthApiFixture.InitialPassword
+                email = user.Email,
+                password = user.Password
             });
 
         response.EnsureSuccessStatusCode();
@@ -68,11 +73,12 @@ public sealed class LoginAndMfaTests(AuthApiFixture fixture)
     [Fact]
     public async Task Wrong_password_does_not_return_mfa_setup_token()
     {
+        var user = await CreatePasswordUserAsync(AppRoles.Doctor, requiresMfa: true);
         var response = await fixture.Client.PostAsJsonAsync(
             "/api/v1/auth/login",
             new
             {
-                email = "doctor@demo.local",
+                email = user.Email,
                 password = "Wrong-password-2026!"
             });
 
@@ -86,14 +92,17 @@ public sealed class LoginAndMfaTests(AuthApiFixture fixture)
     }
 
     [Fact]
-    public async Task Admin_mfa_setup_token_cannot_access_business_api()
+    public async Task Isolated_admin_mfa_setup_token_cannot_access_business_api()
     {
+        var user = await CreatePasswordUserAsync(
+            AppRoles.OperationsAdmin,
+            requiresMfa: true);
         var login = await fixture.Client.PostAsJsonAsync(
             "/api/v1/auth/login",
             new
             {
-                email = "123@qq.com",
-                password = AuthApiFixture.InitialPassword
+                email = user.Email,
+                password = user.Password
             });
         Assert.Equal(HttpStatusCode.Unauthorized, login.StatusCode);
         using var loginBody = await JsonDocument.ParseAsync(
@@ -121,14 +130,15 @@ public sealed class LoginAndMfaTests(AuthApiFixture fixture)
     }
 
     [Fact]
-    public async Task Doctor_can_set_up_totp_then_login()
+    public async Task Isolated_doctor_can_set_up_totp_then_login()
     {
+        var user = await CreatePasswordUserAsync(AppRoles.Doctor, requiresMfa: true);
         var login = await fixture.Client.PostAsJsonAsync(
             "/api/v1/auth/login",
             new
             {
-                email = "doctor@demo.local",
-                password = AuthApiFixture.InitialPassword
+                email = user.Email,
+                password = user.Password
             });
         using var loginBody = await JsonDocument.ParseAsync(
             await login.Content.ReadAsStreamAsync());
@@ -161,13 +171,49 @@ public sealed class LoginAndMfaTests(AuthApiFixture fixture)
             "/api/v1/auth/login",
             new
             {
-                email = "doctor@demo.local",
-                password = AuthApiFixture.InitialPassword,
+                email = user.Email,
+                password = user.Password,
                 totpCode = code
             });
 
         completedLogin.EnsureSuccessStatusCode();
     }
+
+    private async Task<PasswordTestUser> CreatePasswordUserAsync(
+        string role,
+        bool requiresMfa)
+    {
+        await using var scope = fixture.Services.CreateAsyncScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+        var suffix = Guid.NewGuid().ToString("N");
+        var email = $"legacy-login-{suffix}@example.test";
+        const string password = "Synthetic-password-2026!";
+        var user = new AppUser
+        {
+            Id = Guid.NewGuid(),
+            UserName = email,
+            Email = email,
+            EmailConfirmed = true,
+            PhoneNumber = AuthApiFixture.CreateSyntheticPhoneNumber(
+                $"legacy-login:{suffix}"),
+            RequiresMfa = requiresMfa
+        };
+        EnsureSucceeded(await userManager.CreateAsync(user, password));
+        EnsureSucceeded(await userManager.AddToRoleAsync(user, role));
+        return new PasswordTestUser(email, password);
+    }
+
+    private static void EnsureSucceeded(IdentityResult result)
+    {
+        if (!result.Succeeded)
+        {
+            throw new InvalidOperationException(string.Join(
+                "; ",
+                result.Errors.Select(error => error.Description)));
+        }
+    }
+
+    private sealed record PasswordTestUser(string Email, string Password);
 
     private static string GenerateTotp(string base32Secret, DateTimeOffset now)
     {

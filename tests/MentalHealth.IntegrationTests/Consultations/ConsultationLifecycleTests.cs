@@ -232,7 +232,8 @@ public sealed class ConsultationLifecycleTests(AuthApiFixture fixture)
             UserName = email,
             Email = email,
             EmailConfirmed = true,
-            PhoneNumber = "+8613900000003",
+            PhoneNumber = AuthApiFixture.CreateSyntheticPhoneNumber(
+                $"consultation-lifecycle:{suffix}"),
             SubjectId = Guid.NewGuid()
         };
         EnsureSucceeded(await userManager.CreateAsync(

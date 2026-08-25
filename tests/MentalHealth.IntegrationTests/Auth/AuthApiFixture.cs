@@ -8,6 +8,7 @@ using MentalHealth.Application.Security;
 using MentalHealth.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Npgsql;
+using System.Collections.Concurrent;
 using Testcontainers.PostgreSql;
 using Testcontainers.Redis;
 
@@ -30,6 +31,8 @@ public sealed class AuthApiFixture : IAsyncLifetime
     private HttpClient? _client;
     private string? _storageRoot;
     private readonly TestLogCollector _logs = new();
+    private static readonly ConcurrentDictionary<string, string> SyntheticPhones = new();
+    private static int _syntheticPhoneSequence;
 
     public const string InitialPassword = "Synthetic-password-2026!";
 
@@ -51,6 +54,22 @@ public sealed class AuthApiFixture : IAsyncLifetime
         ?? throw new InvalidOperationException("The API fixture is not initialized.");
 
     public IReadOnlyList<TestLogEntry> CapturedLogs => _logs.Entries;
+
+    internal static string CreateSyntheticPhoneNumber(string stableUserKey)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(stableUserKey);
+        return SyntheticPhones.GetOrAdd(stableUserKey, _ =>
+        {
+            var sequence = Interlocked.Increment(ref _syntheticPhoneSequence);
+            if (sequence > 99_999_999)
+            {
+                throw new InvalidOperationException(
+                    "The synthetic integration-test phone range is exhausted.");
+            }
+
+            return $"+86139{sequence:D8}";
+        });
+    }
 
     public void ClearCapturedLogs() => _logs.Clear();
 
@@ -124,8 +143,8 @@ public sealed class AuthApiFixture : IAsyncLifetime
         return tokenService.Issue(
             new JwtTokenSubject(
                 user.Id,
-                user.PhoneNumber ?? throw new InvalidOperationException(
-                    $"Test user '{email}' has no phone number."),
+                user.PhoneNumber ?? CreateSyntheticPhoneNumber(
+                    $"trusted-token:{user.Id:N}"),
                 roles.ToArray(),
                 user.SubjectId,
                 user.PractitionerId)).Value;

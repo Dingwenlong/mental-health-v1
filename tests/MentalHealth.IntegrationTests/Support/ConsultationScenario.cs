@@ -96,7 +96,8 @@ internal static class ConsultationScenario
             UserName = email,
             Email = email,
             EmailConfirmed = true,
-            PhoneNumber = "+8613900000001",
+            PhoneNumber = AuthApiFixture.CreateSyntheticPhoneNumber(
+                $"consultation-scenario:{suffix}"),
             SubjectId = Guid.NewGuid()
         };
         EnsureSucceeded(await userManager.CreateAsync(
