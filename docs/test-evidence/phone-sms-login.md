@@ -29,19 +29,21 @@ MH_ADMIN_PHONE
 | --- | --- |
 | 本机短时 JWT 契约 | 通过；用户与咨询师声明、5 分钟有效期和 HS256 签名均已核对 |
 | 本机身份与套餐检查 | 通过；API、演示套餐、普通用户和医生权限均正常 |
-| .NET 恢复、构建、测试 | 锁定恢复通过；构建 0 警告、0 错误；单元 136、契约 95、集成 122 全部通过；性能测试项目没有可发现的测试 |
-| 管理端测试与构建 | 7 个测试文件、27 个测试通过；生产构建通过 |
-| Flutter 静态分析与测试 | 静态分析通过；认证、验证码 WebView 和联系邮箱 18 个聚焦测试通过；完整测试被 Windows 测试进程崩溃中断，不能记为通过 |
+| .NET 恢复、构建、测试 | 锁定恢复通过；构建 0 警告、0 错误；单元 136、契约 95、集成 124 全部通过；性能测试项目没有可发现的测试 |
+| 管理端测试与构建 | 7 个测试文件、28 个测试通过；生产构建通过 |
+| Flutter 静态分析与测试 | 静态分析通过；默认并行测试触发已知的 Windows 测试进程崩溃；`flutter test --concurrency=1` 串行运行 45 个测试全部通过；认证、验证码 WebView 和联系邮箱 18 个聚焦测试通过 |
 | Android Debug APK | 构建通过；225574389 字节；SHA-256 `FBDEFC73CAA499D9DAC97E29BCD769A5E81284FF0FC7672105199E4590793B5D` |
 | 旧登录实现与私密值扫描 | 旧接口、旧字段、旧错误码和带值私密配置均未发现 |
 
-完整 `flutter test` 运行两次，失败用例每次不同。Windows 应用日志同期记录 `flutter_tester.exe` 异常代码 `0xc0000005`、错误偏移 `0x35abb0`。单独运行失败文件可以通过，因此本轮不修改无关业务代码，也不把完整 Flutter 套件写成通过。
+默认并行执行 `flutter test` 时，Windows 应用日志记录了 `flutter_tester.exe` 异常代码 `0xc0000005`、错误偏移 `0x35abb0`。改用 `flutter test --concurrency=1` 后，完整套件 45 个测试全部通过。两项结果分别记录：默认并行模式仍受本机测试进程崩溃影响，串行模式通过。
 
 APK：`apps/mobile_flutter/build/app/outputs/flutter-apk/app-debug.apk`
 
 ## 真实登录验收
 
-本轮不发送真实短信，也不启动模拟器。确认阿里云配置完整、两个号码已绑定且允许计费后，先启动 PostgreSQL 和 Redis：
+本轮没有执行阿里云、管理端或 Android 16 真实登录验收，因为本机缺少 5 项阿里云私密值。测试账号手机号、数据库、Flutter/Android 工具链和 API 36 AVD 预检均已准备完成；未启动模拟器，也未发送短信。
+
+补齐阿里云配置并确认允许计费后，先启动 PostgreSQL 和 Redis：
 
 ```powershell
 docker compose --env-file .env -f deploy/docker-compose.yml up -d
