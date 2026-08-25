@@ -81,6 +81,32 @@ public sealed class AuthorizationMatrixTests
         Assert.True(result.Succeeded);
     }
 
+    [Theory]
+    [InlineData("api", false)]
+    [InlineData("mfa_setup", true)]
+    public async Task Mfa_setup_policy_only_accepts_a_setup_proof(
+        string scope,
+        bool expected)
+    {
+        var result = await _authorization.AuthorizeAsync(
+            Principal(AppRoles.OperationsAdmin, scope: scope),
+            resource: null,
+            Policies.MfaSetup);
+
+        Assert.Equal(expected, result.Succeeded);
+    }
+
+    [Fact]
+    public async Task Mfa_setup_proof_cannot_satisfy_a_business_policy()
+    {
+        var result = await _authorization.AuthorizeAsync(
+            Principal(AppRoles.OperationsAdmin, scope: "mfa_setup"),
+            resource: null,
+            Policies.OperationsAdmin);
+
+        Assert.False(result.Succeeded);
+    }
+
     public static TheoryData<ClaimsPrincipal, string, bool> ContentAccessCases => new()
     {
         { Principal(AppRoles.User, subjectId: SubjectId), Policies.UserOwnsSubject, true },
@@ -94,12 +120,13 @@ public sealed class AuthorizationMatrixTests
     private static ClaimsPrincipal Principal(
         string role,
         Guid? subjectId = null,
-        Guid? practitionerId = null)
+        Guid? practitionerId = null,
+        string scope = "api")
     {
         var claims = new List<Claim>
         {
             new("sub", Guid.NewGuid().ToString()),
-            new("scope", "api"),
+            new("scope", scope),
             new(ClaimTypes.Role, role)
         };
         if (subjectId is { } subject)

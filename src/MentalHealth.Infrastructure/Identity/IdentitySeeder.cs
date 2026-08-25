@@ -61,24 +61,28 @@ public sealed class IdentitySeeder(
 
         await EnsureUserAsync(
             "user@demo.local",
+            "+8613800138000",
             AppRoles.User,
             password,
             requiresMfa: false,
             subjectId: DemoSubjectId);
         await EnsureUserAsync(
             "counselor@demo.local",
+            "+8613800138001",
             AppRoles.Counselor,
             password,
             requiresMfa: false,
             practitionerId: DemoCounselorId);
         await EnsureUserAsync(
             "doctor@demo.local",
+            "+8613800138002",
             AppRoles.Doctor,
             password,
             requiresMfa: true,
             practitionerId: DemoDoctorId);
         await EnsureUserAsync(
             "admin@demo.local",
+            "+8613800138003",
             AppRoles.OperationsAdmin,
             password,
             requiresMfa: true);
@@ -86,6 +90,7 @@ public sealed class IdentitySeeder(
 
     private async Task EnsureUserAsync(
         string email,
+        string phoneNumber,
         string role,
         string password,
         bool requiresMfa,
@@ -101,6 +106,7 @@ public sealed class IdentitySeeder(
                 UserName = email,
                 Email = email,
                 EmailConfirmed = true,
+                PhoneNumber = phoneNumber,
                 RequiresMfa = requiresMfa,
                 SubjectId = subjectId,
                 PractitionerId = practitionerId
@@ -112,12 +118,14 @@ public sealed class IdentitySeeder(
         {
             var changed = user.RequiresMfa != requiresMfa
                 || user.SubjectId != subjectId
-                || user.PractitionerId != practitionerId;
+                || user.PractitionerId != practitionerId
+                || user.PhoneNumber != phoneNumber;
             if (changed)
             {
                 user.RequiresMfa = requiresMfa;
                 user.SubjectId = subjectId;
                 user.PractitionerId = practitionerId;
+                user.PhoneNumber = phoneNumber;
                 EnsureSucceeded(await userManager.UpdateAsync(user));
             }
         }

@@ -58,6 +58,7 @@ public sealed class AuthApiFixture : IAsyncLifetime
             ["Jwt:Audience"] = "mental-health-v1-tests",
             ["Jwt:SigningKey"] = "synthetic-test-signing-key-with-at-least-32-bytes",
             ["Jwt:AccessTokenMinutes"] = "15",
+            ["Jwt:MfaSetupTokenMinutes"] = "5",
             ["Database:InitializeOnStartup"] = "true",
             ["IdentitySeed:Enabled"] = "true",
             ["CatalogSeed:Enabled"] = "true",
@@ -108,7 +109,8 @@ public sealed class AuthApiFixture : IAsyncLifetime
         return tokenService.Issue(
             new JwtTokenSubject(
                 user.Id,
-                user.PhoneNumber ?? string.Empty,
+                user.PhoneNumber ?? throw new InvalidOperationException(
+                    $"Test user '{email}' has no phone number."),
                 roles.ToArray(),
                 user.SubjectId,
                 user.PractitionerId)).Value;

@@ -240,7 +240,8 @@ public static class DependencyInjection
         return !string.IsNullOrWhiteSpace(options.Issuer)
             && !string.IsNullOrWhiteSpace(options.Audience)
             && Encoding.UTF8.GetByteCount(options.SigningKey) >= 32
-            && options.AccessTokenMinutes is >= 1 and <= 60;
+            && options.AccessTokenMinutes is >= 1 and <= 60
+            && options.MfaSetupTokenMinutes is >= 1 and <= 15;
     }
 
     private static string RequireConnectionString(

@@ -62,9 +62,16 @@ public sealed class AuthController(
         {
             if (!user.TwoFactorEnabled)
             {
+                var setupToken = tokenService.Issue(subject, JwtTokenScope.MfaSetup);
                 return UnauthorizedProblem(
                     ApiProblemCodes.MfaRequired,
-                    "需要先设置动态验证码");
+                    "需要先设置动态验证码",
+                    new Dictionary<string, object?>
+                    {
+                        ["mfaSetupRequired"] = true,
+                        ["setupToken"] = setupToken.Value,
+                        ["setupTokenExpiresAt"] = setupToken.ExpiresAt
+                    });
             }
 
             if (string.IsNullOrWhiteSpace(request.TotpCode))
@@ -90,7 +97,7 @@ public sealed class AuthController(
         return Ok(new TokenResponse(accessToken.Value, accessToken.ExpiresAt));
     }
 
-    [Authorize]
+    [Authorize(Policy = Policies.MfaSetup)]
     [HttpPost("mfa/setup")]
     public async Task<IActionResult> SetupMfa(
         MfaSetupRequest request,

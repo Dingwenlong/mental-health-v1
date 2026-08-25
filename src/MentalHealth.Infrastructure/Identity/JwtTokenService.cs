@@ -14,17 +14,32 @@ public sealed class JwtTokenService(
 {
     private readonly JwtOptions _options = options.Value;
 
-    public IssuedJwtToken Issue(JwtTokenSubject subject)
+    public IssuedJwtToken Issue(JwtTokenSubject subject) =>
+        Issue(subject, JwtTokenScope.Api);
+
+    public IssuedJwtToken Issue(JwtTokenSubject subject, JwtTokenScope scope)
     {
+        if (!PhoneNumberNormalizer.TryNormalizeMainlandChina(
+                subject.PhoneNumber,
+                out var phoneNumber))
+        {
+            throw new ArgumentException(
+                "A valid mainland China phone number is required.",
+                nameof(subject));
+        }
+
         var now = clock.UtcNow;
-        var expiresAt = now.AddMinutes(_options.AccessTokenMinutes);
+        var lifetime = scope == JwtTokenScope.Api
+            ? _options.AccessTokenMinutes
+            : _options.MfaSetupTokenMinutes;
+        var expiresAt = now.AddMinutes(lifetime);
 
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, subject.UserId.ToString()),
             new(ClaimTypes.NameIdentifier, subject.UserId.ToString()),
-            new("phone_number", subject.PhoneNumber),
-            new("scope", "api")
+            new("phone_number", phoneNumber),
+            new("scope", scope == JwtTokenScope.Api ? "api" : "mfa_setup")
         };
 
         claims.AddRange(subject.Roles.Select(role => new Claim(ClaimTypes.Role, role)));

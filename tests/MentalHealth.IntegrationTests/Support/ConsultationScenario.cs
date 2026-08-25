@@ -96,6 +96,7 @@ internal static class ConsultationScenario
             UserName = email,
             Email = email,
             EmailConfirmed = true,
+            PhoneNumber = "+8613900000001",
             SubjectId = Guid.NewGuid()
         };
         EnsureSucceeded(await userManager.CreateAsync(
@@ -106,7 +107,7 @@ internal static class ConsultationScenario
         var token = tokenService.Issue(
             new JwtTokenSubject(
                 user.Id,
-                email,
+                user.PhoneNumber!,
                 [AppRoles.User],
                 user.SubjectId,
                 null)).Value;

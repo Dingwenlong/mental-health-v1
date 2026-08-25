@@ -6,6 +6,7 @@ namespace MentalHealth.Api.Authorization;
 
 public static class Policies
 {
+    public const string MfaSetup = "MfaSetup";
     public const string UserOwnsSubject = "UserOwnsSubject";
     public const string AssignedPractitioner = "AssignedPractitioner";
     public const string RiskReviewer = "RiskReviewer";
@@ -25,6 +26,9 @@ public static class AuthorizationRegistration
                 .RequireAuthenticatedUser()
                 .RequireClaim("scope", "api")
                 .Build())
+            .AddPolicy(Policies.MfaSetup, policy => policy
+                .RequireAuthenticatedUser()
+                .RequireClaim("scope", "mfa_setup"))
             .AddPolicy(Policies.UserOwnsSubject, policy => policy
                 .RequireAuthenticatedUser()
                 .RequireClaim("scope", "api")

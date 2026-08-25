@@ -232,6 +232,7 @@ public sealed class ConsultationLifecycleTests(AuthApiFixture fixture)
             UserName = email,
             Email = email,
             EmailConfirmed = true,
+            PhoneNumber = "+8613900000003",
             SubjectId = Guid.NewGuid()
         };
         EnsureSucceeded(await userManager.CreateAsync(
@@ -243,7 +244,7 @@ public sealed class ConsultationLifecycleTests(AuthApiFixture fixture)
         var token = tokenService.Issue(
             new JwtTokenSubject(
                 user.Id,
-                email,
+                user.PhoneNumber!,
                 [AppRoles.User],
                 user.SubjectId,
                 null));
