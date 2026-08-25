@@ -73,15 +73,9 @@ PhoneLogin:Accounts:ClientPhone
 PhoneLogin:Accounts:AdminPhone
 ```
 
-这些值可以放在被 Git 忽略的 `.env`，也可以写入 .NET Secret Manager：
+`.env` 只由仓库内的 PowerShell 脚本读取。`Test-LocalIdentity.ps1` 和 Android 验收脚本会把这些值映射到它们启动的 API 子进程；`dotnet run` 不会自动读取 `.env`。这些自动化脚本会关闭阿里云调用，只检查本地流程。
 
-```powershell
-dotnet user-secrets init --project src/MentalHealth.Api/MentalHealth.Api.csproj
-dotnet user-secrets set --project src/MentalHealth.Api/MentalHealth.Api.csproj "PhoneLogin:Aliyun:AccessKeyId" "<本机填写>"
-# 其余六项使用上面的配置名逐项写入
-```
-
-真实短信会计费。确认两个号码已绑定并明确允许发送后，再按 [手机号短信登录证据](docs/test-evidence/phone-sms-login.md) 执行管理端和 Android 16 验收；本机测试令牌不能代替这一步。
+真实短信会计费。确认两个号码已绑定并明确允许发送后，再按 [手机号短信登录证据](docs/test-evidence/phone-sms-login.md) 把 `.env` 映射到当前 API 进程，然后执行管理端和 Android 16 验收；该步骤不会打印私密值。本机测试令牌不能代替真实短信验收。
 
 本地 API 启动后，另开一个 PowerShell 运行分析任务：
 

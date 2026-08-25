@@ -22,6 +22,8 @@ $flutterProcess = $null
 $playwrightOpened = $false
 $reversePort = $null
 $taskDirectory = $null
+$definesPath = $null
+$primaryFailure = $null
 $playwrightSession = "task11-$([Guid]::NewGuid().ToString('N'))"
 
 function Read-LocalValues
@@ -220,6 +222,7 @@ foreach ($required in @(
 }
 
 Import-Module (Join-Path $PSScriptRoot 'LocalTestJwt.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'SensitiveTemporaryFile.psm1') -Force
 
 try
 {
@@ -477,46 +480,91 @@ async (page) => {
     Write-Host "Android 与网页已完成一次局域网视频连接，媒体字节数：$($storedMedia[0].Length)。"
     Write-Host "截图：$screenshotPath"
 }
+catch
+{
+    $primaryFailure = $_
+}
 finally
 {
-    if ($playwrightOpened)
+    $processCleanupFailure = $null
+    try
     {
-        try { Invoke-Playwright -Arguments @('close') | Out-Null } catch {}
-    }
-    if ($null -ne $reversePort)
-    {
-        & adb -s $DeviceId reverse --remove "tcp:$reversePort" 2>$null
-    }
-    if ($null -ne $flutterProcess -and -not $flutterProcess.HasExited)
-    {
-        & adb -s $DeviceId shell am force-stop `
-            com.example.mentalhealth.mobile_flutter 2>$null
-    }
-    foreach ($process in @($flutterProcess, $webProcess, $apiProcess))
-    {
-        if ($null -ne $process -and -not $process.HasExited)
+        if ($playwrightOpened)
         {
-            Stop-Process -Id $process.Id -Force
-            $process.WaitForExit()
+            try { Invoke-Playwright -Arguments @('close') | Out-Null } catch {}
+        }
+        if ($null -ne $reversePort)
+        {
+            & adb -s $DeviceId reverse --remove "tcp:$reversePort" 2>$null
+        }
+        if ($null -ne $flutterProcess -and -not $flutterProcess.HasExited)
+        {
+            & adb -s $DeviceId shell am force-stop `
+                com.example.mentalhealth.mobile_flutter 2>$null
+        }
+        foreach ($process in @($flutterProcess, $webProcess, $apiProcess))
+        {
+            if ($null -ne $process -and -not $process.HasExited)
+            {
+                Stop-Process -Id $process.Id -Force
+                $process.WaitForExit()
+            }
         }
     }
-    if ($null -ne $taskDirectory -and (Test-Path -LiteralPath $taskDirectory))
+    catch
     {
-        $checkedTaskDirectory = [IO.Path]::GetFullPath($taskDirectory)
-        $checkedTemp = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())
-        if (-not $checkedTaskDirectory.StartsWith(
-            $checkedTemp,
-            [StringComparison]::OrdinalIgnoreCase))
-        {
-            throw 'Task 11 临时目录不在系统临时目录内，停止清理。'
-        }
+        $processCleanupFailure = $_
+    }
+
+    $sensitiveCleanupFailure = $null
+    if ($null -ne $definesPath)
+    {
         try
         {
+            Remove-SensitiveTemporaryFile -Path $definesPath
+        }
+        catch
+        {
+            $sensitiveCleanupFailure = $_
+        }
+    }
+
+    if ($null -ne $taskDirectory -and (Test-Path -LiteralPath $taskDirectory))
+    {
+        try
+        {
+            $checkedTaskDirectory = [IO.Path]::GetFullPath($taskDirectory)
+            $checkedTemp = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())
+            if (-not $checkedTaskDirectory.StartsWith(
+                $checkedTemp,
+                [StringComparison]::OrdinalIgnoreCase))
+            {
+                throw 'Task 11 临时目录不在系统临时目录内，停止清理。'
+            }
             Remove-Item -LiteralPath $checkedTaskDirectory -Recurse -Force
         }
         catch
         {
             Write-Warning "Task 11 临时目录清理失败：$checkedTaskDirectory"
         }
+    }
+
+    if ($null -ne $sensitiveCleanupFailure)
+    {
+        if ($null -ne $primaryFailure)
+        {
+            throw [InvalidOperationException]::new(
+                "$($sensitiveCleanupFailure.Exception.Message) 原始任务错误：$($primaryFailure.Exception.Message)",
+                $primaryFailure.Exception)
+        }
+        throw $sensitiveCleanupFailure
+    }
+    if ($null -ne $processCleanupFailure)
+    {
+        throw $processCleanupFailure
+    }
+    if ($null -ne $primaryFailure)
+    {
+        throw $primaryFailure
     }
 }
