@@ -38,7 +38,7 @@
   "auth.loggingIn": "正在登录…",
   "auth.phoneRequired": "请输入 11 位手机号",
   "auth.sendHint": "如果该手机号已登记，你会收到验证码",
-  "auth.captchaFailed": "安全验证失败",
+  "auth.captchaFailed": "未完成安全验证，请重试",
   "auth.challengeInvalid": "登录请求已失效，请重新获取验证码",
   "auth.smsRateLimited": "请求过于频繁，请稍后重试",
   "auth.invalidSmsCode": "验证码无效或已过期",

@@ -32,15 +32,20 @@ let scriptLoad: Promise<void> | null = null
 function loadScript(prefix: string): Promise<void> {
   if (scriptLoad) return scriptLoad
   window.AliyunCaptchaConfig = { region: 'cn', prefix }
-  scriptLoad = new Promise<void>((resolve, reject) => {
+  const load = new Promise<void>((resolve, reject) => {
     const script = document.createElement('script')
     script.src = scriptUrl
     script.async = true
     script.onload = () => resolve()
-    script.onerror = () => reject(new Error('Aliyun captcha script failed to load'))
+    script.onerror = () => {
+      script.remove()
+      if (scriptLoad === load) scriptLoad = null
+      reject(new Error('Aliyun captcha script failed to load'))
+    }
     document.head.append(script)
   })
-  return scriptLoad
+  scriptLoad = load
+  return load
 }
 
 export async function runAliyunCaptcha(bootstrap: CaptchaBootstrap): Promise<string> {

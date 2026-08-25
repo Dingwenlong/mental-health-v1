@@ -2,6 +2,7 @@
 
 import { mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { ApiClient, ApiProblemError } from '../api/client'
 import PhoneLoginForm, {
   type PhoneLoginService,
 } from '../features/auth/PhoneLoginForm.vue'
@@ -28,6 +29,11 @@ function createPhoneLoginService(): PhoneLoginService {
 
 afterEach(() => {
   vi.useRealTimers()
+  vi.unstubAllGlobals()
+  delete window.AliyunCaptchaConfig
+  delete window.initAliyunCaptcha
+  document.querySelectorAll('script[src="https://o.alicdn.com/captcha-frontend/aliyunCaptcha/AliyunCaptcha.js"]')
+    .forEach((script) => script.remove())
 })
 
 describe('phone login form', () => {
@@ -48,6 +54,44 @@ describe('phone login form', () => {
     expect(wrapper.findAll('input[type=password], input[type=email]').length).toBe(0)
     expect(wrapper.text()).not.toContain('+86')
     expect(wrapper.text()).not.toContain('换个手机号')
+  })
+
+  it('lets a failed Aliyun script load be retried without retaining the failed node', async () => {
+    vi.resetModules()
+    const { runAliyunCaptcha } = await import('../features/auth/aliyunCaptcha')
+    const bootstrap = {
+      preChallengeToken: 'pre-challenge-1',
+      prefix: 'xfkdn8',
+      encryptedSceneId: 'encrypted-scene-1',
+      expiresAt: '2030-01-01T00:00:00.000Z',
+    }
+
+    const first = runAliyunCaptcha(bootstrap)
+    const failedScript = document.querySelector('script[src="https://o.alicdn.com/captcha-frontend/aliyunCaptcha/AliyunCaptcha.js"]') as HTMLScriptElement
+    failedScript.dispatchEvent(new Event('error'))
+    await expect(first).rejects.toThrow('Aliyun captcha script failed to load')
+    expect(failedScript.isConnected).toBe(false)
+
+    const retry = runAliyunCaptcha(bootstrap)
+    const retryScript = document.querySelector('script[src="https://o.alicdn.com/captcha-frontend/aliyunCaptcha/AliyunCaptcha.js"]') as HTMLScriptElement
+    expect(retryScript).not.toBe(failedScript)
+    retryScript.dispatchEvent(new Event('error'))
+    await expect(retry).rejects.toThrow('Aliyun captcha script failed to load')
+  })
+
+  it('parses an integer Retry-After response into an API problem', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(
+      JSON.stringify({ status: 429, code: 'SMS_RATE_LIMITED' }),
+      { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '17' } },
+    )))
+    const client = new ApiClient('https://api.example.test/')
+
+    let thrown: unknown
+    try { await client.post('auth/sms/challenges', {}) }
+    catch (error) { thrown = error }
+
+    expect(thrown).toBeInstanceOf(ApiProblemError)
+    expect((thrown as ApiProblemError & { retryAfterSeconds?: number }).retryAfterSeconds).toBe(17)
   })
 
   it('bootstraps, runs captcha, then creates a challenge before locking the phone', async () => {
@@ -113,10 +157,78 @@ describe('phone login form', () => {
     expect(captchaRunner).toHaveBeenCalledTimes(2)
   })
 
+  it('uses the server retry-after seconds on the send button when SMS is rate limited', async () => {
+    const phoneLogin = createPhoneLoginService()
+    const rateLimited = Object.assign(
+      new ApiProblemError({ code: 'SMS_RATE_LIMITED' }),
+      { retryAfterSeconds: 17 },
+    )
+    phoneLogin.bootstrap = vi.fn().mockRejectedValue(rateLimited)
+    const wrapper = mount(PhoneLoginForm, { props: { phoneLogin } })
+
+    await wrapper.get('[data-test=login-phone]').setValue('13800138001')
+    await wrapper.get('form').trigger('submit')
+    await flush()
+
+    expect(wrapper.get('[data-test=login-send-code]').text()).toBe('17 秒后重新获取')
+    expect(wrapper.get('[data-test=login-send-code]').attributes('disabled')).toBeDefined()
+    wrapper.unmount()
+  })
+
+  it('uses explicit empty-value validation and moves focus to the invalid field', async () => {
+    const wrapper = mount(PhoneLoginForm, {
+      attachTo: document.body,
+      props: { phoneLogin: createPhoneLoginService() },
+    })
+
+    expect(wrapper.get('form').attributes('novalidate')).toBeDefined()
+    await wrapper.get('form').trigger('submit')
+    await flush()
+
+    expect(wrapper.get('[role=alert]').text()).toBe('请输入 11 位手机号')
+    expect(document.activeElement).toBe(wrapper.get('[data-test=login-phone]').element)
+    wrapper.unmount()
+  })
+
+  it('moves focus to an empty SMS-code field after the phone is locked', async () => {
+    const wrapper = mount(PhoneLoginForm, {
+      attachTo: document.body,
+      props: { phoneLogin: createPhoneLoginService(), captchaRunner: vi.fn().mockResolvedValue('captcha-pass') },
+    })
+
+    await wrapper.get('[data-test=login-phone]').setValue('13800138001')
+    await wrapper.get('form').trigger('submit')
+    await flush()
+    await wrapper.get('form').trigger('submit')
+    await flush()
+
+    expect(wrapper.get('[role=alert]').text()).toBe('验证码无效或已过期')
+    expect(document.activeElement).toBe(wrapper.get('[data-test=login-sms-code]').element)
+    wrapper.unmount()
+  })
+
+  it('marks the form busy while sending a code', async () => {
+    let resolveBootstrap: ((value: Awaited<ReturnType<PhoneLoginService['bootstrap']>>) => void) | undefined
+    const phoneLogin = createPhoneLoginService()
+    phoneLogin.bootstrap = vi.fn(() => new Promise<Awaited<ReturnType<PhoneLoginService['bootstrap']>>>((resolve) => { resolveBootstrap = resolve }))
+    const wrapper = mount(PhoneLoginForm, { props: { phoneLogin } })
+
+    await wrapper.get('[data-test=login-phone]').setValue('13800138001')
+    await wrapper.get('[data-test=login-send-code]').trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.get('form').attributes('aria-busy')).toBe('true')
+
+    resolveBootstrap?.({
+      preChallengeToken: 'pre-challenge-1', prefix: 'xfkdn8', encryptedSceneId: 'encrypted-scene-1', expiresAt: '2030-01-01T00:00:00.000Z',
+    })
+    wrapper.unmount()
+  })
+
   it('shows the confirmed short message for an invalid SMS code', async () => {
     const phoneLogin = createPhoneLoginService()
     phoneLogin.verify = vi.fn().mockRejectedValue({ code: 'INVALID_SMS_CODE' })
     const wrapper = mount(PhoneLoginForm, {
+      attachTo: document.body,
       props: { phoneLogin, captchaRunner: vi.fn().mockResolvedValue('captcha-pass') },
     })
 
@@ -126,7 +238,12 @@ describe('phone login form', () => {
     await wrapper.get('[data-test=login-sms-code]').setValue('123456')
     await wrapper.get('form').trigger('submit')
     await flush()
+    await wrapper.vm.$nextTick()
 
     expect(wrapper.get('[role=alert]').text()).toBe('验证码无效或已过期')
+    await vi.waitFor(() => {
+      expect(document.activeElement).toBe(wrapper.get('[data-test=login-sms-code]').element)
+    })
+    wrapper.unmount()
   })
 })

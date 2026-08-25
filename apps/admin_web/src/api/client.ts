@@ -10,11 +10,13 @@ export type ApiProblem = {
 
 export class ApiProblemError extends Error {
   readonly problem: ApiProblem
+  readonly retryAfterSeconds: number | null
 
-  constructor(problem: ApiProblem) {
+  constructor(problem: ApiProblem, retryAfterSeconds: number | null = null) {
     super(problem.detail ?? problem.title ?? problem.code)
     this.name = 'ApiProblemError'
     this.problem = problem
+    this.retryAfterSeconds = retryAfterSeconds
   }
 }
 
@@ -77,7 +79,7 @@ export class ApiClient {
         ...problem,
         code: typeof problem.code === 'string' ? problem.code : 'HTTP_ERROR',
         status: problem.status ?? response.status,
-      })
+      }, this.readRetryAfterSeconds(response))
     }
     if (response.status === 204) {
       return undefined as T
@@ -95,6 +97,11 @@ export class ApiClient {
     } catch {
       return {}
     }
+  }
+
+  private readRetryAfterSeconds(response: Response): number | null {
+    const value = response.headers.get('Retry-After')
+    return value !== null && /^\d+$/.test(value) ? Number(value) : null
   }
 }
 

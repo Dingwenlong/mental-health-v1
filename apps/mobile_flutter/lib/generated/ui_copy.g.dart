@@ -67,7 +67,7 @@ abstract final class UiCopy {
     "audit.riskReviewed": "医生已复核",
     "audit.time": "时间",
     "audit.title": "审计记录",
-    "auth.captchaFailed": "安全验证失败",
+    "auth.captchaFailed": "未完成安全验证，请重试",
     "auth.challengeInvalid": "登录请求已失效，请重新获取验证码",
     "auth.invalidSmsCode": "验证码无效或已过期",
     "auth.loggingIn": "正在登录…",
