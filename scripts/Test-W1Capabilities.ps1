@@ -21,7 +21,6 @@ $apiEnvironment = @{
     'Jwt__Audience' = 'mental-health-v1-probe'
     'Jwt__SigningKey' = 'synthetic-w1-probe-signing-key-with-at-least-32-bytes'
     'Jwt__AccessTokenMinutes' = '15'
-    'Jwt__MfaSetupTokenMinutes' = '5'
     'Database__InitializeOnStartup' = 'false'
     'IdentitySeed__Enabled' = 'false'
 }

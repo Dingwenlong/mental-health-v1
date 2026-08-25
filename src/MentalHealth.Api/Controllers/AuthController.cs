@@ -1,16 +1,14 @@
-using System.Globalization;
-using System.Text.Encodings.Web;
-using MentalHealth.Api.Authorization;
+using System.Net;
+using System.Security.Cryptography;
 using MentalHealth.Application.Security;
-using MentalHealth.Application.Abstractions.Clock;
-using MentalHealth.Application.Abstractions.Persistence;
-using MentalHealth.Application.Audit;
 using MentalHealth.Contracts.Common;
-using MentalHealth.Domain.Audit;
 using MentalHealth.Infrastructure.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using StackExchange.Redis;
 
 namespace MentalHealth.Api.Controllers;
 
@@ -18,215 +16,365 @@ namespace MentalHealth.Api.Controllers;
 [Route("api/v1/auth")]
 public sealed class AuthController(
     UserManager<AppUser> userManager,
-    SignInManager<AppUser> signInManager,
+    ILoginChallengeStore challengeStore,
+    ICaptchaVerifier captchaVerifier,
+    ISmsVerificationProvider smsVerificationProvider,
     IJwtTokenService tokenService,
-    IAuditTrail auditTrail,
-    IUnitOfWork unitOfWork,
-    IClock clock) : ControllerBase
+    ILoginFailureDelay failureDelay,
+    TimeProvider timeProvider,
+    IOptions<AliyunPhoneLoginOptions> phoneLoginOptions) : ControllerBase
 {
+    private static readonly TimeSpan FailureDelayFloor = TimeSpan.FromMilliseconds(800);
+    private const int FailureDelayJitterMilliseconds = 200;
+    private readonly AliyunPhoneLoginOptions _phoneLoginOptions = phoneLoginOptions.Value;
+
     [AllowAnonymous]
-    [HttpPost("login")]
-    public async Task<IActionResult> Login(
-        LoginRequest request,
+    [HttpPost("captcha/bootstrap")]
+    public async Task<IActionResult> BootstrapCaptcha(
+        CaptchaBootstrapRequest request,
         CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-        var user = await userManager.FindByEmailAsync(request.Email.Trim());
+        if (!PhoneNumberNormalizer.TryNormalizeMainlandChina(
+                request.PhoneNumber ?? string.Empty,
+                out var phoneNumber))
+        {
+            return ProblemResult(
+                StatusCodes.Status400BadRequest,
+                ApiProblemCodes.InvalidPhoneNumber,
+                "手机号格式不正确");
+        }
+
+        var sceneId = request.Client switch
+        {
+            "admin" => _phoneLoginOptions.AdminSceneId,
+            "android" => _phoneLoginOptions.AndroidSceneId,
+            _ => null
+        };
+        if (sceneId is null)
+        {
+            return ProblemResult(
+                StatusCodes.Status400BadRequest,
+                ApiProblemCodes.LoginChallengeInvalid,
+                "登录请求无效");
+        }
+
+        if (!_phoneLoginOptions.Enabled)
+        {
+            return ProviderUnavailable();
+        }
+
+        try
+        {
+            var rate = await challengeStore.CheckBootstrapRateAsync(
+                SourceIp(),
+                cancellationToken);
+            if (!rate.IsAllowed)
+            {
+                return RateLimited(rate.RetryAfterSeconds);
+            }
+
+            var userId = await userManager.Users
+                .AsNoTracking()
+                .Where(user => user.PhoneNumber == phoneNumber)
+                .Select(user => (Guid?)user.Id)
+                .SingleOrDefaultAsync(cancellationToken);
+            var ticket = await challengeStore.CreatePreChallengeAsync(
+                new PhoneLoginPreChallengeDraft(
+                    phoneNumber,
+                    userId,
+                    request.Client!,
+                    sceneId),
+                cancellationToken);
+            var encryptedSceneId = new EncryptedSceneIdFactory(
+                    _phoneLoginOptions.CaptchaEkey)
+                .Create(sceneId);
+            return Ok(new CaptchaBootstrapResponse(
+                ticket.Token,
+                _phoneLoginOptions.Prefix,
+                encryptedSceneId,
+                FormatUtc(ticket.ExpiresAt)));
+        }
+        catch (RedisException)
+        {
+            return ProviderUnavailable();
+        }
+    }
+
+    [AllowAnonymous]
+    [HttpPost("sms/challenges")]
+    public async Task<IActionResult> CreateSmsChallenge(
+        SmsChallengeRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var preChallenge = string.IsNullOrWhiteSpace(request.PreChallengeToken)
+                ? null
+                : await challengeStore.TakePreChallengeAsync(
+                    request.PreChallengeToken,
+                    cancellationToken);
+            if (preChallenge is null)
+            {
+                return ProblemResult(
+                    StatusCodes.Status400BadRequest,
+                    ApiProblemCodes.LoginChallengeInvalid,
+                    "登录请求已失效");
+            }
+
+            var rate = await challengeStore.CheckSmsSendRateAsync(
+                preChallenge.NationalPhoneNumber,
+                SourceIp(),
+                cancellationToken);
+            if (!rate.IsAllowed)
+            {
+                return RateLimited(rate.RetryAfterSeconds);
+            }
+
+            bool captchaAccepted;
+            try
+            {
+                captchaAccepted = await captchaVerifier.VerifyAsync(
+                    preChallenge.SceneId,
+                    request.CaptchaVerifyParam ?? string.Empty,
+                    cancellationToken);
+            }
+            catch (PhoneLoginProviderException)
+            {
+                return ProviderUnavailable();
+            }
+
+            if (!captchaAccepted)
+            {
+                return ProblemResult(
+                    StatusCodes.Status422UnprocessableEntity,
+                    ApiProblemCodes.CaptchaFailed,
+                    "人机验证未通过");
+            }
+
+            var ticket = await challengeStore.CreateChallengeAsync(
+                new PhoneLoginChallengeDraft(
+                    preChallenge.NationalPhoneNumber,
+                    preChallenge.UserId,
+                    preChallenge.Client,
+                    preChallenge.SceneId),
+                cancellationToken);
+            var createdAt = ticket.ExpiresAt.AddMinutes(-5);
+            return Accepted(new SmsChallengeResponse(
+                ticket.Id,
+                ticket.Token,
+                FormatUtc(ticket.ExpiresAt),
+                FormatUtc(createdAt.AddMinutes(1))));
+        }
+        catch (RedisException)
+        {
+            return ProviderUnavailable();
+        }
+    }
+
+    [AllowAnonymous]
+    [HttpPost("sms/verify")]
+    public async Task<IActionResult> VerifySmsCode(
+        SmsVerificationRequest request,
+        CancellationToken cancellationToken)
+    {
+        var startedTimestamp = timeProvider.GetTimestamp();
+        if (string.IsNullOrWhiteSpace(request.ChallengeToken)
+            || request.Code is null
+            || request.Code.Length != 6
+            || request.Code.Any(character => character is < '0' or > '9'))
+        {
+            await DelayFailureAsync(startedTimestamp, cancellationToken);
+            return InvalidSmsCode();
+        }
+
+        VerificationLease lease;
+        try
+        {
+            lease = await challengeStore.TryAcquireVerificationAsync(
+                request.ChallengeToken,
+                cancellationToken);
+        }
+        catch (RedisException)
+        {
+            await DelayFailureAsync(startedTimestamp, cancellationToken);
+            return ProviderUnavailable();
+        }
+
+        if (!lease.IsAcquired || lease.Challenge is null || lease.LeaseId is null)
+        {
+            await DelayFailureAsync(startedTimestamp, cancellationToken);
+            return InvalidSmsCode();
+        }
+
+        var challenge = lease.Challenge;
+        if (challenge.UserId is null)
+        {
+            if (!await TryReleaseLeaseAsync(challenge.ChallengeId, lease.LeaseId, cancellationToken))
+            {
+                await DelayFailureAsync(startedTimestamp, cancellationToken);
+                return ProviderUnavailable();
+            }
+
+            await DelayFailureAsync(startedTimestamp, cancellationToken);
+            return InvalidSmsCode();
+        }
+
+        bool codeAccepted;
+        try
+        {
+            codeAccepted = await smsVerificationProvider.CheckAsync(
+                challenge.NationalPhoneNumber,
+                challenge.OutId,
+                request.Code,
+                cancellationToken);
+        }
+        catch (PhoneLoginProviderException)
+        {
+            _ = await TryReleaseLeaseAsync(
+                challenge.ChallengeId,
+                lease.LeaseId,
+                cancellationToken);
+            await DelayFailureAsync(startedTimestamp, cancellationToken);
+            return ProviderUnavailable();
+        }
+
+        if (!codeAccepted)
+        {
+            if (!await TryReleaseLeaseAsync(challenge.ChallengeId, lease.LeaseId, cancellationToken))
+            {
+                await DelayFailureAsync(startedTimestamp, cancellationToken);
+                return ProviderUnavailable();
+            }
+
+            await DelayFailureAsync(startedTimestamp, cancellationToken);
+            return InvalidSmsCode();
+        }
+
+        ChallengeConsumption consumption;
+        try
+        {
+            consumption = await challengeStore.ConsumeChallengeAsync(
+                challenge.ChallengeId,
+                lease.LeaseId,
+                cancellationToken);
+        }
+        catch (RedisException)
+        {
+            await DelayFailureAsync(startedTimestamp, cancellationToken);
+            return ProviderUnavailable();
+        }
+
+        if (!consumption.WasConsumed || consumption.UserId != challenge.UserId)
+        {
+            await DelayFailureAsync(startedTimestamp, cancellationToken);
+            return InvalidSmsCode();
+        }
+
+        var user = await userManager.FindByIdAsync(challenge.UserId.Value.ToString());
         if (user is null)
         {
-            return UnauthorizedProblem(
-                ApiProblemCodes.InvalidCredentials,
-                "邮箱或密码不正确");
+            await DelayFailureAsync(startedTimestamp, cancellationToken);
+            return InvalidSmsCode();
         }
 
-        var passwordResult = await signInManager.CheckPasswordSignInAsync(
-            user,
-            request.Password,
-            lockoutOnFailure: true);
-        if (!passwordResult.Succeeded && !passwordResult.RequiresTwoFactor)
+        user.PhoneNumberConfirmed = true;
+        var update = await userManager.UpdateAsync(user);
+        if (!update.Succeeded)
         {
-            return UnauthorizedProblem(
-                ApiProblemCodes.InvalidCredentials,
-                "邮箱或密码不正确");
+            throw new InvalidOperationException("Failed to confirm the login phone number.");
         }
 
         var roles = await userManager.GetRolesAsync(user);
-        var subject = new JwtTokenSubject(
+        var token = tokenService.Issue(new JwtTokenSubject(
             user.Id,
-            user.PhoneNumber ?? string.Empty,
+            challenge.NationalPhoneNumber,
             roles.ToArray(),
             user.SubjectId,
-            user.PractitionerId);
-
-        if (RequiresMfa(user, roles))
-        {
-            if (!user.TwoFactorEnabled)
-            {
-                var setupToken = tokenService.Issue(subject, JwtTokenScope.MfaSetup);
-                return UnauthorizedProblem(
-                    ApiProblemCodes.MfaRequired,
-                    "需要先设置动态验证码",
-                    new Dictionary<string, object?>
-                    {
-                        ["mfaSetupRequired"] = true,
-                        ["setupToken"] = setupToken.Value,
-                        ["setupTokenExpiresAt"] = setupToken.ExpiresAt
-                    });
-            }
-
-            if (string.IsNullOrWhiteSpace(request.TotpCode))
-            {
-                return UnauthorizedProblem(
-                    ApiProblemCodes.MfaRequired,
-                    "请输入动态验证码");
-            }
-
-            var validCode = await userManager.VerifyTwoFactorTokenAsync(
-                user,
-                TokenOptions.DefaultAuthenticatorProvider,
-                NormalizeCode(request.TotpCode));
-            if (!validCode)
-            {
-                return UnauthorizedProblem(
-                    ApiProblemCodes.InvalidMfaCode,
-                    "动态验证码不正确");
-            }
-        }
-
-        var accessToken = tokenService.Issue(subject);
-        return Ok(new TokenResponse(accessToken.Value, accessToken.ExpiresAt));
+            user.PractitionerId));
+        return Ok(new TokenResponse(token.Value, token.ExpiresAt));
     }
 
-    [Authorize(Policy = Policies.MfaSetup)]
-    [HttpPost("mfa/setup")]
-    public async Task<IActionResult> SetupMfa(
-        MfaSetupRequest request,
+    private async Task<bool> TryReleaseLeaseAsync(
+        string challengeId,
+        string leaseId,
         CancellationToken cancellationToken)
     {
-        if (!Guid.TryParse(User.FindFirst("sub")?.Value, out var userId))
+        try
         {
-            return ForbiddenProblem();
+            await challengeStore.ReleaseVerificationLeaseAsync(
+                challengeId,
+                leaseId,
+                cancellationToken);
+            return true;
         }
-
-        var user = await userManager.FindByIdAsync(userId.ToString());
-        if (user is null || user.TwoFactorEnabled)
+        catch (RedisException)
         {
-            return ForbiddenProblem();
+            return false;
         }
-
-        var roles = await userManager.GetRolesAsync(user);
-        if (!RequiresMfa(user, roles))
-        {
-            return ForbiddenProblem();
-        }
-
-        var key = await userManager.GetAuthenticatorKeyAsync(user);
-        if (string.IsNullOrWhiteSpace(key))
-        {
-            await userManager.ResetAuthenticatorKeyAsync(user);
-            key = await userManager.GetAuthenticatorKeyAsync(user);
-        }
-
-        if (string.IsNullOrWhiteSpace(request.TotpCode))
-        {
-            var issuer = UrlEncoder.Default.Encode("心理健康系统");
-            var account = UrlEncoder.Default.Encode(user.Email!);
-            var uri = string.Create(
-                CultureInfo.InvariantCulture,
-                $"otpauth://totp/{issuer}:{account}?secret={key}&issuer={issuer}&digits=6");
-            return Ok(new MfaSetupResponse(key!, uri, false));
-        }
-
-        var validCode = await userManager.VerifyTwoFactorTokenAsync(
-            user,
-            TokenOptions.DefaultAuthenticatorProvider,
-            NormalizeCode(request.TotpCode));
-        if (!validCode)
-        {
-            return UnprocessableEntity(new ProblemDetails
-            {
-                Status = StatusCodes.Status422UnprocessableEntity,
-                Title = "动态验证码不正确",
-                Extensions = { ["code"] = ApiProblemCodes.InvalidMfaCode }
-            });
-        }
-
-        var enabled = await userManager.SetTwoFactorEnabledAsync(user, true);
-        if (!enabled.Succeeded)
-        {
-            throw new InvalidOperationException("Failed to enable MFA.");
-        }
-
-        auditTrail.Add(AuditEvent.Create(
-            user.Id,
-            "MfaEnabled",
-            nameof(AppUser),
-            user.Id,
-            clock.UtcNow));
-        await unitOfWork.SaveChangesAsync(cancellationToken);
-        return Ok(new MfaSetupResponse(key!, string.Empty, true));
     }
 
-    private ObjectResult UnauthorizedProblem(
-        string code,
-        string title,
-        IReadOnlyDictionary<string, object?>? extensions = null)
+    private Task DelayFailureAsync(long startedTimestamp, CancellationToken cancellationToken)
     {
-        var problem = new ProblemDetails
-        {
-            Status = StatusCodes.Status401Unauthorized,
-            Title = title
-        };
+        var jitter = RandomNumberGenerator.GetInt32(
+            FailureDelayJitterMilliseconds + 1);
+        return failureDelay.DelayAsync(
+            FailureDelayFloor.Add(TimeSpan.FromMilliseconds(jitter)),
+            startedTimestamp,
+            cancellationToken);
+    }
+
+    private string SourceIp() =>
+        HttpContext.Connection.RemoteIpAddress?.ToString()
+        ?? IPAddress.None.ToString();
+
+    private static string FormatUtc(DateTimeOffset value) =>
+        value.UtcDateTime.ToString("O");
+
+    private ObjectResult RateLimited(int retryAfterSeconds)
+    {
+        Response.Headers.RetryAfter = Math.Max(1, retryAfterSeconds).ToString();
+        return ProblemResult(
+            StatusCodes.Status429TooManyRequests,
+            ApiProblemCodes.SmsRateLimited,
+            "请求过于频繁，请稍后重试");
+    }
+
+    private static ObjectResult InvalidSmsCode() => ProblemResult(
+        StatusCodes.Status401Unauthorized,
+        ApiProblemCodes.InvalidSmsCode,
+        "验证码无效或已过期");
+
+    private static ObjectResult ProviderUnavailable() => ProblemResult(
+        StatusCodes.Status503ServiceUnavailable,
+        ApiProblemCodes.AuthProviderUnavailable,
+        "登录服务暂时不可用");
+
+    private static ObjectResult ProblemResult(int status, string code, string title)
+    {
+        var problem = new ProblemDetails { Status = status, Title = title };
         problem.Extensions["code"] = code;
-        if (extensions is not null)
-        {
-            foreach (var extension in extensions)
-            {
-                problem.Extensions[extension.Key] = extension.Value;
-            }
-        }
-
-        return new ObjectResult(problem)
-        {
-            StatusCode = StatusCodes.Status401Unauthorized
-        };
-    }
-
-    private static ObjectResult ForbiddenProblem()
-    {
-        var problem = new ProblemDetails
-        {
-            Status = StatusCodes.Status403Forbidden,
-            Title = "无权执行这项操作"
-        };
-        problem.Extensions["code"] = ApiProblemCodes.ForbiddenResource;
-        return new ObjectResult(problem)
-        {
-            StatusCode = StatusCodes.Status403Forbidden
-        };
-    }
-
-    private static string NormalizeCode(string code) =>
-        code.Replace(" ", string.Empty, StringComparison.Ordinal)
-            .Replace("-", string.Empty, StringComparison.Ordinal);
-
-    private static bool RequiresMfa(
-        AppUser user,
-        IEnumerable<string> roles)
-    {
-        return user.RequiresMfa
-            || roles.Contains(AppRoles.Doctor, StringComparer.Ordinal)
-            || roles.Contains(AppRoles.OperationsAdmin, StringComparer.Ordinal);
+        return new ObjectResult(problem) { StatusCode = status };
     }
 }
 
-public sealed record LoginRequest(string Email, string Password, string? TotpCode);
+public sealed record CaptchaBootstrapRequest(string? PhoneNumber, string? Client);
+
+public sealed record CaptchaBootstrapResponse(
+    string PreChallengeToken,
+    string Prefix,
+    string EncryptedSceneId,
+    string ExpiresAt);
+
+public sealed record SmsChallengeRequest(
+    string? PreChallengeToken,
+    string? CaptchaVerifyParam);
+
+public sealed record SmsChallengeResponse(
+    string ChallengeId,
+    string ChallengeToken,
+    string ExpiresAt,
+    string ResendAt);
+
+public sealed record SmsVerificationRequest(string? ChallengeToken, string? Code);
 
 public sealed record TokenResponse(string AccessToken, DateTimeOffset ExpiresAt);
-
-public sealed record MfaSetupRequest(string? TotpCode);
-
-public sealed record MfaSetupResponse(
-    string ManualKey,
-    string ProvisioningUri,
-    bool Enabled);

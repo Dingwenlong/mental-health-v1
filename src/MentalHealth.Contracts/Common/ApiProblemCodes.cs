@@ -12,10 +12,13 @@ public static class ApiProblemCodes
     public const string MediaParseFailed = "MEDIA_PARSE_FAILED";
     public const string MediaHashMismatch = "MEDIA_HASH_MISMATCH";
     public const string InvalidChunkIndex = "INVALID_CHUNK_INDEX";
-    public const string MfaRequired = "MFA_REQUIRED";
-    public const string InvalidCredentials = "INVALID_CREDENTIALS";
     public const string InvalidPhoneNumber = "INVALID_PHONE_NUMBER";
-    public const string InvalidMfaCode = "INVALID_MFA_CODE";
+    public const string LoginChallengeInvalid = "LOGIN_CHALLENGE_INVALID";
+    public const string CaptchaFailed = "CAPTCHA_FAILED";
+    public const string SmsRateLimited = "SMS_RATE_LIMITED";
+    public const string InvalidSmsCode = "INVALID_SMS_CODE";
+    public const string AuthProviderUnavailable = "AUTH_PROVIDER_UNAVAILABLE";
+    public const string ContactEmailInvalid = "CONTACT_EMAIL_INVALID";
     public const string ConsentTypeDisabled = "CONSENT_TYPE_DISABLED";
     public const string InvalidConsentKind = "INVALID_CONSENT_KIND";
     public const string InvalidConsentTextVersion = "INVALID_CONSENT_TEXT_VERSION";

@@ -63,7 +63,6 @@ $apiEnvironment = @{
     'Jwt__Audience' = 'mental-health-v1-local'
     'Jwt__SigningKey' = $localValues['MH_JWT_SIGNING_KEY']
     'Jwt__AccessTokenMinutes' = '15'
-    'Jwt__MfaSetupTokenMinutes' = '5'
     'Database__InitializeOnStartup' = 'true'
     'IdentitySeed__Enabled' = 'true'
     'CatalogSeed__Enabled' = 'true'

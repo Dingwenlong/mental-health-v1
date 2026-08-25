@@ -31,4 +31,35 @@ public sealed class SensitiveLoggingTests(AuthApiFixture fixture)
             entry => entry.Message.Contains(messageMarker, StringComparison.Ordinal)
                 || entry.Message.Contains(ticketMarker, StringComparison.Ordinal));
     }
+
+    [Fact]
+    public async Task Phone_login_logs_exclude_all_request_and_challenge_secrets()
+    {
+        await fixture.ResetPhoneLoginAsync();
+        var phone = "13700137009";
+        var captchaParam = $"captcha-{Guid.NewGuid():N}";
+        fixture.Captcha.Accept(captchaParam);
+        var bootstrap = await fixture.BootstrapAsync(phone);
+        var challenge = await fixture.CreateChallengeAsync(
+            bootstrap.PreChallengeToken,
+            captchaParam);
+        var code = "135790";
+        fixture.ClearCapturedLogs();
+
+        using var response = await fixture.Client.PostAsJsonAsync(
+            "/api/v1/auth/sms/verify",
+            new { challengeToken = challenge.ChallengeToken, code });
+
+        Assert.DoesNotContain(
+            fixture.CapturedLogs,
+            entry => new[]
+            {
+                phone,
+                $"+86{phone}",
+                captchaParam,
+                code,
+                challenge.ChallengeToken,
+                challenge.ChallengeId
+            }.Any(value => entry.Message.Contains(value, StringComparison.Ordinal)));
+    }
 }

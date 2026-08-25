@@ -112,6 +112,7 @@ public static class DependencyInjection
         services.AddSingleton<ICaptchaVerifier, AliyunCaptchaVerifier>();
         services.AddSingleton<ISmsVerificationProvider, AliyunSmsVerificationProvider>();
         services.AddSingleton<ILoginChallengeStore, RedisLoginChallengeStore>();
+        services.AddSingleton<ILoginFailureDelay, LoginFailureDelay>();
         services.AddScoped<IdentitySeeder>();
         services.AddScoped<PhoneLoginAccountUpgrader>();
         services.AddScoped<DemoCatalogSeeder>();
@@ -253,8 +254,7 @@ public static class DependencyInjection
         return !string.IsNullOrWhiteSpace(options.Issuer)
             && !string.IsNullOrWhiteSpace(options.Audience)
             && Encoding.UTF8.GetByteCount(options.SigningKey) >= 32
-            && options.AccessTokenMinutes is >= 1 and <= 60
-            && options.MfaSetupTokenMinutes is >= 1 and <= 15;
+            && options.AccessTokenMinutes is >= 1 and <= 60;
     }
 
     private static string RequireConnectionString(

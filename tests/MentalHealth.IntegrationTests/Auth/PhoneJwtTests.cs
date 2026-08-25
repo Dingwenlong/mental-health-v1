@@ -10,7 +10,7 @@ namespace MentalHealth.IntegrationTests.Auth;
 public sealed class PhoneJwtTests
 {
     [Fact]
-    public void Issued_api_token_contains_phone_and_never_email_or_mfa_setup_scope()
+    public void Issued_api_token_contains_phone_and_never_email()
     {
         var userId = Guid.Parse("10000000-0000-0000-0000-000000000001");
         var subjectId = Guid.Parse("20000000-0000-0000-0000-000000000001");
@@ -49,7 +49,6 @@ public sealed class PhoneJwtTests
             claim.Type == "practitioner_id" && claim.Value == practitionerId.ToString());
         Assert.DoesNotContain(token.Claims, claim =>
             claim.Type is JwtRegisteredClaimNames.Email or ClaimTypes.Email);
-        Assert.DoesNotContain(token.Claims, claim => claim.Value == "mfa_setup");
     }
 
     [Fact]

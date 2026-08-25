@@ -11,6 +11,4 @@ public sealed class JwtOptions
     public string SigningKey { get; init; } = string.Empty;
 
     public int AccessTokenMinutes { get; init; } = 15;
-
-    public int MfaSetupTokenMinutes { get; init; } = 5;
 }

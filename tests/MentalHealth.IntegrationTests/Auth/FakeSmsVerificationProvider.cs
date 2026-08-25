@@ -20,6 +20,17 @@ public sealed class FakeSmsVerificationProvider : ISmsVerificationProvider
         set => Volatile.Write(ref _temporaryFailuresRemaining, value);
     }
 
+    public bool CheckUnavailable { get; set; }
+
+    public void Reset()
+    {
+        _phonesByOutId.Clear();
+        _sent.Clear();
+        Volatile.Write(ref _temporaryFailuresRemaining, 0);
+        Volatile.Write(ref _sendAttempts, 0);
+        CheckUnavailable = false;
+    }
+
     public Task SendAsync(
         string nationalPhoneNumber,
         string outId,
@@ -43,11 +54,19 @@ public sealed class FakeSmsVerificationProvider : ISmsVerificationProvider
         string nationalPhoneNumber,
         string outId,
         string code,
-        CancellationToken cancellationToken) =>
-        Task.FromResult(
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (CheckUnavailable)
+        {
+            throw new PhoneLoginProviderException("SMS_PROVIDER_UNAVAILABLE");
+        }
+
+        return Task.FromResult(
             code == ValidCode
             && _phonesByOutId.TryGetValue(outId, out var sentPhone)
             && sentPhone == nationalPhoneNumber);
+    }
 
     public async Task WaitUntilSentAsync(
         string outId,
