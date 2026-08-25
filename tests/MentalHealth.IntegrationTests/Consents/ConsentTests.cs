@@ -111,7 +111,8 @@ public sealed class ConsentTests(AuthApiFixture fixture)
     [Fact]
     public async Task Counselor_cannot_record_a_users_consent()
     {
-        using var client = await LoginAsync("counselor@demo.local");
+        using var client = await fixture.CreateTrustedApiClientForAsync(
+            "counselor@demo.local");
 
         var response = await client.PostAsJsonAsync(
             "/api/v1/consents",
@@ -131,22 +132,6 @@ public sealed class ConsentTests(AuthApiFixture fixture)
 
     private async Task<HttpClient> LoginAsUserAsync()
     {
-        return await LoginAsync("abc@qq.com");
-    }
-
-    private async Task<HttpClient> LoginAsync(string email)
-    {
-        var login = await fixture.Client.PostAsJsonAsync(
-            "/api/v1/auth/login",
-            new
-            {
-                email,
-                password = AuthApiFixture.InitialPassword
-            });
-        login.EnsureSuccessStatusCode();
-        using var body = await JsonDocument.ParseAsync(
-            await login.Content.ReadAsStreamAsync());
-        return fixture.CreateClientWithBearer(
-            body.RootElement.GetProperty("accessToken").GetString()!);
+        return await fixture.CreateTrustedApiClientForAsync("abc@qq.com");
     }
 }
