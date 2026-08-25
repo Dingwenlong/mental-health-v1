@@ -110,6 +110,7 @@ public static class DependencyInjection
             .ValidateOnStart();
         services.AddSingleton<ICaptchaVerifier, AliyunCaptchaVerifier>();
         services.AddSingleton<ISmsVerificationProvider, AliyunSmsVerificationProvider>();
+        services.AddSingleton<ILoginChallengeStore, RedisLoginChallengeStore>();
         services.AddScoped<IdentitySeeder>();
         services.AddScoped<PhoneLoginAccountUpgrader>();
         services.AddScoped<DemoCatalogSeeder>();

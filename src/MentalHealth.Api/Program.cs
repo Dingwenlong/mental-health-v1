@@ -24,6 +24,7 @@ builder.Services.AddProblemDetails();
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<NotificationPublisher>();
 builder.Services.AddHostedService<MediaUploadCleanupWorker>();
+builder.Services.AddHostedService<SmsDispatchWorker>();
 builder.Services.AddCors(options => options.AddPolicy(
     LocalClientCorsPolicy,
     policy => policy
