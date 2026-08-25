@@ -18,6 +18,7 @@ public sealed class AuthApiFixture : IAsyncLifetime
 {
     private readonly string? _clientPhone;
     private readonly string? _adminPhone;
+    private readonly bool _aliyunPhoneLoginEnabled;
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:17-alpine")
         .WithDatabase("mental_health_auth_tests")
         .WithUsername("mental_health")
@@ -41,10 +42,14 @@ public sealed class AuthApiFixture : IAsyncLifetime
     {
     }
 
-    internal AuthApiFixture(string? clientPhone, string? adminPhone)
+    internal AuthApiFixture(
+        string? clientPhone,
+        string? adminPhone,
+        bool aliyunPhoneLoginEnabled = false)
     {
         _clientPhone = clientPhone;
         _adminPhone = adminPhone;
+        _aliyunPhoneLoginEnabled = aliyunPhoneLoginEnabled;
     }
 
     public HttpClient Client => _client
@@ -95,6 +100,7 @@ public sealed class AuthApiFixture : IAsyncLifetime
             ["Database:InitializeOnStartup"] = "true",
             ["IdentitySeed:Enabled"] = "true",
             ["CatalogSeed:Enabled"] = "true",
+            ["PhoneLogin:Aliyun:Enabled"] = _aliyunPhoneLoginEnabled.ToString(),
             ["PhoneLogin:Accounts:ClientPhone"] = _clientPhone,
             ["PhoneLogin:Accounts:AdminPhone"] = _adminPhone
         };

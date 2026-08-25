@@ -14,6 +14,7 @@ public sealed class AliyunCaptchaVerifier(IOptions<AliyunPhoneLoginOptions> opti
         string captchaVerifyParam,
         CancellationToken cancellationToken)
     {
+        ThrowIfDisabled();
         cancellationToken.ThrowIfCancellationRequested();
 
         try
@@ -45,4 +46,12 @@ public sealed class AliyunCaptchaVerifier(IOptions<AliyunPhoneLoginOptions> opti
         RegionId = "cn-shanghai",
         Endpoint = "captcha.cn-shanghai.aliyuncs.com"
     };
+
+    private void ThrowIfDisabled()
+    {
+        if (!_options.Enabled)
+        {
+            throw new PhoneLoginProviderException("PHONE_LOGIN_DISABLED");
+        }
+    }
 }

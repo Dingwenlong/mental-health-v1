@@ -14,6 +14,7 @@ public sealed class AliyunSmsVerificationProvider(IOptions<AliyunPhoneLoginOptio
         string outId,
         CancellationToken cancellationToken)
     {
+        ThrowIfDisabled();
         cancellationToken.ThrowIfCancellationRequested();
 
         try
@@ -61,6 +62,7 @@ public sealed class AliyunSmsVerificationProvider(IOptions<AliyunPhoneLoginOptio
         string code,
         CancellationToken cancellationToken)
     {
+        ThrowIfDisabled();
         cancellationToken.ThrowIfCancellationRequested();
 
         try
@@ -93,4 +95,12 @@ public sealed class AliyunSmsVerificationProvider(IOptions<AliyunPhoneLoginOptio
         AccessKeySecret = _options.AccessKeySecret,
         RegionId = "cn-hangzhou"
     };
+
+    private void ThrowIfDisabled()
+    {
+        if (!_options.Enabled)
+        {
+            throw new PhoneLoginProviderException("PHONE_LOGIN_DISABLED");
+        }
+    }
 }

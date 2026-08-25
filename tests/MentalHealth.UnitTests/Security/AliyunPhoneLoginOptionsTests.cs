@@ -10,6 +10,14 @@ public sealed class AliyunPhoneLoginOptionsTests
         Assert.True(CreateValidOptions().IsValid());
     }
 
+    [Fact]
+    public void Disabled_configuration_is_valid_without_private_values()
+    {
+        var options = new AliyunPhoneLoginOptions { Enabled = false };
+
+        Assert.True(options.IsValid());
+    }
+
     [Theory]
     [InlineData(nameof(AliyunPhoneLoginOptions.Prefix))]
     [InlineData(nameof(AliyunPhoneLoginOptions.AdminSceneId))]
@@ -29,6 +37,7 @@ public sealed class AliyunPhoneLoginOptionsTests
 
     private static AliyunPhoneLoginOptions CreateValidOptions() => new()
     {
+        Enabled = true,
         Prefix = "xfkdn8",
         AdminSceneId = "1lae8yfm",
         AndroidSceneId = "e20maaxh",

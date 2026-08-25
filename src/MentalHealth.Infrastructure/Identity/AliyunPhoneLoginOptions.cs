@@ -4,6 +4,8 @@ public sealed class AliyunPhoneLoginOptions
 {
     public const string SectionName = "PhoneLogin:Aliyun";
 
+    public bool Enabled { get; set; }
+
     public string Prefix { get; set; } = string.Empty;
 
     public string AdminSceneId { get; set; } = string.Empty;
@@ -22,6 +24,11 @@ public sealed class AliyunPhoneLoginOptions
 
     public bool IsValid()
     {
+        if (!Enabled)
+        {
+            return true;
+        }
+
         if (new[]
             {
                 Prefix,

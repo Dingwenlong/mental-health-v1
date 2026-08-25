@@ -1,12 +1,19 @@
 using MentalHealth.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace MentalHealth.IntegrationTests.Auth;
 
 [Collection(AuthApiCollection.Name)]
 public sealed class PhoneLoginAccountUpgradeTests(AuthApiFixture fixture)
 {
+    [Fact]
+    public void Startup_allows_disabled_aliyun_phone_login_without_private_configuration()
+    {
+        Assert.NotNull(fixture.Services.GetRequiredService<UserManager<AppUser>>());
+    }
+
     [Fact]
     public async Task Startup_upgrades_public_accounts_without_password_or_totp()
     {
@@ -69,6 +76,23 @@ public sealed class PhoneLoginAccountUpgradeTests(AuthApiFixture fixture)
     [Fact]
     public Task Startup_rejects_a_missing_public_phone_number_without_upgrading_either_account() =>
         AssertInvalidStartupDoesNotUpgradeAccountsAsync(null, "13900139002");
+
+    [Fact]
+    public async Task Startup_rejects_enabled_aliyun_phone_login_without_private_configuration()
+    {
+        var enabledFixture = new AuthApiFixture(
+            "13800138001",
+            "13900139002",
+            aliyunPhoneLoginEnabled: true);
+        try
+        {
+            await Assert.ThrowsAsync<OptionsValidationException>(enabledFixture.InitializeAsync);
+        }
+        finally
+        {
+            await enabledFixture.DisposeAsync();
+        }
+    }
 
     private static async Task AssertInvalidStartupDoesNotUpgradeAccountsAsync(
         string? clientPhone,
