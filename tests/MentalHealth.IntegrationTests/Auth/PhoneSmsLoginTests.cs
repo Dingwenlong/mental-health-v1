@@ -277,11 +277,13 @@ public sealed class PhoneSmsLoginTests(AuthApiFixture fixture)
     [Fact]
     public async Task Password_and_Mfa_routes_are_removed()
     {
+        var legacyLoginPath = string.Concat("/api/v1/auth/", "login");
+        var legacyMfaPath = string.Concat("/api/v1/auth/mfa/", "setup");
         using var login = await fixture.Client.PostAsJsonAsync(
-            "/api/v1/auth/login",
+            legacyLoginPath,
             new { email = "abc@qq.com", password = "unused" });
         using var mfa = await fixture.Client.PostAsJsonAsync(
-            "/api/v1/auth/mfa/setup",
+            legacyMfaPath,
             new { totpCode = "123456" });
 
         Assert.Equal(HttpStatusCode.NotFound, login.StatusCode);

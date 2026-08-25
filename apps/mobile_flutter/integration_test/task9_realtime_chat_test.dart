@@ -19,16 +19,16 @@ void main() {
   ) async {
     const apiBaseUrl = String.fromEnvironment('API_BASE_URL');
     const chatHubUrl = String.fromEnvironment('CHAT_HUB_URL');
-    const userEmail = String.fromEnvironment('DEMO_USER_EMAIL');
-    const counselorEmail = String.fromEnvironment('DEMO_COUNSELOR_EMAIL');
-    const password = String.fromEnvironment('DEMO_PASSWORD');
+    const userAccessToken = String.fromEnvironment('USER_ACCESS_TOKEN');
+    const counselorAccessToken = String.fromEnvironment(
+      'COUNSELOR_ACCESS_TOKEN',
+    );
     expect(apiBaseUrl, isNotEmpty);
     expect(chatHubUrl, isNotEmpty);
-    expect(userEmail, isNotEmpty);
-    expect(counselorEmail, isNotEmpty);
-    expect(password, isNotEmpty);
+    expect(userAccessToken, isNotEmpty);
+    expect(counselorAccessToken, isNotEmpty);
 
-    final storage = _MemoryTokenStorage();
+    final storage = _MemoryTokenStorage()..token = userAccessToken;
     final userClient = ApiClient(
       baseUrl: apiBaseUrl,
       readAccessToken: storage.readAccessToken,
@@ -39,6 +39,8 @@ void main() {
     );
     final catalog = ApiCatalogRepository(userClient);
     final launcher = ApiChatSessionLauncher(userClient, chatHubUrl);
+    await auth.restore();
+    expect(auth.isAuthenticated, isTrue);
 
     await tester.pumpWidget(
       MentalHealthApp(
@@ -47,9 +49,6 @@ void main() {
         chatLauncher: launcher,
       ),
     );
-    await tester.enterText(find.byKey(const Key('login-email')), userEmail);
-    await tester.enterText(find.byKey(const Key('login-password')), password);
-    await tester.tap(find.byKey(const Key('login-submit')));
     await _pumpUntil(tester, find.byType(ServicePlanCard));
 
     final humanChat = find.byWidgetPredicate(
@@ -95,17 +94,11 @@ void main() {
     );
 
     final chatPage = tester.widget<ChatPage>(find.byType(ChatPage));
-    final counselorClient = ApiClient(
-      baseUrl: apiBaseUrl,
-      readAccessToken: () async => null,
-    );
-    final counselorToken = await ApiAuthGateway(counselorClient)
-        .login(email: counselorEmail, password: password);
     final counselor = HubConnectionBuilder()
         .withUrl(
           chatHubUrl,
           options: HttpConnectionOptions(
-            accessTokenFactory: () async => counselorToken,
+            accessTokenFactory: () async => counselorAccessToken,
           ),
         )
         .build();

@@ -14,6 +14,7 @@ $mobileRoot = Join-Path $repoRoot 'apps\mobile_flutter'
 $webRoot = Join-Path $repoRoot 'apps\admin_web'
 $apiProject = Join-Path $repoRoot 'src\MentalHealth.Api\MentalHealth.Api.csproj'
 $envPath = Join-Path $repoRoot '.env'
+$composePath = Join-Path $repoRoot 'deploy\docker-compose.yml'
 $certificatePath = Join-Path $repoRoot 'deploy\certs\server.pfx'
 $apiProcess = $null
 $webProcess = $null
@@ -36,6 +37,29 @@ function Read-LocalValues
         if ($parts.Count -eq 2) { $values[$parts[0].Trim()] = $parts[1] }
     }
     return $values
+}
+
+function Get-LocalValue
+{
+    param([Parameter(Mandatory)][string]$Name)
+    if ($localValues.ContainsKey($Name)) { return [string]$localValues[$Name] }
+    return ''
+}
+
+function Get-LocalUserId
+{
+    param([Parameter(Mandatory)][string]$Email)
+    $query = "SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""Email"" = '$Email';"
+    $output = & docker compose --env-file $envPath -f $composePath `
+        exec -T postgres psql -U mental_health -d mental_health `
+        -tA -v ON_ERROR_STOP=1 -c $query 2>&1
+    if ($LASTEXITCODE -ne 0) { throw '无法读取本机测试账号 ID。' }
+    $userId = [Guid]::Empty
+    if (-not [Guid]::TryParse(($output -join '').Trim(), [ref]$userId))
+    {
+        throw '本机测试账号没有准备完成。'
+    }
+    return $userId
 }
 
 function Get-FreePort
@@ -184,8 +208,9 @@ $localValues = Read-LocalValues
 foreach ($required in @(
     'MH_POSTGRES_PASSWORD',
     'MH_JWT_SIGNING_KEY',
-    'MH_DEMO_INITIAL_PASSWORD',
-    'MH_DEMO_CERT_PASSWORD'))
+    'MH_DEMO_CERT_PASSWORD',
+    'MH_CLIENT_PHONE',
+    'MH_ADMIN_PHONE'))
 {
     if (-not $localValues.ContainsKey($required) -or
         [string]::IsNullOrWhiteSpace($localValues[$required]))
@@ -193,6 +218,8 @@ foreach ($required in @(
         throw "本机 .env 缺少 $required。"
     }
 }
+
+Import-Module (Join-Path $PSScriptRoot 'LocalTestJwt.psm1') -Force
 
 try
 {
@@ -230,7 +257,14 @@ try
         'Database__InitializeOnStartup' = 'true'
         'IdentitySeed__Enabled' = 'true'
         'CatalogSeed__Enabled' = 'true'
-        'DemoAccounts__InitialPassword' = $localValues['MH_DEMO_INITIAL_PASSWORD']
+        'PhoneLogin__Aliyun__Enabled' = 'false'
+        'PhoneLogin__Aliyun__AccessKeyId' = Get-LocalValue 'MH_ALIYUN_ACCESS_KEY_ID'
+        'PhoneLogin__Aliyun__AccessKeySecret' = Get-LocalValue 'MH_ALIYUN_ACCESS_KEY_SECRET'
+        'PhoneLogin__Aliyun__CaptchaEkey' = Get-LocalValue 'MH_ALIYUN_CAPTCHA_EKEY'
+        'PhoneLogin__Aliyun__SmsSignName' = Get-LocalValue 'MH_ALIYUN_SMS_SIGN_NAME'
+        'PhoneLogin__Aliyun__SmsTemplateCode' = Get-LocalValue 'MH_ALIYUN_SMS_TEMPLATE_CODE'
+        'PhoneLogin__Accounts__ClientPhone' = $localValues['MH_CLIENT_PHONE']
+        'PhoneLogin__Accounts__AdminPhone' = $localValues['MH_ADMIN_PHONE']
         'Kestrel__Certificates__Default__Path' = $certificatePath
         'Kestrel__Certificates__Default__Password' = $localValues['MH_DEMO_CERT_PASSWORD']
         'Cors__AllowedOrigins__0' = "http://127.0.0.1:$webPort"
@@ -251,18 +285,16 @@ try
         $reversePort = $apiPort
     }
 
-    $userLogin = Invoke-Api -Method POST -Path 'auth/login' -Body @{
-        email = 'user@demo.local'
-        password = $localValues['MH_DEMO_INITIAL_PASSWORD']
-        totpCode = $null
-    }
-    $counselorLogin = Invoke-Api -Method POST -Path 'auth/login' -Body @{
-        email = 'counselor@demo.local'
-        password = $localValues['MH_DEMO_INITIAL_PASSWORD']
-        totpCode = $null
-    }
-    $userToken = $userLogin.accessToken
-    $counselorToken = $counselorLogin.accessToken
+    $userToken = New-LocalTestJwt `
+        -UserId (Get-LocalUserId 'abc@qq.com') `
+        -Role User `
+        -BusinessId ([Guid]'10000000-0000-0000-0000-000000000001') `
+        -SigningKey $localValues['MH_JWT_SIGNING_KEY']
+    $counselorToken = New-LocalTestJwt `
+        -UserId (Get-LocalUserId 'counselor@demo.local') `
+        -Role Counselor `
+        -BusinessId ([Guid]'20000000-0000-0000-0000-000000000001') `
+        -SigningKey $localValues['MH_JWT_SIGNING_KEY']
     foreach ($kind in @('Service', 'Recording', 'AiAnalysis'))
     {
         Invoke-Api -Method POST -Path 'consents' -Token $userToken -Body @{
@@ -304,8 +336,7 @@ try
     $defines = @{
         API_BASE_URL = "https://$androidApiHost`:$apiPort/api/v1/"
         RTC_HUB_URL = "https://$androidApiHost`:$apiPort/hubs/rtc"
-        DEMO_USER_EMAIL = 'user@demo.local'
-        DEMO_PASSWORD = $localValues['MH_DEMO_INITIAL_PASSWORD']
+        USER_ACCESS_TOKEN = $userToken
         SESSION_ID = $session.id
     } | ConvertTo-Json
     [IO.File]::WriteAllText($definesPath, $defines, [Text.UTF8Encoding]::new($false))

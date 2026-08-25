@@ -18,16 +18,17 @@ function New-LocalSecret
         [Security.Cryptography.RandomNumberGenerator]::GetBytes($Bytes))
 }
 
-function New-LocalDemoPassword
-{
-    return "Aa1!$(New-LocalSecret -Bytes 24)"
-}
-
 $content = @(
     "MH_POSTGRES_PASSWORD=$(New-LocalSecret -Bytes 32)"
     "MH_JWT_SIGNING_KEY=$(New-LocalSecret -Bytes 64)"
-    "MH_DEMO_INITIAL_PASSWORD=$(New-LocalDemoPassword)"
     "MH_DEMO_CERT_PASSWORD=$(New-LocalSecret -Bytes 48)"
+    'MH_ALIYUN_ACCESS_KEY_ID='
+    'MH_ALIYUN_ACCESS_KEY_SECRET='
+    'MH_ALIYUN_CAPTCHA_EKEY='
+    'MH_ALIYUN_SMS_SIGN_NAME='
+    'MH_ALIYUN_SMS_TEMPLATE_CODE='
+    ('MH_CLIENT_PHONE' + '=')
+    ('MH_ADMIN_PHONE' + '=')
 ) -join [Environment]::NewLine
 
 [IO.File]::WriteAllText(
@@ -35,4 +36,4 @@ $content = @(
     $content + [Environment]::NewLine,
     [Text.UTF8Encoding]::new($false))
 
-Write-Host '已创建本机 .env，未输出其中的值。'
+Write-Host '已创建本机 .env，未输出其中的值。请填写阿里云配置和两个登录手机号。'

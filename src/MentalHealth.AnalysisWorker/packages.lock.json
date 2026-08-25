@@ -32,6 +32,93 @@
           "Microsoft.Extensions.Options": "10.0.10"
         }
       },
+      "AlibabaCloud.EndpointUtil": {
+        "type": "Transitive",
+        "resolved": "0.1.2",
+        "contentHash": "66FQo9/jqfT4sGHFjiqcUQebwPcUzaABSvv9yDWLWHqQMaH/KLHD+VlecGERBPiLKoCwCA8D18H1+RFkRyLpOA=="
+      },
+      "AlibabaCloud.GatewaySpi": {
+        "type": "Transitive",
+        "resolved": "0.0.3",
+        "contentHash": "vvmA5BrM8rpOZoXwFl/ZWHYLFnZ8EwPp+07z3Eeg9okLv58QJ8+KGWVovTr8tJpuDgPFG1SVdHXRi04A62ehdA==",
+        "dependencies": {
+          "Aliyun.Credentials": "1.4.0",
+          "Tea": "1.0.13"
+        }
+      },
+      "AlibabaCloud.OpenApiClient": {
+        "type": "Transitive",
+        "resolved": "0.1.15",
+        "contentHash": "TAkPxflKH8pREfnNXAI6K55ewHw6uH99XR+7J9Z6bOcwsww4YPPMUXg5pOVtlr6Ewngftp56R/5D5LrG/BFD4Q==",
+        "dependencies": {
+          "AlibabaCloud.GatewaySpi": "0.0.3",
+          "AlibabaCloud.OpenApiUtil": "1.1.2",
+          "AlibabaCloud.TeaUtil": "0.1.19",
+          "AlibabaCloud.TeaXML": "0.0.5",
+          "Aliyun.Credentials": "1.5.0",
+          "Tea": "1.1.3"
+        }
+      },
+      "AlibabaCloud.OpenApiUtil": {
+        "type": "Transitive",
+        "resolved": "1.1.2",
+        "contentHash": "0Zd2UHm5gUND+7xNma2SAZEqm2Uy8dvAknLvCx72uDUCbOnfHWh+TsnUnNGMKUvmG3s/ZqxUA1UYIdp5BFCn5Q==",
+        "dependencies": {
+          "Newtonsoft.Json": "9.0.1",
+          "Tea": "1.0.11"
+        }
+      },
+      "AlibabaCloud.SDK.Captcha20230305": {
+        "type": "Transitive",
+        "resolved": "1.1.4",
+        "contentHash": "y5vf3l4v6RgpBTVR6KWRofVTFAcKdntOqEB7BQ1InxaauH/fBoZcPYZLR75Ep/GmAOYUxG7yMQI/5J3y+1ldIQ==",
+        "dependencies": {
+          "AlibabaCloud.EndpointUtil": "0.1.2",
+          "AlibabaCloud.OpenApiClient": "0.1.15",
+          "AlibabaCloud.OpenApiUtil": "1.1.2",
+          "AlibabaCloud.TeaUtil": "0.1.19",
+          "Tea": "1.1.3"
+        }
+      },
+      "AlibabaCloud.SDK.Dypnsapi20170525": {
+        "type": "Transitive",
+        "resolved": "2.0.0",
+        "contentHash": "Ji5uNMuBqLbZcttbH3EqnBYHAMCuk21t8OTzb1Mkc9UTFIFtcpfq9/w1UnyNTSANscEY4ntrjJdD+c8t2rGOyw==",
+        "dependencies": {
+          "AlibabaCloud.EndpointUtil": "0.1.2",
+          "AlibabaCloud.OpenApiClient": "0.1.15",
+          "AlibabaCloud.OpenApiUtil": "1.1.2",
+          "AlibabaCloud.TeaUtil": "0.1.19",
+          "Tea": "1.1.3"
+        }
+      },
+      "AlibabaCloud.TeaUtil": {
+        "type": "Transitive",
+        "resolved": "0.1.19",
+        "contentHash": "gjPboQEC3rSuS/8Ohk4VAw42W54h9NfIZxn4JIuWfoIF3k3mZxVdMJdKKOgIkNrx8YaLOthPSM3Pfb1zfOyFcw==",
+        "dependencies": {
+          "Newtonsoft.Json": "13.0.3",
+          "Tea": "1.0.11"
+        }
+      },
+      "AlibabaCloud.TeaXML": {
+        "type": "Transitive",
+        "resolved": "0.0.5",
+        "contentHash": "mHxE6H3eq4jaeqn3hryIYTI0k8quvPZfZdEE+PdU8rw+NGRvev68D8Aei6xjwW/pArZaTG6yPawYu5c0EaZkfw==",
+        "dependencies": {
+          "Newtonsoft.Json": "9.0.1",
+          "Tea": "1.0.11"
+        }
+      },
+      "Aliyun.Credentials": {
+        "type": "Transitive",
+        "resolved": "1.5.0",
+        "contentHash": "fdWhSvNiXXIWz73eDZGZHesBhd5+St85W8CDaD9aP1ifBK+MZKx9YTL/6e6uLq0TN7j8J0IR5beXUXxohqjjjQ==",
+        "dependencies": {
+          "Newtonsoft.Json": "13.0.1",
+          "Tea": "1.0.1"
+        }
+      },
       "Microsoft.AspNetCore.Authentication.JwtBearer": {
         "type": "Transitive",
         "resolved": "10.0.11",
@@ -438,6 +525,11 @@
           "Microsoft.IdentityModel.Logging": "8.19.2"
         }
       },
+      "Newtonsoft.Json": {
+        "type": "Transitive",
+        "resolved": "13.0.3",
+        "contentHash": "HrC5BXdl00IP9zeV+0Z848QWPAoCr9P3bDEZguI+gkLcBKAOxix/tLEAAHC+UvDNPv4a2d18lOReHMOagPa+zQ=="
+      },
       "Npgsql": {
         "type": "Transitive",
         "resolved": "10.0.3",
@@ -500,6 +592,14 @@
         "resolved": "10.0.5",
         "contentHash": "8IBJWcCT9+e4Bmevm4T7+fQEiAh133KGiz4oiVTgJckd3Q76OFdR1falgn9lpz7+C4HJvogCDJeAa2QmvbeVtg=="
       },
+      "Tea": {
+        "type": "Transitive",
+        "resolved": "1.1.3",
+        "contentHash": "vwpYRSIcbNeRDrrRp6eG1rB2rAE5vOZyrQAjMPCxDTisptsIq4ApdmFc9jvthCIgOeBwTyOe4Y/TYTD88Zq+Yw==",
+        "dependencies": {
+          "Newtonsoft.Json": "13.0.3"
+        }
+      },
       "mentalhealth.application": {
         "type": "Project",
         "dependencies": {
@@ -516,6 +616,8 @@
       "mentalhealth.infrastructure": {
         "type": "Project",
         "dependencies": {
+          "AlibabaCloud.SDK.Captcha20230305": "[1.1.4, )",
+          "AlibabaCloud.SDK.Dypnsapi20170525": "[2.0.0, )",
           "MentalHealth.Application": "[1.0.0, )",
           "MentalHealth.Domain": "[1.0.0, )",
           "Microsoft.AspNetCore.Authentication.JwtBearer": "[10.0.11, )",

@@ -34,13 +34,13 @@ Pop-Location
 npm --prefix apps/admin_web run build
 ```
 
-Android 登录、目录、授权和模拟订单验收：
+Android 目录、授权和模拟订单验收：
 
 ```powershell
 pwsh .\scripts\Test-Task7Android.ps1 -DeviceId emulator-5554
 ```
 
-脚本会临时启动本机 API，在 Android 设备上完成普通用户登录、选择模拟收费的 AI 文字套餐、逐项确认三项授权、创建订单并确认模拟收费。账号参数只写入系统临时目录，运行结束后立即删除。
+脚本会临时启动本机 API，用 5 分钟测试令牌进入客户端，再选择模拟收费的 AI 文字套餐、逐项确认三项授权、创建订单并确认模拟收费。令牌只写入系统临时目录，运行结束后立即删除。
 
 管理端开发服务器：
 
@@ -54,11 +54,34 @@ npm --prefix apps/admin_web run dev
 
 ```powershell
 pwsh .\scripts\Initialize-LocalSecrets.ps1
+# 在 .env 中填写阿里云配置和两个登录手机号，不要提交该文件
 docker compose --env-file .env -f deploy/docker-compose.yml up -d
 pwsh .\scripts\Test-LocalIdentity.ps1
 ```
 
-`Test-LocalIdentity.ps1` 会应用迁移并创建虚构测试账户与演示套餐，然后检查套餐目录、普通用户登录和医生 MFA 门禁。脚本不会输出 `.env` 中的密码或密钥，检查结束后会停止临时 API 进程。
+Compose 只运行 PostgreSQL 和 Redis，API 由本机脚本启动。`Initialize-LocalSecrets.ps1` 只生成数据库、JWT 和演示证书密钥；阿里云配置与两个手机号保持空白，必须在本机填写。`Test-LocalIdentity.ps1` 会应用迁移、准备测试账号与套餐，并用 5 分钟测试令牌检查普通用户和医生权限。脚本不会输出手机号、令牌或密钥，检查结束后会停止临时 API。
+
+管理端和 Android 的正式登录顺序都是：手机号、人机验证、6 位短信验证码、登录。邮箱只是可选联系信息，不能用于登录。真实登录需要以下私密配置：
+
+```text
+PhoneLogin:Aliyun:AccessKeyId
+PhoneLogin:Aliyun:AccessKeySecret
+PhoneLogin:Aliyun:CaptchaEkey
+PhoneLogin:Aliyun:SmsSignName
+PhoneLogin:Aliyun:SmsTemplateCode
+PhoneLogin:Accounts:ClientPhone
+PhoneLogin:Accounts:AdminPhone
+```
+
+这些值可以放在被 Git 忽略的 `.env`，也可以写入 .NET Secret Manager：
+
+```powershell
+dotnet user-secrets init --project src/MentalHealth.Api/MentalHealth.Api.csproj
+dotnet user-secrets set --project src/MentalHealth.Api/MentalHealth.Api.csproj "PhoneLogin:Aliyun:AccessKeyId" "<本机填写>"
+# 其余六项使用上面的配置名逐项写入
+```
+
+真实短信会计费。确认两个号码已绑定并明确允许发送后，再按 [手机号短信登录证据](docs/test-evidence/phone-sms-login.md) 执行管理端和 Android 16 验收；本机测试令牌不能代替这一步。
 
 本地 API 启动后，另开一个 PowerShell 运行分析任务：
 

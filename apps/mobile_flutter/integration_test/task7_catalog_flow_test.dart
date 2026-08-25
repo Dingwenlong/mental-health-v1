@@ -15,26 +15,23 @@ void main() {
     WidgetTester tester,
   ) async {
     const apiBaseUrl = String.fromEnvironment('API_BASE_URL');
-    const email = String.fromEnvironment('DEMO_USER_EMAIL');
-    const password = String.fromEnvironment('DEMO_USER_PASSWORD');
+    const userAccessToken = String.fromEnvironment('USER_ACCESS_TOKEN');
     expect(apiBaseUrl, isNotEmpty);
-    expect(email, isNotEmpty);
-    expect(password, isNotEmpty);
+    expect(userAccessToken, isNotEmpty);
 
-    final storage = _MemoryTokenStorage();
+    final storage = _MemoryTokenStorage()..token = userAccessToken;
     final client = ApiClient(
       baseUrl: apiBaseUrl,
       readAccessToken: storage.readAccessToken,
     );
     final auth = AuthStore(gateway: ApiAuthGateway(client), storage: storage);
     final catalog = ApiCatalogRepository(client);
+    await auth.restore();
+    expect(auth.isAuthenticated, isTrue);
 
     await tester.pumpWidget(
       MentalHealthApp(authStore: auth, catalogRepository: catalog),
     );
-    await tester.enterText(find.byKey(const Key('login-email')), email);
-    await tester.enterText(find.byKey(const Key('login-password')), password);
-    await tester.tap(find.byKey(const Key('login-submit')));
     await _pumpUntil(tester, find.byType(ServicePlanCard));
 
     final paidAiPlan = find.byWidgetPredicate(

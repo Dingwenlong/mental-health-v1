@@ -10,6 +10,7 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $mobileRoot = Join-Path $repoRoot 'apps\mobile_flutter'
 $apiProject = Join-Path $repoRoot 'src\MentalHealth.Api\MentalHealth.Api.csproj'
 $envPath = Join-Path $repoRoot '.env'
+$composePath = Join-Path $repoRoot 'deploy\docker-compose.yml'
 $apiProcess = $null
 $definesDirectory = $null
 $apiPort = $null
@@ -99,12 +100,35 @@ foreach ($line in Get-Content -LiteralPath $envPath) {
 foreach ($required in @(
     'MH_POSTGRES_PASSWORD',
     'MH_JWT_SIGNING_KEY',
-    'MH_DEMO_INITIAL_PASSWORD'
+    'MH_CLIENT_PHONE',
+    'MH_ADMIN_PHONE'
 )) {
     if (-not $localValues.ContainsKey($required) -or
         [string]::IsNullOrWhiteSpace($localValues[$required])) {
         throw "本机 .env 缺少 $required。"
     }
+}
+
+Import-Module (Join-Path $PSScriptRoot 'LocalTestJwt.psm1') -Force
+
+function Get-LocalValue {
+    param([Parameter(Mandatory)][string]$Name)
+    if ($localValues.ContainsKey($Name)) { return [string]$localValues[$Name] }
+    return ''
+}
+
+function Get-LocalUserId {
+    param([Parameter(Mandatory)][string]$Email)
+    $query = "SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""Email"" = '$Email';"
+    $output = & docker compose --env-file $envPath -f $composePath `
+        exec -T postgres psql -U mental_health -d mental_health `
+        -tA -v ON_ERROR_STOP=1 -c $query 2>&1
+    if ($LASTEXITCODE -ne 0) { throw '无法读取本机测试账号 ID。' }
+    $userId = [Guid]::Empty
+    if (-not [Guid]::TryParse(($output -join '').Trim(), [ref]$userId)) {
+        throw '本机测试账号没有准备完成。'
+    }
+    return $userId
 }
 
 try {
@@ -188,7 +212,14 @@ try {
         'Database__InitializeOnStartup' = 'true'
         'IdentitySeed__Enabled' = 'true'
         'CatalogSeed__Enabled' = 'true'
-        'DemoAccounts__InitialPassword' = $localValues['MH_DEMO_INITIAL_PASSWORD']
+        'PhoneLogin__Aliyun__Enabled' = 'false'
+        'PhoneLogin__Aliyun__AccessKeyId' = Get-LocalValue 'MH_ALIYUN_ACCESS_KEY_ID'
+        'PhoneLogin__Aliyun__AccessKeySecret' = Get-LocalValue 'MH_ALIYUN_ACCESS_KEY_SECRET'
+        'PhoneLogin__Aliyun__CaptchaEkey' = Get-LocalValue 'MH_ALIYUN_CAPTCHA_EKEY'
+        'PhoneLogin__Aliyun__SmsSignName' = Get-LocalValue 'MH_ALIYUN_SMS_SIGN_NAME'
+        'PhoneLogin__Aliyun__SmsTemplateCode' = Get-LocalValue 'MH_ALIYUN_SMS_TEMPLATE_CODE'
+        'PhoneLogin__Accounts__ClientPhone' = $localValues['MH_CLIENT_PHONE']
+        'PhoneLogin__Accounts__AdminPhone' = $localValues['MH_ADMIN_PHONE']
     }
     $previousEnvironment = @{}
     foreach ($entry in $apiEnvironment.GetEnumerator()) {
@@ -271,10 +302,14 @@ try {
     }
 
     $definesPath = Join-Path $definesDirectory 'defines.json'
+    $userToken = New-LocalTestJwt `
+        -UserId (Get-LocalUserId 'abc@qq.com') `
+        -Role User `
+        -BusinessId ([Guid]'10000000-0000-0000-0000-000000000001') `
+        -SigningKey $localValues['MH_JWT_SIGNING_KEY']
     $defines = @{
         API_BASE_URL = "http://127.0.0.1:$apiPort/api/v1/"
-        DEMO_USER_EMAIL = 'user@demo.local'
-        DEMO_USER_PASSWORD = $localValues['MH_DEMO_INITIAL_PASSWORD']
+        USER_ACCESS_TOKEN = $userToken
     } | ConvertTo-Json
     [IO.File]::WriteAllText(
         $definesPath,

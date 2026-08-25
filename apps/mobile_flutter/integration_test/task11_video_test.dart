@@ -18,27 +18,19 @@ void main() {
   ) async {
     const apiBaseUrl = String.fromEnvironment('API_BASE_URL');
     const rtcHubUrl = String.fromEnvironment('RTC_HUB_URL');
-    const userEmail = String.fromEnvironment('DEMO_USER_EMAIL');
-    const password = String.fromEnvironment('DEMO_PASSWORD');
+    const userAccessToken = String.fromEnvironment('USER_ACCESS_TOKEN');
     const sessionId = String.fromEnvironment('SESSION_ID');
     expect(apiBaseUrl, isNotEmpty);
     expect(rtcHubUrl, isNotEmpty);
-    expect(userEmail, isNotEmpty);
-    expect(password, isNotEmpty);
+    expect(userAccessToken, isNotEmpty);
     expect(sessionId, isNotEmpty);
     await installDemoCertificateTrust();
 
-    final storage = _MemoryTokenStorage();
+    final storage = _MemoryTokenStorage()..token = userAccessToken;
     final client = ApiClient(
       baseUrl: apiBaseUrl,
       readAccessToken: storage.readAccessToken,
     );
-    try {
-      storage.token = await ApiAuthGateway(client)
-          .login(email: userEmail, password: password);
-    } on ApiFailure catch (failure) {
-      fail('Android 登录本地 HTTPS API 失败：${failure.message}');
-    }
     debugPrint('TASK11_ANDROID_WAITING');
     await _waitForMarker(client, sessionId, '网页视频端已就绪');
 

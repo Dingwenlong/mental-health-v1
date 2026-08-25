@@ -114,22 +114,6 @@ class ApiAuthGateway implements AuthGateway {
     );
     return response['accessToken'] as String;
   }
-
-  Future<String> login({
-    required String email,
-    required String password,
-    String? totpCode,
-  }) async {
-    final response = await _client.post(
-      'auth/login',
-      data: <String, dynamic>{
-        'email': email,
-        'password': password,
-        'totpCode': totpCode,
-      },
-    );
-    return response['accessToken'] as String;
-  }
 }
 
 class AuthStore extends ChangeNotifier {
