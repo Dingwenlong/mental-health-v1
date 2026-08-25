@@ -7,6 +7,7 @@ using System.Net.Http.Headers;
 using MentalHealth.Application.Security;
 using MentalHealth.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
+using Npgsql;
 using Testcontainers.PostgreSql;
 using Testcontainers.Redis;
 
@@ -14,6 +15,8 @@ namespace MentalHealth.IntegrationTests.Auth;
 
 public sealed class AuthApiFixture : IAsyncLifetime
 {
+    private readonly string? _clientPhone;
+    private readonly string? _adminPhone;
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:17-alpine")
         .WithDatabase("mental_health_auth_tests")
         .WithUsername("mental_health")
@@ -29,6 +32,17 @@ public sealed class AuthApiFixture : IAsyncLifetime
     private readonly TestLogCollector _logs = new();
 
     public const string InitialPassword = "Synthetic-password-2026!";
+
+    public AuthApiFixture()
+        : this("13800138001", "13900139002")
+    {
+    }
+
+    internal AuthApiFixture(string? clientPhone, string? adminPhone)
+    {
+        _clientPhone = clientPhone;
+        _adminPhone = adminPhone;
+    }
 
     public HttpClient Client => _client
         ?? throw new InvalidOperationException("The API fixture is not initialized.");
@@ -62,7 +76,8 @@ public sealed class AuthApiFixture : IAsyncLifetime
             ["Database:InitializeOnStartup"] = "true",
             ["IdentitySeed:Enabled"] = "true",
             ["CatalogSeed:Enabled"] = "true",
-            ["DemoAccounts:InitialPassword"] = InitialPassword
+            ["PhoneLogin:Accounts:ClientPhone"] = _clientPhone,
+            ["PhoneLogin:Accounts:AdminPhone"] = _adminPhone
         };
 
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
@@ -114,6 +129,35 @@ public sealed class AuthApiFixture : IAsyncLifetime
                 roles.ToArray(),
                 user.SubjectId,
                 user.PractitionerId)).Value;
+    }
+
+    public async Task<(string? ClientPhone, string? AdminPhone)>
+        ReadPublicAccountPhonesAsync()
+    {
+        await using var connection = new NpgsqlConnection(_postgres.GetConnectionString());
+        await connection.OpenAsync();
+        await using var command = new NpgsqlCommand(
+            "SELECT \"NormalizedEmail\", \"PhoneNumber\" FROM \"AspNetUsers\" "
+            + "WHERE \"NormalizedEmail\" IN ('ABC@QQ.COM', '123@QQ.COM')",
+            connection);
+        await using var reader = await command.ExecuteReaderAsync();
+        string? clientPhone = null;
+        string? adminPhone = null;
+        while (await reader.ReadAsync())
+        {
+            var email = reader.GetString(0);
+            var phone = reader.IsDBNull(1) ? null : reader.GetString(1);
+            if (email == "ABC@QQ.COM")
+            {
+                clientPhone = phone;
+            }
+            else if (email == "123@QQ.COM")
+            {
+                adminPhone = phone;
+            }
+        }
+
+        return (clientPhone, adminPhone);
     }
 
     public async Task DisposeAsync()

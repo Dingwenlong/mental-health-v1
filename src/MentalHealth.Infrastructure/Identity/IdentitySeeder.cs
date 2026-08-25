@@ -31,13 +31,6 @@ public sealed class IdentitySeeder(
             return;
         }
 
-        var password = configuration["DemoAccounts:InitialPassword"];
-        if (string.IsNullOrWhiteSpace(password))
-        {
-            throw new InvalidOperationException(
-                "DemoAccounts:InitialPassword is required when identity seeding is enabled.");
-        }
-
         foreach (var role in AppRoles.All)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -60,44 +53,43 @@ public sealed class IdentitySeeder(
             cancellationToken);
 
         await EnsureUserAsync(
-            "user@demo.local",
-            "+8613800138000",
+            "abc@qq.com",
             AppRoles.User,
-            password,
             requiresMfa: false,
-            subjectId: DemoSubjectId);
+            subjectId: DemoSubjectId,
+            legacyEmail: "user@demo.local",
+            phoneLoginAccount: true);
         await EnsureUserAsync(
             "counselor@demo.local",
-            "+8613800138001",
             AppRoles.Counselor,
-            password,
             requiresMfa: false,
             practitionerId: DemoCounselorId);
         await EnsureUserAsync(
             "doctor@demo.local",
-            "+8613800138002",
             AppRoles.Doctor,
-            password,
             requiresMfa: true,
             practitionerId: DemoDoctorId);
         await EnsureUserAsync(
-            "admin@demo.local",
-            "+8613800138003",
+            "123@qq.com",
             AppRoles.OperationsAdmin,
-            password,
-            requiresMfa: true);
+            requiresMfa: false,
+            legacyEmail: "admin@demo.local",
+            phoneLoginAccount: true);
     }
 
     private async Task EnsureUserAsync(
         string email,
-        string phoneNumber,
         string role,
-        string password,
         bool requiresMfa,
         Guid? subjectId = null,
-        Guid? practitionerId = null)
+        Guid? practitionerId = null,
+        string? legacyEmail = null,
+        bool phoneLoginAccount = false)
     {
-        var user = await userManager.FindByEmailAsync(email);
+        var user = await userManager.FindByEmailAsync(email)
+            ?? (legacyEmail is null
+                ? null
+                : await userManager.FindByEmailAsync(legacyEmail));
         if (user is null)
         {
             user = new AppUser
@@ -105,27 +97,45 @@ public sealed class IdentitySeeder(
                 Id = Guid.NewGuid(),
                 UserName = email,
                 Email = email,
-                EmailConfirmed = true,
-                PhoneNumber = phoneNumber,
+                EmailConfirmed = false,
                 RequiresMfa = requiresMfa,
                 SubjectId = subjectId,
                 PractitionerId = practitionerId
             };
-            EnsureSucceeded(await userManager.CreateAsync(user, password));
+            EnsureSucceeded(await userManager.CreateAsync(user));
         }
 
         else
         {
-            var changed = user.RequiresMfa != requiresMfa
+            var emailChanged = user.Email != email;
+            var changed = emailChanged
+                || (!phoneLoginAccount && user.UserName != email)
+                || (!phoneLoginAccount && user.EmailConfirmed)
+                || user.RequiresMfa != requiresMfa
                 || user.SubjectId != subjectId
                 || user.PractitionerId != practitionerId
-                || user.PhoneNumber != phoneNumber;
+                || (!phoneLoginAccount && user.PhoneNumber is not null)
+                || (!phoneLoginAccount && user.PhoneNumberConfirmed)
+                || (!phoneLoginAccount && user.PasswordHash is not null);
             if (changed)
             {
+                user.Email = email;
+                if (!phoneLoginAccount || emailChanged)
+                {
+                    user.UserName = email;
+                }
+
+                if (!phoneLoginAccount)
+                {
+                    user.EmailConfirmed = false;
+                    user.PhoneNumber = null;
+                    user.PhoneNumberConfirmed = false;
+                    user.PasswordHash = null;
+                }
+
                 user.RequiresMfa = requiresMfa;
                 user.SubjectId = subjectId;
                 user.PractitionerId = practitionerId;
-                user.PhoneNumber = phoneNumber;
                 EnsureSucceeded(await userManager.UpdateAsync(user));
             }
         }

@@ -94,6 +94,11 @@ public sealed class MentalHealthDbContext(DbContextOptions<MentalHealthDbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        modelBuilder.Entity<AppUser>()
+            .HasIndex(user => user.PhoneNumber)
+            .IsUnique()
+            .HasDatabaseName("PhoneNumberIndex")
+            .HasFilter("\"PhoneNumber\" IS NOT NULL");
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(MentalHealthDbContext).Assembly);
     }
 

@@ -100,7 +100,11 @@ public static class DependencyInjection
             .AddEntityFrameworkStores<MentalHealthDbContext>()
             .AddSignInManager()
             .AddDefaultTokenProviders();
+        services
+            .AddOptions<PhoneLoginAccountOptions>()
+            .Bind(configuration.GetSection(PhoneLoginAccountOptions.SectionName));
         services.AddScoped<IdentitySeeder>();
+        services.AddScoped<PhoneLoginAccountUpgrader>();
         services.AddScoped<DemoCatalogSeeder>();
         services.AddScoped<IConsentRepository>(provider =>
             provider.GetRequiredService<MentalHealthDbContext>());

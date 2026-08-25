@@ -82,7 +82,7 @@ public sealed class ConsultationLifecycleTests(AuthApiFixture fixture)
         counselorView.EnsureSuccessStatusCode();
 
         using var admin = await fixture.CreateTrustedApiClientForAsync(
-            "admin@demo.local");
+            "123@qq.com");
         using var adminView = await admin.GetAsync(
             $"/api/v1/consultations/{sessionId}/messages");
         Assert.Equal(HttpStatusCode.Forbidden, adminView.StatusCode);

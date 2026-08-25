@@ -53,7 +53,7 @@ public sealed class LoginAndMfaTests(AuthApiFixture fixture)
             "/api/v1/auth/login",
             new
             {
-                email = "user@demo.local",
+                email = "abc@qq.com",
                 password = AuthApiFixture.InitialPassword
             });
 
@@ -92,7 +92,7 @@ public sealed class LoginAndMfaTests(AuthApiFixture fixture)
             "/api/v1/auth/login",
             new
             {
-                email = "admin@demo.local",
+                email = "123@qq.com",
                 password = AuthApiFixture.InitialPassword
             });
         Assert.Equal(HttpStatusCode.Unauthorized, login.StatusCode);

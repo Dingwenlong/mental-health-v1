@@ -131,7 +131,7 @@ public sealed class ConsentTests(AuthApiFixture fixture)
 
     private async Task<HttpClient> LoginAsUserAsync()
     {
-        return await LoginAsync("user@demo.local");
+        return await LoginAsync("abc@qq.com");
     }
 
     private async Task<HttpClient> LoginAsync(string email)

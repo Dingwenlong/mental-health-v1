@@ -193,7 +193,7 @@ public sealed class DataRightsTests(AuthApiFixture fixture)
         Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
 
         using var admin = await fixture.CreateTrustedApiClientForAsync(
-            "admin@demo.local");
+            "123@qq.com");
         using var response = await admin.GetAsync("/api/v1/data-rights/audit");
         response.EnsureSuccessStatusCode();
         var records = await response.Content.ReadFromJsonAsync<JsonElement>();

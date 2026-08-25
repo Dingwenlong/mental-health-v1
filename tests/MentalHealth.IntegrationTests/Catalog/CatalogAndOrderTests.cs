@@ -24,7 +24,7 @@ public sealed class CatalogAndOrderTests(AuthApiFixture fixture)
         var planId = await CreatePlanAsync(priceInMinorUnits);
 
         using var user = await fixture.CreateTrustedApiClientForAsync(
-            "user@demo.local");
+            "abc@qq.com");
         var orderResponse = await user.PostAsJsonAsync(
             "/api/v1/orders",
             new
@@ -46,7 +46,7 @@ public sealed class CatalogAndOrderTests(AuthApiFixture fixture)
     {
         var planId = await CreatePlanAsync(19900);
         using var user = await fixture.CreateTrustedApiClientForAsync(
-            "user@demo.local");
+            "abc@qq.com");
         var created = await user.PostAsJsonAsync(
             "/api/v1/orders",
             new
@@ -99,7 +99,7 @@ public sealed class CatalogAndOrderTests(AuthApiFixture fixture)
         var planId = await CreatePlanAsync(0);
         var key = $"repeat-{Guid.NewGuid():N}";
         using var user = await fixture.CreateTrustedApiClientForAsync(
-            "user@demo.local");
+            "abc@qq.com");
 
         var first = await user.PostAsJsonAsync(
             "/api/v1/orders",
@@ -123,7 +123,7 @@ public sealed class CatalogAndOrderTests(AuthApiFixture fixture)
     public async Task Ai_video_plan_is_rejected()
     {
         using var admin = await fixture.CreateTrustedApiClientForAsync(
-            "admin@demo.local");
+            "123@qq.com");
 
         var response = await admin.PostAsJsonAsync(
             "/api/v1/admin/catalog/plans",
@@ -145,7 +145,7 @@ public sealed class CatalogAndOrderTests(AuthApiFixture fixture)
     public async Task Overlapping_practitioner_slot_is_rejected_but_adjacent_slot_is_allowed()
     {
         using var admin = await fixture.CreateTrustedApiClientForAsync(
-            "admin@demo.local");
+            "123@qq.com");
         var practitioner = await admin.PostAsJsonAsync(
             "/api/v1/admin/catalog/practitioners",
             new
@@ -200,7 +200,7 @@ public sealed class CatalogAndOrderTests(AuthApiFixture fixture)
     public async Task User_cannot_change_catalog()
     {
         using var user = await fixture.CreateTrustedApiClientForAsync(
-            "user@demo.local");
+            "abc@qq.com");
 
         var response = await user.PostAsJsonAsync(
             "/api/v1/admin/catalog/plans",
@@ -222,7 +222,7 @@ public sealed class CatalogAndOrderTests(AuthApiFixture fixture)
     public async Task Catalog_lists_active_records_and_hides_deactivated_records()
     {
         using var admin = await fixture.CreateTrustedApiClientForAsync(
-            "admin@demo.local");
+            "123@qq.com");
         var planId = await CreatePlanAsync(0, admin);
         var practitioner = await admin.PostAsJsonAsync(
             "/api/v1/admin/catalog/practitioners",
@@ -236,7 +236,7 @@ public sealed class CatalogAndOrderTests(AuthApiFixture fixture)
         var practitionerId = practitionerBody.RootElement.GetProperty("id").GetGuid();
 
         using var user = await fixture.CreateTrustedApiClientForAsync(
-            "user@demo.local");
+            "abc@qq.com");
         Assert.True(await CatalogContainsAsync(user, "plans", planId));
         Assert.True(await CatalogContainsAsync(
             user,
@@ -311,7 +311,7 @@ public sealed class CatalogAndOrderTests(AuthApiFixture fixture)
     public async Task Seeded_catalog_has_four_supported_demo_plans()
     {
         using var user = await fixture.CreateTrustedApiClientForAsync(
-            "user@demo.local");
+            "abc@qq.com");
 
         var response = await user.GetAsync("/api/v1/catalog/plans");
         response.EnsureSuccessStatusCode();
@@ -343,7 +343,7 @@ public sealed class CatalogAndOrderTests(AuthApiFixture fixture)
     public async Task Seeded_staff_role_cannot_diverge_from_login_role()
     {
         using var admin = await fixture.CreateTrustedApiClientForAsync(
-            "admin@demo.local");
+            "123@qq.com");
 
         var response = await admin.PutAsJsonAsync(
             $"/api/v1/admin/catalog/practitioners/{IdentitySeeder.DemoCounselorId}",
@@ -367,7 +367,7 @@ public sealed class CatalogAndOrderTests(AuthApiFixture fixture)
     {
         var ownsClient = existingAdmin is null;
         var admin = existingAdmin ?? await fixture.CreateTrustedApiClientForAsync(
-            "admin@demo.local");
+            "123@qq.com");
         try
         {
             var planResponse = await admin.PostAsJsonAsync(

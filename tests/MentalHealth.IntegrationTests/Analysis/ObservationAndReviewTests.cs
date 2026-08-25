@@ -184,7 +184,7 @@ public sealed class ObservationAndReviewTests(AuthApiFixture fixture)
         DateTimeOffset startAt)
     {
         using var admin = await fixture.CreateTrustedApiClientForAsync(
-            "admin@demo.local");
+            "123@qq.com");
         using var response = await admin.PostAsJsonAsync(
             $"/api/v1/admin/catalog/practitioners/{practitionerId}/slots",
             new { startAt, endAt = startAt.AddMinutes(30) });
@@ -197,7 +197,7 @@ public sealed class ObservationAndReviewTests(AuthApiFixture fixture)
     private async Task<Guid> CreateDoctorAsync()
     {
         using var admin = await fixture.CreateTrustedApiClientForAsync(
-            "admin@demo.local");
+            "123@qq.com");
         using var response = await admin.PostAsJsonAsync(
             "/api/v1/admin/catalog/practitioners",
             new

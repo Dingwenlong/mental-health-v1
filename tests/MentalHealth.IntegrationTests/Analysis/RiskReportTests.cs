@@ -20,7 +20,7 @@ public sealed class RiskReportTests(AuthApiFixture fixture)
     public async Task Operations_admin_can_list_rule_versions_with_the_active_version_first()
     {
         using var admin = await fixture.CreateTrustedApiClientForAsync(
-            "admin@demo.local");
+            "123@qq.com");
 
         using var response = await admin.GetAsync("/api/v1/admin/risk-rules");
 
@@ -138,7 +138,7 @@ public sealed class RiskReportTests(AuthApiFixture fixture)
         Assert.Equal(HttpStatusCode.Forbidden, forbidden.StatusCode);
 
         using var admin = await fixture.CreateTrustedApiClientForAsync(
-            "admin@demo.local");
+            "123@qq.com");
         var version = $"risk-{Guid.NewGuid():N}";
         using var rejected = await admin.PostAsJsonAsync(
             "/api/v1/admin/risk-rules",
