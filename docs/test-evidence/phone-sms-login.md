@@ -71,10 +71,16 @@ $missing = @($required | Where-Object {
 })
 if ($missing.Count -gt 0) { throw "本机 .env 缺少：$($missing -join ', ')" }
 
+$objectStorageRoot = Join-Path `
+    ([IO.Path]::GetTempPath()) `
+    'mental-health-v1\real-phone-login\object-storage'
+[IO.Directory]::CreateDirectory($objectStorageRoot) | Out-Null
+
 $apiEnvironment = @{
     ASPNETCORE_ENVIRONMENT = 'Development'
     ConnectionStrings__MentalHealth = "Host=127.0.0.1;Port=54329;Database=mental_health;Username=mental_health;Password=$($localValues['MH_POSTGRES_PASSWORD'])"
     ConnectionStrings__Redis = '127.0.0.1:56379'
+    LocalObjectStorage__RootPath = $objectStorageRoot
     Jwt__Issuer = 'mental-health-v1-local'
     Jwt__Audience = 'mental-health-v1-local'
     Jwt__SigningKey = $localValues['MH_JWT_SIGNING_KEY']
@@ -83,6 +89,9 @@ $apiEnvironment = @{
     IdentitySeed__Enabled = 'true'
     CatalogSeed__Enabled = 'true'
     PhoneLogin__Aliyun__Enabled = 'true'
+    PhoneLogin__Aliyun__Prefix = 'xfkdn8'
+    PhoneLogin__Aliyun__AdminSceneId = '1lae8yfm'
+    PhoneLogin__Aliyun__AndroidSceneId = 'e20maaxh'
     PhoneLogin__Aliyun__AccessKeyId = $localValues['MH_ALIYUN_ACCESS_KEY_ID']
     PhoneLogin__Aliyun__AccessKeySecret = $localValues['MH_ALIYUN_ACCESS_KEY_SECRET']
     PhoneLogin__Aliyun__CaptchaEkey = $localValues['MH_ALIYUN_CAPTCHA_EKEY']
@@ -92,13 +101,12 @@ $apiEnvironment = @{
     PhoneLogin__Accounts__AdminPhone = $localValues['MH_ADMIN_PHONE']
 }
 $previousEnvironment = @{}
-foreach ($entry in $apiEnvironment.GetEnumerator()) {
-    $oldValue = Get-Item "Env:$($entry.Key)" -ErrorAction SilentlyContinue
-    $previousEnvironment[$entry.Key] = if ($null -eq $oldValue) { $null } else { $oldValue.Value }
-    Set-Item "Env:$($entry.Key)" $entry.Value
-}
-
 try {
+    foreach ($entry in $apiEnvironment.GetEnumerator()) {
+        $oldValue = Get-Item "Env:$($entry.Key)" -ErrorAction SilentlyContinue
+        $previousEnvironment[$entry.Key] = if ($null -eq $oldValue) { $null } else { $oldValue.Value }
+        Set-Item "Env:$($entry.Key)" $entry.Value
+    }
     dotnet run --project src/MentalHealth.Api/MentalHealth.Api.csproj `
         --no-launch-profile --urls http://127.0.0.1:5165
 } finally {
@@ -109,6 +117,7 @@ try {
             Set-Item "Env:$($entry.Key)" $entry.Value
         }
     }
+    $apiEnvironment.Clear()
     $localValues.Clear()
 }
 ```
