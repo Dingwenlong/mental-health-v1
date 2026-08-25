@@ -45,6 +45,7 @@ tests/output/
 tests/**/video-output/
 
 # Editors and operating system
+.worktrees/
 .idea/
 .vs/
 .vscode/
