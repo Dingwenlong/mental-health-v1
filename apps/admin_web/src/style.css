@@ -46,8 +46,16 @@ button {
 }
 
 button:disabled {
-  cursor: wait;
+  cursor: not-allowed;
   opacity: 0.55;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent-dark);
+  outline-offset: 2px;
 }
 
 button.secondary {
@@ -73,10 +81,8 @@ textarea {
 }
 
 .login-shell {
-  display: grid;
   min-height: 100svh;
-  place-items: center;
-  padding: 1.5rem;
+  padding: clamp(2rem, 12vh, 8rem) 1.5rem 2rem;
 }
 
 .login-card,
@@ -90,6 +96,8 @@ textarea {
 
 .login-card {
   max-width: 28rem;
+  margin: 0;
+  border-radius: 0;
 }
 
 .login-card label,
@@ -103,6 +111,44 @@ textarea {
 .login-card button,
 .editor-form button {
   margin-top: 1.25rem;
+}
+
+.login-card button + button {
+  margin-left: 0.65rem;
+}
+
+.hint {
+  margin: 0.85rem 0 0;
+  color: var(--muted);
+}
+
+.account-settings {
+  width: min(100%, 32rem);
+  border: 1px solid var(--line);
+  padding: 1.5rem;
+  background: var(--surface);
+}
+
+.account-settings h2 {
+  margin: 0;
+  font-family: var(--font-data);
+}
+
+.account-settings label {
+  display: block;
+  margin-top: 1rem;
+  color: #33433f;
+  font-weight: 600;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.65rem;
+  margin-top: 1.25rem;
+}
+
+.form-actions button {
+  margin: 0;
 }
 
 .workspace-panel {
