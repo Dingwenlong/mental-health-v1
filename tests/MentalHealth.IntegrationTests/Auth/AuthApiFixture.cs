@@ -58,7 +58,6 @@ public sealed class AuthApiFixture : IAsyncLifetime
             ["Jwt:Audience"] = "mental-health-v1-tests",
             ["Jwt:SigningKey"] = "synthetic-test-signing-key-with-at-least-32-bytes",
             ["Jwt:AccessTokenMinutes"] = "15",
-            ["Jwt:MfaSetupTokenMinutes"] = "5",
             ["Database:InitializeOnStartup"] = "true",
             ["IdentitySeed:Enabled"] = "true",
             ["CatalogSeed:Enabled"] = "true",
@@ -109,11 +108,10 @@ public sealed class AuthApiFixture : IAsyncLifetime
         return tokenService.Issue(
             new JwtTokenSubject(
                 user.Id,
-                user.Email!,
+                user.PhoneNumber ?? string.Empty,
                 roles.ToArray(),
                 user.SubjectId,
-                user.PractitionerId),
-            JwtTokenScope.Api).Value;
+                user.PractitionerId)).Value;
     }
 
     public async Task DisposeAsync()

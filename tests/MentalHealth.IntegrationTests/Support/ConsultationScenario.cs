@@ -109,8 +109,7 @@ internal static class ConsultationScenario
                 email,
                 [AppRoles.User],
                 user.SubjectId,
-                null),
-            JwtTokenScope.Api).Value;
+                null)).Value;
         return new SyntheticUser(
             user.Id,
             user.SubjectId.Value,

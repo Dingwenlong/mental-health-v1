@@ -53,7 +53,7 @@ public sealed class AuthController(
         var roles = await userManager.GetRolesAsync(user);
         var subject = new JwtTokenSubject(
             user.Id,
-            user.Email!,
+            user.PhoneNumber ?? string.Empty,
             roles.ToArray(),
             user.SubjectId,
             user.PractitionerId);
@@ -62,16 +62,9 @@ public sealed class AuthController(
         {
             if (!user.TwoFactorEnabled)
             {
-                var setupToken = tokenService.Issue(subject, JwtTokenScope.MfaSetup);
                 return UnauthorizedProblem(
                     ApiProblemCodes.MfaRequired,
-                    "需要先设置动态验证码",
-                    new Dictionary<string, object?>
-                    {
-                        ["mfaSetupRequired"] = true,
-                        ["setupToken"] = setupToken.Value,
-                        ["setupTokenExpiresAt"] = setupToken.ExpiresAt
-                    });
+                    "需要先设置动态验证码");
             }
 
             if (string.IsNullOrWhiteSpace(request.TotpCode))
@@ -93,11 +86,11 @@ public sealed class AuthController(
             }
         }
 
-        var accessToken = tokenService.Issue(subject, JwtTokenScope.Api);
+        var accessToken = tokenService.Issue(subject);
         return Ok(new TokenResponse(accessToken.Value, accessToken.ExpiresAt));
     }
 
-    [Authorize(Policy = Policies.MfaSetup)]
+    [Authorize]
     [HttpPost("mfa/setup")]
     public async Task<IActionResult> SetupMfa(
         MfaSetupRequest request,

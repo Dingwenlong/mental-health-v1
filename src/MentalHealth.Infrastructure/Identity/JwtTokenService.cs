@@ -14,21 +14,17 @@ public sealed class JwtTokenService(
 {
     private readonly JwtOptions _options = options.Value;
 
-    public IssuedJwtToken Issue(JwtTokenSubject subject, JwtTokenScope scope)
+    public IssuedJwtToken Issue(JwtTokenSubject subject)
     {
         var now = clock.UtcNow;
-        var lifetime = scope == JwtTokenScope.Api
-            ? _options.AccessTokenMinutes
-            : _options.MfaSetupTokenMinutes;
-        var expiresAt = now.AddMinutes(lifetime);
+        var expiresAt = now.AddMinutes(_options.AccessTokenMinutes);
 
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, subject.UserId.ToString()),
             new(ClaimTypes.NameIdentifier, subject.UserId.ToString()),
-            new(JwtRegisteredClaimNames.Email, subject.Email),
-            new(ClaimTypes.Email, subject.Email),
-            new("scope", scope == JwtTokenScope.Api ? "api" : "mfa_setup")
+            new("phone_number", subject.PhoneNumber),
+            new("scope", "api")
         };
 
         claims.AddRange(subject.Roles.Select(role => new Claim(ClaimTypes.Role, role)));

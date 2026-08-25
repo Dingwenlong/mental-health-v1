@@ -14,6 +14,7 @@ public static class ApiProblemCodes
     public const string InvalidChunkIndex = "INVALID_CHUNK_INDEX";
     public const string MfaRequired = "MFA_REQUIRED";
     public const string InvalidCredentials = "INVALID_CREDENTIALS";
+    public const string InvalidPhoneNumber = "INVALID_PHONE_NUMBER";
     public const string InvalidMfaCode = "INVALID_MFA_CODE";
     public const string ConsentTypeDisabled = "CONSENT_TYPE_DISABLED";
     public const string InvalidConsentKind = "INVALID_CONSENT_KIND";

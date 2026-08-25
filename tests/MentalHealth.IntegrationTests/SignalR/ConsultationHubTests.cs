@@ -198,8 +198,7 @@ public sealed class ConsultationHubTests(AuthApiFixture fixture)
                 email,
                 [AppRoles.User],
                 user.SubjectId,
-                null),
-            JwtTokenScope.Api).Value;
+                null)).Value;
         return new TestUser(token, fixture.CreateClientWithBearer(token));
     }
 

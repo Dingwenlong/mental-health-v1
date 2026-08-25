@@ -246,8 +246,7 @@ public sealed class ConsultationLifecycleTests(AuthApiFixture fixture)
                 email,
                 [AppRoles.User],
                 user.SubjectId,
-                null),
-            JwtTokenScope.Api);
+                null));
         return fixture.CreateClientWithBearer(token.Value);
     }
 
