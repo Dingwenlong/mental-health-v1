@@ -103,6 +103,13 @@ public static class DependencyInjection
         services
             .AddOptions<PhoneLoginAccountOptions>()
             .Bind(configuration.GetSection(PhoneLoginAccountOptions.SectionName));
+        services
+            .AddOptions<AliyunPhoneLoginOptions>()
+            .Bind(configuration.GetSection(AliyunPhoneLoginOptions.SectionName))
+            .Validate(options => options.IsValid(), "Aliyun phone login configuration is invalid.")
+            .ValidateOnStart();
+        services.AddSingleton<ICaptchaVerifier, AliyunCaptchaVerifier>();
+        services.AddSingleton<ISmsVerificationProvider, AliyunSmsVerificationProvider>();
         services.AddScoped<IdentitySeeder>();
         services.AddScoped<PhoneLoginAccountUpgrader>();
         services.AddScoped<DemoCatalogSeeder>();
