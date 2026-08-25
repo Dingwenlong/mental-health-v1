@@ -58,7 +58,8 @@ public sealed class IdentitySeeder(
             requiresMfa: false,
             subjectId: DemoSubjectId,
             legacyEmail: "user@demo.local",
-            phoneLoginAccount: true);
+            phoneLoginAccount: true,
+            configuredPhone: configuration["PhoneLogin:Accounts:ClientPhone"]);
         await EnsureUserAsync(
             "counselor@demo.local",
             AppRoles.Counselor,
@@ -74,7 +75,8 @@ public sealed class IdentitySeeder(
             AppRoles.OperationsAdmin,
             requiresMfa: false,
             legacyEmail: "admin@demo.local",
-            phoneLoginAccount: true);
+            phoneLoginAccount: true,
+            configuredPhone: configuration["PhoneLogin:Accounts:AdminPhone"]);
     }
 
     private async Task EnsureUserAsync(
@@ -84,9 +86,22 @@ public sealed class IdentitySeeder(
         Guid? subjectId = null,
         Guid? practitionerId = null,
         string? legacyEmail = null,
-        bool phoneLoginAccount = false)
+        bool phoneLoginAccount = false,
+        string? configuredPhone = null)
     {
-        var user = await userManager.FindByEmailAsync(email)
+        AppUser? user = null;
+        var resolvedByPhone = false;
+        if (phoneLoginAccount
+            && PhoneNumberNormalizer.TryNormalizeMainlandChina(
+                configuredPhone ?? string.Empty,
+                out var normalizedPhone))
+        {
+            user = await userManager.Users.SingleOrDefaultAsync(
+                candidate => candidate.PhoneNumber == normalizedPhone);
+            resolvedByPhone = user is not null;
+        }
+
+        user ??= await userManager.FindByEmailAsync(email)
             ?? (legacyEmail is null
                 ? null
                 : await userManager.FindByEmailAsync(legacyEmail));
@@ -107,7 +122,7 @@ public sealed class IdentitySeeder(
 
         else
         {
-            var emailChanged = user.Email != email;
+            var emailChanged = !resolvedByPhone && user.Email != email;
             var changed = emailChanged
                 || (!phoneLoginAccount && user.UserName != email)
                 || (!phoneLoginAccount && user.EmailConfirmed)
@@ -119,7 +134,11 @@ public sealed class IdentitySeeder(
                 || (!phoneLoginAccount && user.PasswordHash is not null);
             if (changed)
             {
-                user.Email = email;
+                if (emailChanged)
+                {
+                    user.Email = email;
+                }
+
                 if (!phoneLoginAccount || emailChanged)
                 {
                     user.UserName = email;

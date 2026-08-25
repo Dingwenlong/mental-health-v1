@@ -79,6 +79,45 @@ describe('phone login form', () => {
     await expect(retry).rejects.toThrow('Aliyun captcha script failed to load')
   })
 
+  it('passes the exact encrypted scene keys to the Aliyun initializer', async () => {
+    vi.resetModules()
+    let capturedOptions: Record<string, unknown> | undefined
+    window.initAliyunCaptcha = vi.fn((options, ready) => {
+      capturedOptions = options as unknown as Record<string, unknown>
+      ready({ startTracelessVerification: vi.fn() })
+    })
+    const { runAliyunCaptcha } = await import('../features/auth/aliyunCaptcha')
+    const pending = runAliyunCaptcha({
+      preChallengeToken: 'pre-challenge-1',
+      prefix: 'xfkdn8',
+      encryptedSceneId: 'encrypted-scene-1',
+      expiresAt: '2030-01-01T00:00:00.000Z',
+    })
+    const script = document.querySelector('script[src="https://o.alicdn.com/captcha-frontend/aliyunCaptcha/AliyunCaptcha.js"]') as HTMLScriptElement
+    script.dispatchEvent(new Event('load'))
+
+    await vi.waitFor(() => expect(capturedOptions).toBeDefined())
+    expect(Object.keys(capturedOptions!).sort()).toEqual([
+      'EncryptedSceneId',
+      'SceneId',
+      'captchaVerifyCallback',
+      'delayBeforeSuccess',
+      'language',
+      'mode',
+      'onError',
+      'prefix',
+      'slideStyle',
+    ])
+    expect(capturedOptions).toMatchObject({
+      SceneId: '1lae8yfm',
+      EncryptedSceneId: 'encrypted-scene-1',
+    })
+
+    const callback = capturedOptions!.captchaVerifyCallback as (value: string) => Promise<unknown>
+    await callback('captcha-pass')
+    await expect(pending).resolves.toBe('captcha-pass')
+  })
+
   it('parses an integer Retry-After response into an API problem', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(
       JSON.stringify({ status: 429, code: 'SMS_RATE_LIMITED' }),

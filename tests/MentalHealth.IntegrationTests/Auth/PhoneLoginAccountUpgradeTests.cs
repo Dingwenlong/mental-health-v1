@@ -1,5 +1,7 @@
 using MentalHealth.Infrastructure.Identity;
+using MentalHealth.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -63,6 +65,62 @@ public sealed class PhoneLoginAccountUpgradeTests(AuthApiFixture fixture)
 
         Assert.Equal(clientSecurityStamp, client.SecurityStamp);
         Assert.Equal(adminSecurityStamp, admin.SecurityStamp);
+    }
+
+    [Fact]
+    public async Task Startup_seed_and_upgrade_preserve_changed_contact_emails_and_confirmed_phones()
+    {
+        var startupFixture = new AuthApiFixture();
+        await startupFixture.InitializeAsync();
+        try
+        {
+            Guid clientId;
+            Guid adminId;
+            int userCount;
+            await using (var setupScope = startupFixture.Services.CreateAsyncScope())
+            {
+                var db = setupScope.ServiceProvider.GetRequiredService<MentalHealthDbContext>();
+                var client = await db.Users.SingleAsync(
+                    user => user.PhoneNumber == "+8613800138001");
+                var admin = await db.Users.SingleAsync(
+                    user => user.PhoneNumber == "+8613900139002");
+                clientId = client.Id;
+                adminId = admin.Id;
+                userCount = await db.Users.CountAsync();
+
+                client.Email = "client-contact@example.test";
+                client.NormalizedEmail = "CLIENT-CONTACT@EXAMPLE.TEST";
+                client.PhoneNumberConfirmed = true;
+                admin.Email = null;
+                admin.NormalizedEmail = null;
+                admin.PhoneNumberConfirmed = true;
+                await db.SaveChangesAsync();
+            }
+
+            await using (var startupScope = startupFixture.Services.CreateAsyncScope())
+            {
+                await startupScope.ServiceProvider
+                    .GetRequiredService<IdentitySeeder>()
+                    .SeedAsync();
+                await startupScope.ServiceProvider
+                    .GetRequiredService<PhoneLoginAccountUpgrader>()
+                    .UpgradeAsync();
+            }
+
+            await using var assertScope = startupFixture.Services.CreateAsyncScope();
+            var assertDb = assertScope.ServiceProvider.GetRequiredService<MentalHealthDbContext>();
+            var clientAfter = await assertDb.Users.SingleAsync(user => user.Id == clientId);
+            var adminAfter = await assertDb.Users.SingleAsync(user => user.Id == adminId);
+            Assert.Equal(userCount, await assertDb.Users.CountAsync());
+            Assert.Equal("client-contact@example.test", clientAfter.Email);
+            Assert.True(clientAfter.PhoneNumberConfirmed);
+            Assert.Null(adminAfter.Email);
+            Assert.True(adminAfter.PhoneNumberConfirmed);
+        }
+        finally
+        {
+            await startupFixture.DisposeAsync();
+        }
     }
 
     [Fact]

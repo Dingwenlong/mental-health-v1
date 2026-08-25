@@ -121,15 +121,6 @@ public sealed class AuthController(
                     "登录请求已失效");
             }
 
-            var rate = await challengeStore.CheckSmsSendRateAsync(
-                preChallenge.NationalPhoneNumber,
-                SourceIp(),
-                cancellationToken);
-            if (!rate.IsAllowed)
-            {
-                return RateLimited(rate.RetryAfterSeconds);
-            }
-
             bool captchaAccepted;
             try
             {
@@ -149,6 +140,15 @@ public sealed class AuthController(
                     StatusCodes.Status422UnprocessableEntity,
                     ApiProblemCodes.CaptchaFailed,
                     "人机验证未通过");
+            }
+
+            var rate = await challengeStore.CheckSmsSendRateAsync(
+                preChallenge.NationalPhoneNumber,
+                SourceIp(),
+                cancellationToken);
+            if (!rate.IsAllowed)
+            {
+                return RateLimited(rate.RetryAfterSeconds);
             }
 
             var ticket = await challengeStore.CreateChallengeAsync(

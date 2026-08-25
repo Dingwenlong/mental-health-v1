@@ -90,6 +90,47 @@ public sealed class PhoneSmsLoginTests(AuthApiFixture fixture)
     }
 
     [Fact]
+    public async Task Rejected_or_unavailable_captcha_does_not_consume_sms_send_quota()
+    {
+        await fixture.ResetPhoneLoginAsync();
+
+        var rejectedBootstrap = await fixture.BootstrapAsync("13800138001");
+        using var rejected = await CreateChallengeRawAsync(
+            rejectedBootstrap.PreChallengeToken,
+            "synthetic-captcha-rejected");
+        await AssertProblemAsync(
+            rejected,
+            HttpStatusCode.UnprocessableEntity,
+            ApiProblemCodes.CaptchaFailed);
+
+        fixture.Captcha.ProviderUnavailable = true;
+        var unavailableBootstrap = await fixture.BootstrapAsync("13800138001");
+        using var unavailable = await CreateChallengeRawAsync(
+            unavailableBootstrap.PreChallengeToken,
+            FakeCaptchaVerifier.ValidParam);
+        await AssertProblemAsync(
+            unavailable,
+            HttpStatusCode.ServiceUnavailable,
+            ApiProblemCodes.AuthProviderUnavailable);
+
+        fixture.Captcha.ProviderUnavailable = false;
+        var acceptedBootstrap = await fixture.BootstrapAsync("13800138001");
+        using var accepted = await CreateChallengeRawAsync(
+            acceptedBootstrap.PreChallengeToken,
+            FakeCaptchaVerifier.ValidParam);
+        Assert.Equal(HttpStatusCode.Accepted, accepted.StatusCode);
+
+        var limitedBootstrap = await fixture.BootstrapAsync("13800138001");
+        using var limited = await CreateChallengeRawAsync(
+            limitedBootstrap.PreChallengeToken,
+            FakeCaptchaVerifier.ValidParam);
+        await AssertProblemAsync(
+            limited,
+            HttpStatusCode.TooManyRequests,
+            ApiProblemCodes.SmsRateLimited);
+    }
+
+    [Fact]
     public async Task Invalid_phone_challenge_and_rate_limit_use_stable_problem_codes()
     {
         await fixture.ResetPhoneLoginAsync();

@@ -13,6 +13,8 @@ public sealed class PhoneLoginAccountUpgrader(
 {
     private const string ClientEmail = "abc@qq.com";
     private const string AdminEmail = "123@qq.com";
+    private const string LegacyClientEmail = "user@demo.local";
+    private const string LegacyAdminEmail = "admin@demo.local";
 
     public async Task UpgradeAsync(CancellationToken cancellationToken = default)
     {
@@ -20,9 +22,17 @@ public sealed class PhoneLoginAccountUpgrader(
 
         await using var transaction = await db.Database.BeginTransactionAsync(
             cancellationToken);
-        var client = await FindAndLockAsync(ClientEmail, cancellationToken)
+        var client = await FindAndLockAsync(
+                clientPhone,
+                ClientEmail,
+                LegacyClientEmail,
+                cancellationToken)
             ?? throw new InvalidOperationException("The public client account was not seeded.");
-        var admin = await FindAndLockAsync(AdminEmail, cancellationToken)
+        var admin = await FindAndLockAsync(
+                adminPhone,
+                AdminEmail,
+                LegacyAdminEmail,
+                cancellationToken)
             ?? throw new InvalidOperationException("The public admin account was not seeded.");
 
         var clientChanged = Upgrade(client, clientPhone);
@@ -48,12 +58,31 @@ public sealed class PhoneLoginAccountUpgrader(
     }
 
     private async Task<AppUser?> FindAndLockAsync(
+        string phoneNumber,
         string email,
+        string legacyEmail,
         CancellationToken cancellationToken)
     {
+        var byPhone = await db.Users.FromSqlInterpolated(
+                $"SELECT * FROM \"AspNetUsers\" WHERE \"PhoneNumber\" = {phoneNumber} FOR UPDATE")
+            .SingleOrDefaultAsync(cancellationToken);
+        if (byPhone is not null)
+        {
+            return byPhone;
+        }
+
         var normalizedEmail = userManager.NormalizeEmail(email);
-        return await db.Users.FromSqlInterpolated(
+        var byEmail = await db.Users.FromSqlInterpolated(
                 $"SELECT * FROM \"AspNetUsers\" WHERE \"NormalizedEmail\" = {normalizedEmail} FOR UPDATE")
+            .SingleOrDefaultAsync(cancellationToken);
+        if (byEmail is not null)
+        {
+            return byEmail;
+        }
+
+        var normalizedLegacyEmail = userManager.NormalizeEmail(legacyEmail);
+        return await db.Users.FromSqlInterpolated(
+                $"SELECT * FROM \"AspNetUsers\" WHERE \"NormalizedEmail\" = {normalizedLegacyEmail} FOR UPDATE")
             .SingleOrDefaultAsync(cancellationToken);
     }
 
@@ -82,8 +111,8 @@ public sealed class PhoneLoginAccountUpgrader(
 
     private static bool Upgrade(AppUser user, string phoneNumber)
     {
-        var changed = user.PhoneNumber != phoneNumber
-            || user.PhoneNumberConfirmed
+        var phoneChanged = user.PhoneNumber != phoneNumber;
+        var changed = phoneChanged
             || user.UserName != phoneNumber
             || user.NormalizedUserName != phoneNumber.ToUpperInvariant()
             || user.EmailConfirmed
@@ -96,7 +125,11 @@ public sealed class PhoneLoginAccountUpgrader(
         }
 
         user.PhoneNumber = phoneNumber;
-        user.PhoneNumberConfirmed = false;
+        if (phoneChanged)
+        {
+            user.PhoneNumberConfirmed = false;
+        }
+
         user.UserName = phoneNumber;
         user.NormalizedUserName = phoneNumber.ToUpperInvariant();
         user.EmailConfirmed = false;

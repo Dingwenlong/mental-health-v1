@@ -14,7 +14,7 @@ type AliyunCaptchaOptions = {
   language: 'cn'
   delayBeforeSuccess: false
   slideStyle: { width: number; height: number }
-  encryptedSceneId: string
+  EncryptedSceneId: string
   captchaVerifyCallback: (captchaVerifyParam: string) => Promise<{ captchaResult: boolean; bizResult: boolean }>
   onError: (error: unknown) => void
 }
@@ -57,7 +57,7 @@ export async function runAliyunCaptcha(bootstrap: CaptchaBootstrap): Promise<str
       {
         SceneId: '1lae8yfm',
         prefix: bootstrap.prefix,
-        encryptedSceneId: bootstrap.encryptedSceneId,
+        EncryptedSceneId: bootstrap.encryptedSceneId,
         mode: 'popup',
         language: 'cn',
         delayBeforeSuccess: false,
