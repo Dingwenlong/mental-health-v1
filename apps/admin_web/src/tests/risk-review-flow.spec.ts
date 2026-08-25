@@ -215,7 +215,7 @@ const riskCase: RiskCase = {
       },
     ],
     createdAt: "2026-08-24T06:00:00Z",
-    notice: "这是比赛演示，不是诊断",
+    notice: "此结果不能替代诊断",
   },
   reviews: [],
   followUp,

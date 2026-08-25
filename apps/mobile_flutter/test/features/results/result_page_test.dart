@@ -51,7 +51,7 @@ void main() {
       );
 
       expect(find.text('这次没有使用录像和以前的记录'), findsOneWidget);
-      expect(find.text('这是比赛演示结果，不是诊断。需要医疗帮助时，请联系医生。'), findsOneWidget);
+      expect(find.text('此结果不能替代诊断。需要医疗帮助时，请联系医生。'), findsOneWidget);
       expect(find.text('问卷'), findsOneWidget);
       expect(find.text('对话文字'), findsOneWidget);
       expect(find.text('录音'), findsOneWidget);

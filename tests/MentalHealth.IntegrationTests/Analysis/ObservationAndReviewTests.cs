@@ -134,7 +134,7 @@ public sealed class ObservationAndReviewTests(AuthApiFixture fixture)
             secondSlotId,
             rescheduledTask.GetProperty("availabilitySlotId").GetGuid());
 
-        const string completeReason = "已完成演示回访并记录结果。";
+        const string completeReason = "已完成回访并记录结果。";
         using var completed = await doctor.PostAsJsonAsync(
             $"/api/v1/follow-ups/{followUpTaskId}/complete",
             new { reason = completeReason });

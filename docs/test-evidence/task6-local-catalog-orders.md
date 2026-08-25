@@ -45,4 +45,4 @@
 
 PostgreSQL 已应用 `20260822104650_AddCatalogSchedulingAndOrders`，新增 `practitioners`、`availability_slots`、`service_plans` 和 `demo_orders`。
 
-本机种子包含 2 名虚构员工和 4 个演示套餐：真人文字免费、真人视频模拟收费、AI 文字免费、AI 文字模拟收费。`scripts/Test-LocalIdentity.ps1` 已验证迁移、种子、套餐目录、普通用户登录和医生 MFA 门禁，未输出本机密码或密钥。
+本机种子包含 2 名测试员工和 4 个套餐：真人文字免费、真人视频模拟收费、AI 文字免费、AI 文字模拟收费。`scripts/Test-LocalIdentity.ps1` 已验证迁移、种子、套餐目录、普通用户登录和医生 MFA 门禁，未输出本机密码或密钥。

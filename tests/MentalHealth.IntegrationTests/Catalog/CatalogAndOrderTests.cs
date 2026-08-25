@@ -14,6 +14,79 @@ namespace MentalHealth.IntegrationTests.Catalog;
 [Collection(AuthApiCollection.Name)]
 public sealed class CatalogAndOrderTests(AuthApiFixture fixture)
 {
+    [Fact]
+    public async Task Existing_seeded_records_are_renamed_with_product_copy()
+    {
+        await using (var setupScope = fixture.Services.CreateAsyncScope())
+        {
+            var db = setupScope.ServiceProvider.GetRequiredService<MentalHealthDbContext>();
+            var counselor = await db.Practitioners.SingleAsync(
+                item => item.Id == IdentitySeeder.DemoCounselorId);
+            var doctor = await db.Practitioners.SingleAsync(
+                item => item.Id == IdentitySeeder.DemoDoctorId);
+            counselor.Update("演示·咨询师", counselor.Role, DateTimeOffset.UtcNow);
+            doctor.Update("演示·精神科医生", doctor.Role, DateTimeOffset.UtcNow);
+
+            var planNames = new Dictionary<Guid, string>
+            {
+                [DemoCatalogSeeder.HumanChatFreePlanId] = "真人文字咨询（免费演示）",
+                [DemoCatalogSeeder.HumanVideoPaidPlanId] = "真人视频咨询（模拟收费）",
+                [DemoCatalogSeeder.AiChatFreePlanId] = "AI 文字咨询（免费演示）",
+                [DemoCatalogSeeder.AiChatPaidPlanId] = "AI 文字咨询（模拟收费）"
+            };
+            var plans = await db.ServicePlans
+                .Where(item => planNames.Keys.Contains(item.Id))
+                .ToArrayAsync();
+            foreach (var plan in plans)
+            {
+                plan.Update(
+                    planNames[plan.Id],
+                    plan.Kind,
+                    plan.Channel,
+                    plan.PaymentMode,
+                    plan.PriceInMinorUnits,
+                    plan.Currency,
+                    plan.DurationMinutes,
+                    DateTimeOffset.UtcNow);
+            }
+
+            await db.SaveChangesAsync();
+        }
+
+        await using (var seedScope = fixture.Services.CreateAsyncScope())
+        {
+            await seedScope.ServiceProvider
+                .GetRequiredService<IdentitySeeder>()
+                .SeedAsync();
+            await seedScope.ServiceProvider
+                .GetRequiredService<DemoCatalogSeeder>()
+                .SeedAsync();
+        }
+
+        await using var verifyScope = fixture.Services.CreateAsyncScope();
+        var verifyDb = verifyScope.ServiceProvider.GetRequiredService<MentalHealthDbContext>();
+        var practitionerNames = await verifyDb.Practitioners
+            .Where(item => item.Id == IdentitySeeder.DemoCounselorId
+                || item.Id == IdentitySeeder.DemoDoctorId)
+            .OrderBy(item => item.Id)
+            .Select(item => item.DisplayName)
+            .ToArrayAsync();
+        Assert.Equal(["咨询师", "精神科医生"], practitionerNames);
+
+        var seededPlanNames = await verifyDb.ServicePlans
+            .Where(item => item.Id == DemoCatalogSeeder.HumanChatFreePlanId
+                || item.Id == DemoCatalogSeeder.HumanVideoPaidPlanId
+                || item.Id == DemoCatalogSeeder.AiChatFreePlanId
+                || item.Id == DemoCatalogSeeder.AiChatPaidPlanId)
+            .Select(item => item.Name)
+            .ToArrayAsync();
+        Assert.DoesNotContain(
+            seededPlanNames,
+            name => name.Contains("演示", StringComparison.Ordinal));
+        Assert.Contains("真人视频咨询（模拟收费）", seededPlanNames);
+        Assert.Contains("AI 文字咨询（模拟收费）", seededPlanNames);
+    }
+
     [Theory]
     [InlineData(0, "Confirmed")]
     [InlineData(19900, "AwaitingDemoPayment")]
@@ -349,7 +422,7 @@ public sealed class CatalogAndOrderTests(AuthApiFixture fixture)
             $"/api/v1/admin/catalog/practitioners/{IdentitySeeder.DemoCounselorId}",
             new
             {
-                displayName = "演示咨询师",
+                displayName = "咨询师",
                 role = "Doctor"
             });
 

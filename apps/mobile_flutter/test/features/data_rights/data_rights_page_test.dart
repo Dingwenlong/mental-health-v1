@@ -20,8 +20,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(gateway.exports, <(bool, bool)>[(false, false)]);
-    expect(saver.savedFileNames, <String>['my-demo-data.zip']);
-    expect(find.text('已保存到下载目录：my-demo-data.zip'), findsOneWidget);
+    expect(saver.savedFileNames, <String>['my-data.zip']);
+    expect(find.text('已保存到下载目录：my-data.zip'), findsOneWidget);
   });
 
   testWidgets('raw media is exported only after a second confirmation', (
@@ -46,7 +46,7 @@ void main() {
     expect(gateway.exports, <(bool, bool)>[(true, true)]);
   });
 
-  testWidgets('demo deletion waits for confirmation', (tester) async {
+  testWidgets('data deletion waits for confirmation', (tester) async {
     final gateway = _Gateway();
     await tester.pumpWidget(
       MaterialApp(
@@ -54,7 +54,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('清除我的演示数据'));
+    await tester.tap(find.text('清除我的数据'));
     await tester.pumpAndSettle();
     expect(gateway.deleted, isFalse);
 
@@ -62,7 +62,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(gateway.deleted, isTrue);
-    expect(find.text('演示数据已清除'), findsOneWidget);
+    expect(find.text('数据已清除'), findsOneWidget);
   });
 }
 
@@ -77,7 +77,7 @@ class _Gateway implements DataRightsGateway {
   }) async {
     exports.add((includeRawMedia, confirmRawMedia));
     return DataExportPackage(
-      fileName: 'my-demo-data.zip',
+      fileName: 'my-data.zip',
       bytes: Uint8List.fromList(<int>[1, 2, 3]),
     );
   }

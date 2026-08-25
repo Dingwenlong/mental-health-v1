@@ -80,5 +80,5 @@ public sealed record RiskAssessmentResponse(
             item.SourceRange,
             item.Quality)).ToArray(),
         assessment.CreatedAt,
-        "这是比赛演示，不是诊断");
+        "此结果不能替代诊断");
 }

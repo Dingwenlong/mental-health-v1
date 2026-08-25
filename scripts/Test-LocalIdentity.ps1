@@ -191,7 +191,7 @@ try
     $catalogResult = $catalog.Content | ConvertFrom-Json
     if ($catalog.StatusCode -ne 200 -or $catalogResult.Count -lt 4)
     {
-        throw '本机演示套餐未准备完成。'
+        throw '本机套餐未准备完成。'
     }
 
     $doctorToken = New-LocalTestJwt `
@@ -208,7 +208,7 @@ try
         throw '医生测试身份不能读取风险病例。'
     }
 
-    Write-Host '本机 API、演示套餐和短时测试身份均通过。'
+    Write-Host '本机 API、套餐和短时测试身份均通过。'
 }
 finally
 {

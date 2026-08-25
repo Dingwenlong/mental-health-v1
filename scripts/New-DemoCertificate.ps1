@@ -144,7 +144,7 @@ try
         & $OpenSslPath req -x509 -newkey rsa:3072 -sha256 -days 3650 -nodes `
             -subj '/CN=Mental Health Demo Root' `
             -keyout $tempRootKey -out $tempRootCertificate
-        if ($LASTEXITCODE -ne 0) { throw '生成演示根证书失败。' }
+        if ($LASTEXITCODE -ne 0) { throw '生成本机根证书失败。' }
     }
 
     $config = @"
@@ -174,29 +174,29 @@ IP.3 = 10.0.2.2
 
     & $OpenSslPath req -new -newkey rsa:3072 -nodes -sha256 `
         -config $serverConfig -keyout $serverKey -out $serverRequest
-    if ($LASTEXITCODE -ne 0) { throw '生成演示服务器证书请求失败。' }
+    if ($LASTEXITCODE -ne 0) { throw '生成本机服务器证书请求失败。' }
 
     & $OpenSslPath x509 -req -sha256 -days 90 `
         -in $serverRequest -CA $tempRootCertificate -CAkey $tempRootKey `
         -CAcreateserial -extensions extensions -extfile $serverConfig `
         -out $serverCertificate
-    if ($LASTEXITCODE -ne 0) { throw '签发演示服务器证书失败。' }
+    if ($LASTEXITCODE -ne 0) { throw '签发本机服务器证书失败。' }
 
     $env:MH_OPENSSL_CERT_PASSWORD = $values['MH_DEMO_CERT_PASSWORD']
     & $OpenSslPath pkcs12 -export -out $serverBundle `
         -inkey $serverKey -in $serverCertificate -certfile $tempRootCertificate `
         -name 'mental-health-demo' -passout env:MH_OPENSSL_CERT_PASSWORD
-    if ($LASTEXITCODE -ne 0) { throw '生成演示服务器 PFX 失败。' }
+    if ($LASTEXITCODE -ne 0) { throw '生成本机服务器 PFX 失败。' }
 
     & $OpenSslPath verify -CAfile $tempRootCertificate $serverCertificate
-    if ($LASTEXITCODE -ne 0) { throw '演示服务器证书链验证失败。' }
+    if ($LASTEXITCODE -ne 0) { throw '本机服务器证书链验证失败。' }
     & $OpenSslPath x509 -checkend 86400 -noout -in $serverCertificate
-    if ($LASTEXITCODE -ne 0) { throw '演示服务器证书有效期不足 24 小时。' }
+    if ($LASTEXITCODE -ne 0) { throw '本机服务器证书有效期不足 24 小时。' }
     $certificateText = & $OpenSslPath x509 -noout -text -in $serverCertificate
     if (($certificateText -join [Environment]::NewLine) -notmatch
         [Regex]::Escape("IP Address:$resolvedIp"))
     {
-        throw '演示服务器证书没有包含当前局域网地址。'
+        throw '本机服务器证书没有包含当前局域网地址。'
     }
 
     Copy-Item -LiteralPath $tempRootKey -Destination $rootKey -Force
@@ -222,5 +222,5 @@ finally
     }
 }
 
-Write-Host "已生成局域网演示证书，地址：$resolvedIp"
+Write-Host "已生成局域网本机证书，地址：$resolvedIp"
 Write-Host '未修改 Windows 或 Android 系统证书库。'

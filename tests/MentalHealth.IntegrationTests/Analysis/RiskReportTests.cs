@@ -130,7 +130,7 @@ public sealed class RiskReportTests(AuthApiFixture fixture)
                 .Select(item => item.GetString()!)
                 .ToArray());
         Assert.Equal(3, report.GetProperty("evidence").GetArrayLength());
-        Assert.Equal("这是比赛演示，不是诊断", report.GetProperty("notice").GetString());
+        Assert.Equal("此结果不能替代诊断", report.GetProperty("notice").GetString());
 
         using var other = await ConsultationScenario.CreateUserAsync(fixture);
         using var forbidden = await other.Client.GetAsync(

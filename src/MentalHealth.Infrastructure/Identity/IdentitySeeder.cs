@@ -43,11 +43,13 @@ public sealed class IdentitySeeder(
 
         await EnsurePractitionerAsync(
             DemoCounselorId,
+            "咨询师",
             "演示咨询师",
             PractitionerRole.Counselor,
             cancellationToken);
         await EnsurePractitionerAsync(
             DemoDoctorId,
+            "精神科医生",
             "演示精神科医生",
             PractitionerRole.Doctor,
             cancellationToken);
@@ -168,21 +170,48 @@ public sealed class IdentitySeeder(
     private async Task EnsurePractitionerAsync(
         Guid practitionerId,
         string displayName,
+        string legacyDisplayName,
         PractitionerRole role,
         CancellationToken cancellationToken)
     {
-        if (await db.Practitioners.AnyAsync(
-            practitioner => practitioner.Id == practitionerId,
-            cancellationToken))
+        var practitioner = await db.Practitioners.SingleOrDefaultAsync(
+            item => item.Id == practitionerId,
+            cancellationToken);
+        if (practitioner is null)
+        {
+            db.Practitioners.Add(Practitioner.Create(
+                practitionerId,
+                displayName,
+                role,
+                clock.UtcNow));
+            await db.SaveChangesAsync(cancellationToken);
+            return;
+        }
+
+        var migratedDisplayName = practitioner.DisplayName.StartsWith(
+            "演示·",
+            StringComparison.Ordinal)
+            ? practitioner.DisplayName[3..].Trim()
+            : string.Equals(
+                practitioner.DisplayName,
+                legacyDisplayName,
+                StringComparison.Ordinal)
+                ? displayName
+                : null;
+        if (migratedDisplayName is null)
         {
             return;
         }
 
-        db.Practitioners.Add(Practitioner.Create(
-            practitionerId,
-            displayName,
-            role,
-            clock.UtcNow));
+        if (string.IsNullOrWhiteSpace(migratedDisplayName))
+        {
+            migratedDisplayName = displayName;
+        }
+
+        practitioner.Update(
+            migratedDisplayName,
+            practitioner.Role,
+            clock.UtcNow);
         await db.SaveChangesAsync(cancellationToken);
     }
 

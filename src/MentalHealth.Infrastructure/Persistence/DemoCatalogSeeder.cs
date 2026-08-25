@@ -33,7 +33,7 @@ public sealed class DemoCatalogSeeder(
         {
             ServicePlan.Create(
                 HumanChatFreePlanId,
-                "真人文字咨询（免费演示）",
+                "真人文字咨询（免费）",
                 ConsultationKind.Human,
                 ConsultationChannel.Chat,
                 PlanPaymentMode.Free,
@@ -53,7 +53,7 @@ public sealed class DemoCatalogSeeder(
                 clock.UtcNow),
             ServicePlan.Create(
                 AiChatFreePlanId,
-                "AI 文字咨询（免费演示）",
+                "AI 文字咨询（免费）",
                 ConsultationKind.AiVirtual,
                 ConsultationChannel.Chat,
                 PlanPaymentMode.Free,
@@ -74,13 +74,37 @@ public sealed class DemoCatalogSeeder(
         };
 
         var planIds = plans.Select(plan => plan.Id).ToArray();
-        var existingIds = await db.ServicePlans
+        var existingPlans = await db.ServicePlans
             .Where(plan => planIds.Contains(plan.Id))
-            .Select(plan => plan.Id)
-            .ToArrayAsync(cancellationToken);
-        foreach (var plan in plans.Where(plan => !existingIds.Contains(plan.Id)))
+            .ToDictionaryAsync(plan => plan.Id, cancellationToken);
+        foreach (var plan in plans)
         {
-            db.ServicePlans.Add(plan);
+            if (!existingPlans.TryGetValue(plan.Id, out var existing))
+            {
+                db.ServicePlans.Add(plan);
+                continue;
+            }
+
+            var legacyName = plan.Id switch
+            {
+                var id when id == HumanChatFreePlanId => "真人文字咨询（免费演示）",
+                var id when id == AiChatFreePlanId => "AI 文字咨询（免费演示）",
+                _ => null
+            };
+            if (!string.Equals(existing.Name, legacyName, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            existing.Update(
+                plan.Name,
+                existing.Kind,
+                existing.Channel,
+                existing.PaymentMode,
+                existing.PriceInMinorUnits,
+                existing.Currency,
+                existing.DurationMinutes,
+                clock.UtcNow);
         }
 
         await db.SaveChangesAsync(cancellationToken);

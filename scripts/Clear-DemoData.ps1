@@ -17,7 +17,7 @@ $baseText = $ApiBaseUrl.AbsoluteUri.TrimEnd('/') + '/'
 $target = [uri]::new([uri]$baseText, 'data-rights/demo-data')
 if (-not $PSCmdlet.ShouldProcess(
         $target.AbsoluteUri,
-        '清除当前账号的比赛演示数据')) {
+        '清除当前账号的数据')) {
     return
 }
 
@@ -28,7 +28,7 @@ try {
         -Method Delete `
         -Headers $headers `
         -UseBasicParsing | Out-Null
-    Write-Host '当前账号的演示数据已清除。'
+    Write-Host '当前账号的数据已清除。'
 }
 finally {
     $headers.Clear()

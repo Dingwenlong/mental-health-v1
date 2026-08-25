@@ -1,11 +1,11 @@
 {
   "id": "DemoWellbeingScaleV1",
-  "displayName": "最近 7 天的情况（比赛演示，不是诊断）",
+  "displayName": "最近 7 天的情况",
   "version": "1.0.0",
   "answerLabels": ["没有", "偶尔", "经常", "几乎每天"],
   "answerValues": [0, 1, 2, 3],
   "normalization": "sum / 21 * 100",
-  "notice": "这是比赛演示，不是诊断",
+  "notice": "问卷结果仅供健康评估参考，不能替代诊断",
   "items": [
     { "id": "mood", "text": "心情低落，做事提不起劲" },
     { "id": "worry", "text": "一直担心，很难放松" },

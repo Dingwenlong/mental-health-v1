@@ -23,26 +23,36 @@ public sealed partial class UserFacingCopyTests
             copy["ai.identity"]);
         Assert.Contains("12356", copy["crisis.help"], StringComparison.Ordinal);
         Assert.Equal(
-            "这是比赛演示结果，不是诊断。需要医疗帮助时，请联系医生。",
+            "此结果不能替代诊断。需要医疗帮助时，请联系医生。",
             copy["result.notDiagnosis"]);
+        Assert.Equal("医疗急救：120", copy["crisis.medicalPhone"]);
+        Assert.Equal("模拟收费，不会真实扣款", copy["order.demoPaid"]);
     }
 
     [Fact]
     public void User_facing_copy_does_not_contain_forbidden_patterns()
     {
         var copy = ReadCopy();
-        var patterns = File.ReadAllLines(PathInRepository(
-                "content",
-                "zh-CN",
-                "forbidden-copy-patterns.txt"))
-            .Where(line => !string.IsNullOrWhiteSpace(line))
-            .Select(line => new Regex(line, RegexOptions.CultureInvariant))
-            .ToArray();
+        var patterns = ReadForbiddenPatterns();
 
         var violations = copy
             .SelectMany(pair => patterns
                 .Where(pattern => pattern.IsMatch(pair.Value))
                 .Select(pattern => $"{pair.Key}: {pattern}"))
+            .ToArray();
+
+        Assert.Empty(violations);
+    }
+
+    [Fact]
+    public void Questionnaire_copy_does_not_contain_forbidden_patterns()
+    {
+        var questionnaire = File.ReadAllText(PathInRepository(
+            "config",
+            "demo-questionnaire.v1.json"));
+        var violations = ReadForbiddenPatterns()
+            .Where(pattern => pattern.IsMatch(questionnaire))
+            .Select(pattern => pattern.ToString())
             .ToArray();
 
         Assert.Empty(violations);
@@ -156,6 +166,15 @@ public sealed partial class UserFacingCopyTests
                 property => property.Value.GetString()!,
                 StringComparer.Ordinal);
     }
+
+    private static Regex[] ReadForbiddenPatterns() =>
+        File.ReadAllLines(PathInRepository(
+                "content",
+                "zh-CN",
+                "forbidden-copy-patterns.txt"))
+            .Where(line => !string.IsNullOrWhiteSpace(line))
+            .Select(line => new Regex(line, RegexOptions.CultureInvariant))
+            .ToArray();
 
     private static string PathInRepository(params string[] parts) =>
         parts.Aggregate(RepositoryRoot, Path.Combine);

@@ -12,7 +12,7 @@ describe("audit view", () => {
       actorUserId: "operator-1",
       action: "DemoDataDeleted",
       resourceId: "subject-1",
-      reason: "用户确认清除演示数据",
+      reason: "用户确认清除数据",
       messageText: "conversation-marker",
       mediaUrl: "https://private.example/media",
       secret: "private-secret",
@@ -24,10 +24,11 @@ describe("audit view", () => {
     const wrapper = mount(AuditView, { props: { service } });
     await flushPromises();
 
-    expect(wrapper.text()).toContain("演示数据已清除");
+    expect(wrapper.text()).toContain("数据已清除");
+    expect(wrapper.text()).not.toContain("演示");
     expect(wrapper.text()).toContain("operator-1");
     expect(wrapper.text()).toContain("subject-1");
-    expect(wrapper.text()).toContain("用户确认清除演示数据");
+    expect(wrapper.text()).toContain("用户确认清除数据");
     expect(wrapper.text()).not.toContain("conversation-marker");
     expect(wrapper.text()).not.toContain("private.example");
     expect(wrapper.text()).not.toContain("private-secret");

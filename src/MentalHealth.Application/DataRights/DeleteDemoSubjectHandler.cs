@@ -72,7 +72,7 @@ public sealed class DeleteDemoSubjectHandler(
                 "Subject",
                 subjectId,
                 clock.UtcNow,
-                "用户确认清除演示数据"));
+                "用户确认清除数据"));
             await unitOfWork.SaveChangesAsync(transactionToken);
         }, cancellationToken);
     }
