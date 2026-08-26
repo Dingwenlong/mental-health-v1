@@ -109,19 +109,32 @@ onBeforeUnmount(() => { if (countdown) clearInterval(countdown) })
 </script>
 
 <template>
-  <form class="login-card" novalidate :aria-busy="isBusy" @submit.prevent="submit">
-    <h1>{{ getUiCopy('admin.title') }}</h1>
-    <div id="admin-captcha-element" aria-hidden="true"></div>
-    <button id="admin-captcha-button" type="button" aria-hidden="true" tabindex="-1" style="position: fixed; width: 1px; height: 1px; opacity: 0; pointer-events: none"></button>
-    <label>{{ getUiCopy('auth.phone') }}
-      <input ref="phoneInput" v-model.trim="phoneNumber" data-test="login-phone" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="11" :disabled="hasChallenge || isBusy" :aria-invalid="errorCopyKey === 'auth.phoneRequired'" required />
-    </label>
-    <label v-if="hasChallenge">{{ getUiCopy('auth.smsCode') }}
-      <input ref="smsCodeInput" v-model.trim="smsCode" data-test="login-sms-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" :disabled="isBusy" :aria-invalid="errorCopyKey === 'auth.invalidSmsCode'" required />
-    </label>
-    <p v-if="hasChallenge" class="hint">{{ getUiCopy('auth.sendHint') }}</p>
-    <p v-if="errorCopyKey" ref="errorSummary" class="error" role="alert" aria-live="assertive" tabindex="-1">{{ getUiCopy(errorCopyKey) }}</p>
-    <button v-if="hasChallenge" data-test="login-submit" type="submit" :disabled="isBusy">{{ getUiCopy(isBusy ? 'auth.loggingIn' : 'auth.login') }}</button>
-    <button data-test="login-send-code" type="button" :disabled="isBusy || secondsUntilResend > 0" @click="sendCode">{{ sendLabel }}</button>
-  </form>
+  <div class="login-experience">
+    <section class="login-introduction" data-test="login-introduction" aria-labelledby="admin-login-title">
+      <span class="login-monogram" aria-hidden="true">MH</span>
+      <h1 id="admin-login-title">{{ getUiCopy('admin.title') }}</h1>
+    </section>
+
+    <div class="login-form-pane">
+      <form class="login-card" novalidate :aria-busy="isBusy" aria-labelledby="admin-login-form-title" @submit.prevent="submit">
+        <header class="login-form-header">
+          <h2 id="admin-login-form-title">{{ getUiCopy('auth.title') }}</h2>
+        </header>
+        <div id="admin-captcha-element" aria-hidden="true"></div>
+        <button id="admin-captcha-button" type="button" aria-hidden="true" tabindex="-1" style="position: fixed; width: 1px; height: 1px; opacity: 0; pointer-events: none"></button>
+        <label>{{ getUiCopy('auth.phone') }}
+          <input ref="phoneInput" v-model.trim="phoneNumber" data-test="login-phone" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="11" :disabled="hasChallenge || isBusy" :aria-invalid="errorCopyKey === 'auth.phoneRequired'" required />
+        </label>
+        <label v-if="hasChallenge">{{ getUiCopy('auth.smsCode') }}
+          <input ref="smsCodeInput" v-model.trim="smsCode" data-test="login-sms-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" :disabled="isBusy" :aria-invalid="errorCopyKey === 'auth.invalidSmsCode'" required />
+        </label>
+        <p v-if="hasChallenge" class="hint">{{ getUiCopy('auth.sendHint') }}</p>
+        <p v-if="errorCopyKey" ref="errorSummary" class="error" role="alert" aria-live="assertive" tabindex="-1">{{ getUiCopy(errorCopyKey) }}</p>
+        <div class="login-actions">
+          <button v-if="hasChallenge" data-test="login-submit" type="submit" :disabled="isBusy">{{ getUiCopy(isBusy ? 'auth.loggingIn' : 'auth.login') }}</button>
+          <button data-test="login-send-code" type="button" :class="{ secondary: hasChallenge }" :disabled="isBusy || secondsUntilResend > 0" @click="sendCode">{{ sendLabel }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </template>

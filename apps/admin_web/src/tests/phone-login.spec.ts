@@ -37,6 +37,18 @@ afterEach(() => {
 })
 
 describe('phone login form', () => {
+  it('separates the management identity from the phone login task', () => {
+    const wrapper = mount(PhoneLoginForm, {
+      props: { phoneLogin: createPhoneLoginService() },
+    })
+
+    const introduction = wrapper.find('[data-test=login-introduction]')
+    expect(introduction.exists()).toBe(true)
+    expect(introduction.find('h1').text()).toBe('心理健康管理端')
+    expect(wrapper.find('form h2').text()).toBe('登录')
+    expect(wrapper.find('form h1').exists()).toBe(false)
+  })
+
   it('starts with only a mainland mobile field and a send-code action', () => {
     const wrapper = mount(PhoneLoginForm, {
       props: { phoneLogin: createPhoneLoginService() },
