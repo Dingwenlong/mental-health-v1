@@ -16,6 +16,7 @@ public sealed class AliyunSmsVerificationProvider(IOptions<AliyunPhoneLoginOptio
     {
         ThrowIfDisabled();
         cancellationToken.ThrowIfCancellationRequested();
+        var aliyunPhoneNumber = PhoneNumberNormalizer.ToMainlandChinaDomestic(nationalPhoneNumber);
 
         try
         {
@@ -23,7 +24,7 @@ public sealed class AliyunSmsVerificationProvider(IOptions<AliyunPhoneLoginOptio
             var response = await client.SendSmsVerifyCodeAsync(new SendSmsVerifyCodeRequest
             {
                 CountryCode = "86",
-                PhoneNumber = nationalPhoneNumber,
+                PhoneNumber = aliyunPhoneNumber,
                 OutId = outId,
                 CodeLength = 6,
                 CodeType = 1,
@@ -64,6 +65,7 @@ public sealed class AliyunSmsVerificationProvider(IOptions<AliyunPhoneLoginOptio
     {
         ThrowIfDisabled();
         cancellationToken.ThrowIfCancellationRequested();
+        var aliyunPhoneNumber = PhoneNumberNormalizer.ToMainlandChinaDomestic(nationalPhoneNumber);
 
         try
         {
@@ -71,7 +73,7 @@ public sealed class AliyunSmsVerificationProvider(IOptions<AliyunPhoneLoginOptio
             var response = await client.CheckSmsVerifyCodeAsync(new CheckSmsVerifyCodeRequest
             {
                 CountryCode = "86",
-                PhoneNumber = nationalPhoneNumber,
+                PhoneNumber = aliyunPhoneNumber,
                 OutId = outId,
                 VerifyCode = code
             });

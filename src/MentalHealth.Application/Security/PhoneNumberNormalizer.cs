@@ -21,4 +21,14 @@ public static class PhoneNumberNormalizer
         normalized = value[0] == '+' ? value : $"+86{value}";
         return true;
     }
+
+    public static string ToMainlandChinaDomestic(string value)
+    {
+        if (!TryNormalizeMainlandChina(value, out var normalized))
+        {
+            throw new ArgumentException("A valid mainland China phone number is required.", nameof(value));
+        }
+
+        return normalized[3..];
+    }
 }

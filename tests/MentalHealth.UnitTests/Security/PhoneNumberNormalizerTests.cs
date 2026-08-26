@@ -22,4 +22,14 @@ public sealed class PhoneNumberNormalizerTests
     {
         Assert.False(PhoneNumberNormalizer.TryNormalizeMainlandChina(input, out _));
     }
+
+    [Theory]
+    [InlineData("13800138000", "13800138000")]
+    [InlineData("+8613800138000", "13800138000")]
+    public void Mainland_number_is_converted_to_the_domestic_format_required_by_aliyun(
+        string input,
+        string expected)
+    {
+        Assert.Equal(expected, PhoneNumberNormalizer.ToMainlandChinaDomestic(input));
+    }
 }
