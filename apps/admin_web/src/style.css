@@ -148,16 +148,40 @@ textarea:disabled {
 }
 
 .login-introduction {
+  position: relative;
+  isolation: isolate;
   display: flex;
   min-width: 0;
   flex-direction: column;
   justify-content: space-between;
+  overflow: hidden;
   padding: clamp(2rem, 5vw, 5rem);
   color: #f4fbf9;
   background: var(--accent-dark);
 }
 
+.login-introduction::after {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: rgba(16, 61, 56, 0.58);
+  content: "";
+  pointer-events: none;
+}
+
+.login-cover {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
 .login-monogram {
+  position: relative;
+  z-index: 2;
   width: 100%;
   padding-bottom: 0.8rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.34);
@@ -166,6 +190,8 @@ textarea:disabled {
 }
 
 .login-introduction h1 {
+  position: relative;
+  z-index: 2;
   max-width: 9em;
   margin: 0;
   font: 700 clamp(2.25rem, 4vw, 3.25rem)/1.12 var(--font-data);
@@ -347,6 +373,27 @@ textarea:disabled {
 .record-list span,
 .empty {
   color: #5d6d68;
+}
+
+.empty-state {
+  display: grid;
+  min-height: 15rem;
+  place-content: center;
+  justify-items: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.empty-state img {
+  display: block;
+  width: min(13rem, 55vw);
+  max-height: 12rem;
+  object-fit: contain;
+}
+
+.empty-state .empty {
+  margin: 0;
 }
 
 .error {
@@ -696,6 +743,10 @@ textarea:disabled {
     min-height: 11rem;
     padding: 1.5rem;
     gap: 2.5rem;
+  }
+
+  .login-cover {
+    object-position: center 58%;
   }
 
   .login-introduction h1 {

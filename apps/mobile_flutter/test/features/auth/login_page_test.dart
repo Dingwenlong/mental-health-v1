@@ -5,6 +5,45 @@ import 'package:mobile_flutter/features/auth/captcha_runner.dart';
 import 'package:mobile_flutter/features/auth/login_page.dart';
 
 void main() {
+  for (final size in <Size>[const Size(360, 800), const Size(412, 915)]) {
+    testWidgets(
+      'login remains scrollable with keyboard at ${size.width.toInt()}x${size.height.toInt()}',
+      (tester) async {
+        tester.view.devicePixelRatio = 1;
+        tester.view.physicalSize = size;
+        addTearDown(tester.view.reset);
+
+        final store = AuthStore(
+          gateway: _FakeAuthGateway(),
+          storage: _MemoryTokenStorage(),
+        );
+        await tester.pumpWidget(
+          MaterialApp(
+            home: LoginPage(
+              authStore: store,
+              captchaRunner: const _FakeCaptchaRunner(),
+            ),
+          ),
+        );
+
+        expect(tester.takeException(), isNull);
+        expect(
+          tester.getSize(find.byKey(const Key('login-cover'))).aspectRatio,
+          closeTo(16 / 9, 0.01),
+        );
+
+        await tester.showKeyboard(find.byKey(const Key('login-phone')));
+        tester.view.viewInsets = const FakeViewPadding(bottom: 320);
+        await tester.pump();
+        await tester.ensureVisible(find.byKey(const Key('login-send-code')));
+        await tester.pump();
+
+        expect(tester.takeException(), isNull);
+        expect(find.byKey(const Key('login-send-code')), findsOneWidget);
+      },
+    );
+  }
+
   testWidgets('login stays one form and reveals the SMS fields in place', (
     tester,
   ) async {
@@ -20,6 +59,9 @@ void main() {
     );
 
     expect(find.byType(Form), findsOneWidget);
+    expect(find.byKey(const Key('login-cover')), findsOneWidget);
+    expect(find.text('心理健康'), findsOneWidget);
+    expect(find.text('登录'), findsOneWidget);
     expect(find.byKey(const Key('login-phone')), findsOneWidget);
     expect(find.byKey(const Key('login-send-code')), findsOneWidget);
     expect(find.byKey(const Key('login-sms-code')), findsNothing);
@@ -30,6 +72,8 @@ void main() {
     expect(find.textContaining('邮箱'), findsNothing);
 
     await tester.enterText(find.byKey(const Key('login-phone')), '13800138001');
+    await tester.ensureVisible(find.byKey(const Key('login-send-code')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('login-send-code')));
     await tester.pump();
 
@@ -38,6 +82,8 @@ void main() {
     );
     expect(phone.enabled, isFalse);
     expect(find.byKey(const Key('login-sms-code')), findsOneWidget);
+    await tester.drag(find.byType(ListView), const Offset(0, -240));
+    await tester.pumpAndSettle();
     expect(find.byKey(const Key('login-submit')), findsOneWidget);
     expect(find.text('如果该手机号已登记，你会收到验证码'), findsOneWidget);
     expect(find.text('60 秒后重新获取'), findsOneWidget);
@@ -47,6 +93,8 @@ void main() {
     expect(find.text('59 秒后重新获取'), findsOneWidget);
 
     await tester.enterText(find.byKey(const Key('login-sms-code')), '246810');
+    await tester.ensureVisible(find.byKey(const Key('login-submit')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('login-submit')));
     await tester.pump();
     expect(gateway.verifiedCode, '246810');
@@ -70,6 +118,8 @@ void main() {
     );
 
     await tester.enterText(find.byKey(const Key('login-phone')), '13800138001');
+    await tester.ensureVisible(find.byKey(const Key('login-send-code')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('login-send-code')));
     await tester.pump();
 

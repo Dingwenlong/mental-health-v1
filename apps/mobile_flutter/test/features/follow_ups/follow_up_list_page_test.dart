@@ -4,6 +4,23 @@ import 'package:mobile_flutter/features/follow_ups/follow_up_list_page.dart';
 import 'package:mobile_flutter/features/follow_ups/local_reminder_service.dart';
 
 void main() {
+  testWidgets('shows the shared illustrated empty state without follow-ups', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: FollowUpListPage(
+          repository: _EmptyFollowUpRepository(),
+          reminders: _DeniedReminderService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('empty-state-illustration')), findsOneWidget);
+    expect(find.text('还没有随访安排'), findsOneWidget);
+  });
+
   testWidgets('permission denial does not hide the follow-up task', (
     tester,
   ) async {
@@ -22,6 +39,11 @@ void main() {
     expect(find.text('没有通知权限，随访仍会显示在这里。'), findsOneWidget);
     expect(reminders.scheduledIds, <String>['follow-up-1']);
   });
+}
+
+class _EmptyFollowUpRepository implements FollowUpRepository {
+  @override
+  Future<List<UserFollowUp>> listFollowUps() async => const <UserFollowUp>[];
 }
 
 class _FakeFollowUpRepository implements FollowUpRepository {

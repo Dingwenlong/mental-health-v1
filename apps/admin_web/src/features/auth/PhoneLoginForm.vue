@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import { ApiProblemError } from '../../api/client'
+import loginRoomUrl from '../../assets/login-room.png'
 import { getUiCopy, type UiCopyKey } from '../../generated/uiCopy.generated'
 import { runAliyunCaptcha, type CaptchaBootstrap } from './aliyunCaptcha'
 
@@ -111,6 +112,7 @@ onBeforeUnmount(() => { if (countdown) clearInterval(countdown) })
 <template>
   <div class="login-experience">
     <section class="login-introduction" data-test="login-introduction" aria-labelledby="admin-login-title">
+      <img class="login-cover" data-test="login-cover" :src="loginRoomUrl" alt="" aria-hidden="true" />
       <span class="login-monogram" aria-hidden="true">MH</span>
       <h1 id="admin-login-title">{{ getUiCopy('admin.title') }}</h1>
     </section>

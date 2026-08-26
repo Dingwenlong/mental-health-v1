@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { ApiProblemError } from '../../api/client'
+import EmptyState from '../../components/EmptyState.vue'
 import { getUiCopy, type UiCopyKey } from '../../generated/uiCopy.generated'
 import {
   catalogService as defaultCatalogService,
@@ -136,7 +137,7 @@ function planLabel(plan: ServicePlan): string {
     <p v-if="errorKey" class="error" role="alert">{{ getUiCopy(errorKey) }}</p>
     <p v-if="saved" class="success" role="status">{{ getUiCopy('admin.plan.saved') }}</p>
 
-    <p v-if="plans.length === 0" class="empty">{{ getUiCopy('empty.records') }}</p>
+    <EmptyState v-if="plans.length === 0" :message="getUiCopy('empty.records')" />
     <ul v-else class="record-list">
       <li v-for="plan in plans" :key="plan.id">
         <div>

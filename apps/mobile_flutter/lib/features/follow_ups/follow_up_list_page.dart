@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/api/api_client.dart';
 import '../../generated/ui_copy.g.dart';
+import '../../widgets/empty_state_panel.dart';
 import 'follow_up_model.dart';
 import 'local_reminder_service.dart';
 
@@ -92,7 +93,7 @@ class _FollowUpListPageState extends State<FollowUpListPage> {
             child: Text(UiCopy.get('followUp.permissionDenied')),
           ),
         if (_tasks.isEmpty)
-          Text(UiCopy.get('followUp.none'))
+          EmptyStatePanel(message: UiCopy.get('followUp.none'))
         else
           for (final task in _tasks) _FollowUpRow(task: task),
       ],

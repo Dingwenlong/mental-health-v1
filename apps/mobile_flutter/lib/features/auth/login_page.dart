@@ -38,15 +38,22 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     final auth = widget.authStore;
     return Scaffold(
-      appBar: AppBar(title: Text(UiCopy.get('auth.title'))),
       body: SafeArea(
         child: AnimatedBuilder(
           animation: auth,
           builder: (context, _) => AutofillGroup(
             child: Form(
               child: ListView(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
                 children: <Widget>[
+                  const _LoginCover(),
+                  const SizedBox(height: 28),
+                  Text(
+                    UiCopy.get('auth.title'),
+                    style: Theme.of(context).textTheme.headlineSmall
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 20),
                   TextField(
                     key: const Key('login-phone'),
                     controller: _phone,
@@ -172,4 +179,43 @@ class _LoginPageState extends State<LoginPage> {
       _smsFocus.requestFocus();
     }
   }
+}
+
+class _LoginCover extends StatelessWidget {
+  const _LoginCover();
+
+  @override
+  Widget build(BuildContext context) => AspectRatio(
+    aspectRatio: 16 / 9,
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: Stack(
+        fit: StackFit.expand,
+        children: <Widget>[
+          const ColoredBox(color: Color(0xFF103D38)),
+          Image.asset(
+            'assets/images/login-room.png',
+            key: const Key('login-cover'),
+            fit: BoxFit.cover,
+            alignment: Alignment.center,
+            excludeFromSemantics: true,
+            errorBuilder: (_, _, _) => const SizedBox.expand(),
+          ),
+          const ColoredBox(color: Color(0x94103D38)),
+          Positioned(
+            left: 20,
+            right: 20,
+            bottom: 18,
+            child: Text(
+              UiCopy.get('app.title'),
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                color: const Color(0xFFF4FBF9),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }

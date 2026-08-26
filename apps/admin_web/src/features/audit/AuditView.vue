@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
+import EmptyState from "../../components/EmptyState.vue";
 import { getUiCopy } from "../../generated/uiCopy.generated";
 import { auditActionLabel } from "./auditLabels";
 import {
@@ -46,9 +47,10 @@ function formatTime(value: string): string {
       {{ getUiCopy("error.retry") }}
     </p>
     <p v-if="loading" class="empty">{{ getUiCopy("app.loading") }}</p>
-    <p v-else-if="records.length === 0" class="empty">
-      {{ getUiCopy("empty.records") }}
-    </p>
+    <EmptyState
+      v-else-if="records.length === 0"
+      :message="getUiCopy('empty.records')"
+    />
     <table v-else class="queue-table">
       <thead>
         <tr>

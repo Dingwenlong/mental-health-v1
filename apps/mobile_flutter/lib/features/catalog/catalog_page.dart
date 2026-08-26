@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/api/api_client.dart';
 import '../../generated/ui_copy.g.dart';
+import '../../widgets/empty_state_panel.dart';
 import '../ai_consultation/ai_session_launcher.dart';
 import 'catalog_repository.dart';
 import '../consultation/chat_connection.dart';
@@ -90,7 +91,7 @@ class _CatalogPageState extends State<CatalogPage> {
           }
           final plans = snapshot.data ?? const <ServicePlanSummary>[];
           if (plans.isEmpty) {
-            return Center(child: Text(UiCopy.get('catalog.noPlans')));
+            return EmptyStatePanel(message: UiCopy.get('catalog.noPlans'));
           }
           return ListView.separated(
             padding: const EdgeInsets.all(16),

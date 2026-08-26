@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { ApiProblemError } from '../../api/client'
+import EmptyState from '../../components/EmptyState.vue'
 import { getUiCopy, type UiCopyKey } from '../../generated/uiCopy.generated'
 import {
   practitionerService as defaultPractitionerService,
@@ -83,7 +84,7 @@ function copyKeyFor(error: unknown): UiCopyKey {
     </form>
     <p v-if="errorKey" class="error" role="alert">{{ getUiCopy(errorKey) }}</p>
     <p v-if="saved" class="success" role="status">{{ getUiCopy('admin.practitioner.saved') }}</p>
-    <p v-if="practitioners.length === 0" class="empty">{{ getUiCopy('empty.records') }}</p>
+    <EmptyState v-if="practitioners.length === 0" :message="getUiCopy('empty.records')" />
     <ul v-else class="record-list">
       <li v-for="item in practitioners" :key="item.id">
         <div><strong>{{ item.displayName }}</strong><span>{{ getUiCopy(item.role === 'Doctor' ? 'option.doctor' : 'option.counselor') }}</span></div>

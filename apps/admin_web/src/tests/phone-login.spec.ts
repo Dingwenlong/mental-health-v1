@@ -44,6 +44,9 @@ describe('phone login form', () => {
 
     const introduction = wrapper.find('[data-test=login-introduction]')
     expect(introduction.exists()).toBe(true)
+    const cover = introduction.find('[data-test=login-cover]')
+    expect(cover.exists()).toBe(true)
+    expect(cover.attributes()).toMatchObject({ alt: '', 'aria-hidden': 'true' })
     expect(introduction.find('h1').text()).toBe('心理健康管理端')
     expect(wrapper.find('form h2').text()).toBe('登录')
     expect(wrapper.find('form h1').exists()).toBe(false)

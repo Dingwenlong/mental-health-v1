@@ -4,6 +4,18 @@ import 'package:mobile_flutter/features/catalog/catalog_page.dart';
 import 'package:mobile_flutter/features/catalog/catalog_repository.dart';
 
 void main() {
+  testWidgets('shows the shared illustrated empty state when no plans exist', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(home: CatalogPage(repository: _EmptyCatalogRepository())),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('empty-state-illustration')), findsOneWidget);
+    expect(find.text('没有可用的咨询服务'), findsOneWidget);
+  });
+
   testWidgets(
     'user selects paid AI chat, grants each consent, and creates a demo order',
     (WidgetTester tester) async {
@@ -53,6 +65,18 @@ void main() {
       expect(find.text('等待确认模拟收费'), findsOneWidget);
     },
   );
+}
+
+class _EmptyCatalogRepository implements CatalogRepository {
+  @override
+  Future<List<ServicePlanSummary>> listPlans() async =>
+      const <ServicePlanSummary>[];
+
+  @override
+  Future<DemoOrderSummary> createOrder({
+    required String planId,
+    required Set<ConsentChoice> consents,
+  }) => throw UnimplementedError();
 }
 
 class _FakeCatalogRepository implements CatalogRepository {

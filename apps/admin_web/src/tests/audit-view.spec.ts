@@ -43,5 +43,11 @@ describe("audit view", () => {
     await flushPromises();
 
     expect(wrapper.text()).toContain("没有记录");
+    const illustration = wrapper.find('[data-test="empty-state-illustration"]');
+    expect(illustration.exists()).toBe(true);
+    expect(illustration.attributes()).toMatchObject({
+      alt: "",
+      "aria-hidden": "true",
+    });
   });
 });
