@@ -9,20 +9,24 @@ type AliyunCaptchaInstance = { startTracelessVerification: () => void }
 
 type AliyunCaptchaOptions = {
   SceneId: string
-  prefix: string
   mode: 'popup'
+  element: '#admin-captcha-element'
+  button: '#admin-captcha-button'
   language: 'cn'
   delayBeforeSuccess: false
   slideStyle: { width: number; height: number }
   EncryptedSceneId: string
-  captchaVerifyCallback: (captchaVerifyParam: string) => Promise<{ captchaResult: boolean; bizResult: boolean }>
+  success: (captchaVerifyParam: string) => void
+  fail: () => void
+  getInstance: (captcha: AliyunCaptchaInstance) => void
   onError: (error: unknown) => void
+  onClose: (reason: string) => void
 }
 
 declare global {
   interface Window {
     AliyunCaptchaConfig?: { region: 'cn'; prefix: string }
-    initAliyunCaptcha?: (options: AliyunCaptchaOptions, ready: (captcha: AliyunCaptchaInstance) => void) => void
+    initAliyunCaptcha?: (options: AliyunCaptchaOptions) => void
   }
 }
 
@@ -53,22 +57,46 @@ export async function runAliyunCaptcha(bootstrap: CaptchaBootstrap): Promise<str
   if (!window.initAliyunCaptcha) throw new Error('Aliyun captcha is unavailable')
 
   return new Promise<string>((resolve, reject) => {
+    let settled = false
+    const succeed = (captchaVerifyParam: string): void => {
+      if (settled) return
+      settled = true
+      resolve(captchaVerifyParam)
+    }
+    const fail = (message: string, cause?: unknown): void => {
+      if (settled) return
+      settled = true
+      reject(cause instanceof Error ? cause : new Error(message))
+    }
+
     window.initAliyunCaptcha?.(
       {
         SceneId: '1lae8yfm',
-        prefix: bootstrap.prefix,
         EncryptedSceneId: bootstrap.encryptedSceneId,
         mode: 'popup',
+        element: '#admin-captcha-element',
+        button: '#admin-captcha-button',
         language: 'cn',
         delayBeforeSuccess: false,
         slideStyle: { width: 360, height: 40 },
-        captchaVerifyCallback: async (captchaVerifyParam) => {
-          resolve(captchaVerifyParam)
-          return { captchaResult: true, bizResult: true }
+        success: succeed,
+        fail: () => undefined,
+        getInstance: (captcha) => {
+          window.setTimeout(() => {
+            if (settled) return
+            if (!captcha || typeof captcha.startTracelessVerification !== 'function') {
+              fail('Aliyun captcha instance is unavailable')
+              return
+            }
+            try { captcha.startTracelessVerification() }
+            catch (error) { fail('Aliyun captcha failed to start', error) }
+          }, 2100)
         },
-        onError: reject,
+        onError: (error) => fail('Aliyun captcha failed to initialize', error),
+        onClose: (reason) => {
+          if (reason === 'userDismiss') fail('Aliyun captcha was closed')
+        },
       },
-      (captcha) => captcha.startTracelessVerification(),
     )
   })
 }

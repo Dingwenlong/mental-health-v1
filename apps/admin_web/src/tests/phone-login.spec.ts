@@ -52,6 +52,8 @@ describe('phone login form', () => {
     expect(wrapper.find('[data-test=login-sms-code]').exists()).toBe(false)
     expect(wrapper.find('[data-test=login-submit]').exists()).toBe(false)
     expect(wrapper.findAll('input[type=password], input[type=email]').length).toBe(0)
+    expect(wrapper.find('#admin-captcha-element').exists()).toBe(true)
+    expect(wrapper.find('#admin-captcha-button').exists()).toBe(true)
     expect(wrapper.text()).not.toContain('+86')
     expect(wrapper.text()).not.toContain('换个手机号')
   })
@@ -79,12 +81,15 @@ describe('phone login form', () => {
     await expect(retry).rejects.toThrow('Aliyun captcha script failed to load')
   })
 
-  it('passes the exact encrypted scene keys to the Aliyun initializer', async () => {
+  it('uses the V3 success and instance hooks for encrypted traceless verification', async () => {
+    vi.useFakeTimers()
     vi.resetModules()
     let capturedOptions: Record<string, unknown> | undefined
-    window.initAliyunCaptcha = vi.fn((options, ready) => {
+    const startTracelessVerification = vi.fn()
+    window.initAliyunCaptcha = vi.fn((options) => {
       capturedOptions = options as unknown as Record<string, unknown>
-      ready({ startTracelessVerification: vi.fn() })
+      const getInstance = capturedOptions.getInstance as ((instance: unknown) => void) | undefined
+      getInstance?.({ startTracelessVerification })
     })
     const { runAliyunCaptcha } = await import('../features/auth/aliyunCaptcha')
     const pending = runAliyunCaptcha({
@@ -96,25 +101,35 @@ describe('phone login form', () => {
     const script = document.querySelector('script[src="https://o.alicdn.com/captcha-frontend/aliyunCaptcha/AliyunCaptcha.js"]') as HTMLScriptElement
     script.dispatchEvent(new Event('load'))
 
-    await vi.waitFor(() => expect(capturedOptions).toBeDefined())
+    await vi.runAllTicks()
+    expect(capturedOptions).toBeDefined()
+    expect(vi.mocked(window.initAliyunCaptcha!).mock.calls[0]).toHaveLength(1)
     expect(Object.keys(capturedOptions!).sort()).toEqual([
       'EncryptedSceneId',
       'SceneId',
-      'captchaVerifyCallback',
+      'button',
       'delayBeforeSuccess',
+      'element',
+      'fail',
+      'getInstance',
       'language',
       'mode',
+      'onClose',
       'onError',
-      'prefix',
       'slideStyle',
+      'success',
     ])
     expect(capturedOptions).toMatchObject({
       SceneId: '1lae8yfm',
       EncryptedSceneId: 'encrypted-scene-1',
+      element: '#admin-captcha-element',
+      button: '#admin-captcha-button',
     })
 
-    const callback = capturedOptions!.captchaVerifyCallback as (value: string) => Promise<unknown>
-    await callback('captcha-pass')
+    await vi.advanceTimersByTimeAsync(2100)
+    expect(startTracelessVerification).toHaveBeenCalledOnce()
+    const success = capturedOptions!.success as (value: string) => void
+    success('captcha-pass')
     await expect(pending).resolves.toBe('captcha-pass')
   })
 

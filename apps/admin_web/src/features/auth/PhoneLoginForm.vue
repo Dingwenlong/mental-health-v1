@@ -111,6 +111,8 @@ onBeforeUnmount(() => { if (countdown) clearInterval(countdown) })
 <template>
   <form class="login-card" novalidate :aria-busy="isBusy" @submit.prevent="submit">
     <h1>{{ getUiCopy('admin.title') }}</h1>
+    <div id="admin-captcha-element" aria-hidden="true"></div>
+    <button id="admin-captcha-button" type="button" aria-hidden="true" tabindex="-1" style="position: fixed; width: 1px; height: 1px; opacity: 0; pointer-events: none"></button>
     <label>{{ getUiCopy('auth.phone') }}
       <input ref="phoneInput" v-model.trim="phoneNumber" data-test="login-phone" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="11" :disabled="hasChallenge || isBusy" :aria-invalid="errorCopyKey === 'auth.phoneRequired'" required />
     </label>
