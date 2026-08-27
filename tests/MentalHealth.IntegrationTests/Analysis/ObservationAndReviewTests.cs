@@ -4,6 +4,7 @@ using MentalHealth.AnalysisWorker.Pipeline;
 using MentalHealth.Application.Abstractions.Clock;
 using MentalHealth.Application.Abstractions.Providers;
 using MentalHealth.Application.Analysis;
+using MentalHealth.Application.Security;
 using MentalHealth.Domain.Analysis;
 using MentalHealth.Infrastructure.Identity;
 using MentalHealth.Infrastructure.Persistence;
@@ -125,7 +126,15 @@ public sealed class ObservationAndReviewTests(AuthApiFixture fixture)
         Assert.Equal(otherDoctorId, reassignedTask.GetProperty("assigneeId").GetGuid());
 
         const string rescheduleReason = "用户确认改到稍后的可用时间。";
-        using var rescheduled = await doctor.PostAsJsonAsync(
+        using var formerOwner = await doctor.PostAsJsonAsync(
+            $"/api/v1/follow-ups/{followUpTaskId}/reschedule",
+            new { availabilitySlotId = secondSlotId, reason = rescheduleReason });
+        Assert.Equal(HttpStatusCode.Forbidden, formerOwner.StatusCode);
+        await using var tokenScope = fixture.Services.CreateAsyncScope();
+        var assignedToken = tokenScope.ServiceProvider.GetRequiredService<IJwtTokenService>().Issue(
+            new JwtTokenSubject(Guid.NewGuid(), "13800000099", [AppRoles.Doctor], null, otherDoctorId));
+        using var assignedDoctor = fixture.CreateClientWithBearer(assignedToken.Value);
+        using var rescheduled = await assignedDoctor.PostAsJsonAsync(
             $"/api/v1/follow-ups/{followUpTaskId}/reschedule",
             new { availabilitySlotId = secondSlotId, reason = rescheduleReason });
         rescheduled.EnsureSuccessStatusCode();

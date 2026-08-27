@@ -14,6 +14,7 @@ using MentalHealth.Domain.Consultations;
 using MentalHealth.Domain.FollowUps;
 using MentalHealth.Domain.DataRights;
 using MentalHealth.Domain.Shared;
+using MentalHealth.Domain.Care;
 using MentalHealth.Infrastructure.Outbox;
 using MentalHealth.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
@@ -90,6 +91,12 @@ public sealed class MentalHealthDbContext(DbContextOptions<MentalHealthDbContext
     public DbSet<ClinicalReview> ClinicalReviews => Set<ClinicalReview>();
 
     public DbSet<DemoDataDeletion> DemoDataDeletions => Set<DemoDataDeletion>();
+
+    public DbSet<DailyCheckIn> DailyCheckIns => Set<DailyCheckIn>();
+    public DbSet<ExerciseCompletion> ExerciseCompletions => Set<ExerciseCompletion>();
+    public DbSet<SharingGrant> SharingGrants => Set<SharingGrant>();
+    public DbSet<CarePlan> CarePlans => Set<CarePlan>();
+    public DbSet<CarePlanTask> CarePlanTasks => Set<CarePlanTask>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -750,7 +757,8 @@ public sealed class MentalHealthDbContext(DbContextOptions<MentalHealthDbContext
                 task.DueAt,
                 task.Deadline,
                 task.CompletedAt,
-                task.CancelledAt)).ToArray());
+                task.CancelledAt)).ToArray(),
+            await new CareRepository(this).ExportAsync(subjectId, cancellationToken));
     }
 
     public async Task<SubjectMediaReference?> FindOwnedMediaAsync(
@@ -795,6 +803,10 @@ public sealed class MentalHealthDbContext(DbContextOptions<MentalHealthDbContext
         Guid subjectId,
         CancellationToken cancellationToken)
     {
+        await DailyCheckIns.Where(item => item.SubjectId == subjectId).ExecuteDeleteAsync(cancellationToken);
+        await ExerciseCompletions.Where(item => item.SubjectId == subjectId).ExecuteDeleteAsync(cancellationToken);
+        await SharingGrants.Where(item => item.SubjectId == subjectId).ExecuteDeleteAsync(cancellationToken);
+        await CarePlans.Where(item => item.SubjectId == subjectId).ExecuteDeleteAsync(cancellationToken);
         var sessionIds = await ConsultationSessions
             .Where(session => session.SubjectId == subjectId)
             .Select(session => session.Id)
@@ -905,6 +917,9 @@ public sealed class MentalHealthDbContext(DbContextOptions<MentalHealthDbContext
             "RiskReviewed",
             "FollowUpRescheduled",
             "DemoDataDeleted"
+            , "DailyCheckInSaved", "DailyCheckInDeleted", "ExerciseCompleted", "DailySharingGranted",
+            "DailySharingRevoked", "CarePlanCreated", "CarePlanEdited", "CarePlanPublished", "CarePlanCancelled",
+            "CareTaskResponded", "CareSubjectViewed"
         };
         return await AuditEvents
             .AsNoTracking()

@@ -46,7 +46,10 @@ button {
   background: var(--accent);
   cursor: pointer;
   font-weight: 600;
-  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
 }
 
 button:not(:disabled):hover {
@@ -103,7 +106,9 @@ textarea {
   min-height: 2.75rem;
   padding: 0.7rem 0.75rem;
   background: var(--surface);
-  transition: border-color 140ms ease, box-shadow 140ms ease;
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease;
 }
 
 input:not(:disabled):hover,
@@ -814,5 +819,115 @@ textarea:disabled {
   *::after {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+  }
+}
+/* Care records keep the existing quiet workspace palette. */
+.care-workspace {
+  display: grid;
+  gap: 1rem;
+}
+.care-actions,
+.care-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+}
+.care-pagination {
+  justify-content: flex-end;
+  padding-top: 1rem;
+}
+.care-list-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid #d8e0de;
+}
+.care-list-row h3,
+.care-list-row p {
+  margin: 0.25rem 0;
+}
+.care-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1.25rem;
+}
+.care-metrics div {
+  padding: 1rem;
+  border-left: 3px solid #245d57;
+  background: #f5f7f6;
+}
+.care-metrics dd {
+  margin: 0.5rem 0 0;
+  font-size: 2rem;
+  font-variant-numeric: tabular-nums;
+}
+.care-record,
+.care-editor {
+  padding: 1rem;
+  border: 1px solid #d8e0de;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+.care-editor {
+  background: #f5f7f6;
+}
+.care-editor label,
+.care-filters label {
+  display: grid;
+  gap: 0.4rem;
+}
+.care-task-form,
+.care-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.care-task-list {
+  list-style: none;
+  padding: 0;
+}
+.care-task-list li {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.8rem 0;
+  border-top: 1px solid #d8e0de;
+}
+.care-notice {
+  padding: 0.8rem 1rem;
+  background: #eef4f2;
+  border-left: 3px solid #245d57;
+}
+.care-table-scroll {
+  max-height: 360px;
+  overflow: auto;
+}
+.care-table-scroll table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.care-table-scroll th,
+.care-table-scroll td {
+  padding: 0.6rem;
+  text-align: left;
+  border-bottom: 1px solid #d8e0de;
+  white-space: nowrap;
+}
+.care-note,
+.care-task-list p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 640px) {
+  .care-list-row {
+    align-items: start;
+    flex-direction: column;
+  }
+  .care-filters label {
+    width: 100%;
   }
 }

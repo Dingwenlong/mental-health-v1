@@ -5,9 +5,12 @@ import { getUiCopy } from "../../generated/uiCopy.generated";
 import type { ClinicalNotificationSource } from "../notifications/notificationConnection";
 import type { RiskAssessment } from "../risk_cases/riskCaseService";
 
-const props = defineProps<{ notifications?: ClinicalNotificationSource }>();
+const props = defineProps<{
+  notifications?: ClinicalNotificationSource;
+  initialSessionId?: string;
+}>();
 
-const sessionId = ref("");
+const sessionId = ref(props.initialSessionId ?? "");
 const result = ref<RiskAssessment | null>(null);
 const status = ref<"idle" | "loading" | "pending" | "completed" | "failed">(
   "idle",
@@ -15,6 +18,7 @@ const status = ref<"idle" | "loading" | "pending" | "completed" | "failed">(
 let stopNotifications: (() => void) | undefined;
 
 onMounted(() => {
+  if (props.initialSessionId) void load();
   stopNotifications = props.notifications?.subscribe((notification) => {
     if (
       notification.kind === "analysis" &&

@@ -33,6 +33,7 @@ apps/mobile_flutter/.flutter-plugins-dependencies
 apps/mobile_flutter/.packages
 apps/mobile_flutter/build/
 apps/mobile_flutter/android/.gradle/
+apps/mobile_flutter/android/.kotlin/
 apps/mobile_flutter/android/local.properties
 
 # Local runtime data and generated evidence
@@ -42,6 +43,7 @@ deploy/volumes/
 **/postgres-data/
 **/redis-data/
 tests/output/
+apps/admin_web/output/playwright/
 tests/**/video-output/
 
 # Editors and operating system

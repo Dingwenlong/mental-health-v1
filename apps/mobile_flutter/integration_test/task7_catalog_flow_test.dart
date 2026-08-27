@@ -6,7 +6,8 @@ import 'package:mobile_flutter/core/auth/auth_store.dart';
 import 'package:mobile_flutter/features/catalog/catalog_repository.dart';
 import 'package:mobile_flutter/features/catalog/service_plan_card.dart';
 import 'package:mobile_flutter/generated/ui_copy.g.dart';
-import 'package:mobile_flutter/main.dart';
+
+import 'support/test_home.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -30,8 +31,9 @@ void main() {
     expect(auth.isAuthenticated, isTrue);
 
     await tester.pumpWidget(
-      MentalHealthApp(authStore: auth, catalogRepository: catalog),
+      buildTestApp(authStore: auth, client: client, catalogRepository: catalog),
     );
+    await openTestCatalog(tester);
     await _pumpUntil(tester, find.byType(ServicePlanCard));
 
     final paidAiPlan = find.byWidgetPredicate(

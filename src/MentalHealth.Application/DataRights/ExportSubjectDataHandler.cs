@@ -66,7 +66,8 @@ public sealed record SubjectDataSnapshot(
     IReadOnlyList<SubjectTranscriptExport> Transcripts,
     IReadOnlyList<SubjectConsentExport> Consents,
     IReadOnlyList<SubjectAssessmentExport> Assessments,
-    IReadOnlyList<SubjectFollowUpExport> FollowUps);
+    IReadOnlyList<SubjectFollowUpExport> FollowUps,
+    MentalHealth.Application.Care.CareDataSnapshot? Care = null);
 
 public sealed record SubjectMediaReference(
     Guid AssetId,
@@ -196,6 +197,8 @@ public sealed class ExportSubjectDataHandler(
                     "follow-ups.json",
                     snapshot.FollowUps,
                     cancellationToken);
+                if (snapshot.Care is not null)
+                    await WriteJsonAsync(archive, "care.json", snapshot.Care, cancellationToken);
                 foreach (var transcript in snapshot.Transcripts)
                 {
                     var entry = archive.CreateEntry(

@@ -8,7 +8,9 @@ import 'package:mobile_flutter/features/catalog/service_plan_card.dart';
 import 'package:mobile_flutter/features/consultation/chat_connection.dart';
 import 'package:mobile_flutter/features/consultation/chat_page.dart';
 import 'package:mobile_flutter/generated/ui_copy.g.dart';
-import 'package:mobile_flutter/main.dart';
+
+import 'support/test_home.dart';
+
 import 'package:signalr_netcore/signalr_client.dart';
 
 void main() {
@@ -43,12 +45,14 @@ void main() {
     expect(auth.isAuthenticated, isTrue);
 
     await tester.pumpWidget(
-      MentalHealthApp(
+      buildTestApp(
         authStore: auth,
+        client: userClient,
         catalogRepository: catalog,
         chatLauncher: launcher,
       ),
     );
+    await openTestCatalog(tester);
     await _pumpUntil(tester, find.byType(ServicePlanCard));
 
     final humanChat = find.byWidgetPredicate(

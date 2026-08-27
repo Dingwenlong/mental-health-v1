@@ -451,6 +451,202 @@ namespace MentalHealth.Infrastructure.Persistence.Migrations
                     b.ToTable("audit_events", (string)null);
                 });
 
+            modelBuilder.Entity("MentalHealth.Domain.Care.CarePlan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AuthorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreationKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("FollowUpId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FollowUpId")
+                        .IsUnique()
+                        .HasFilter("\"Status\" IN ('Draft', 'Active')");
+
+                    b.HasIndex("AuthorId", "CreationKey")
+                        .IsUnique();
+
+                    b.HasIndex("SubjectId", "CreatedAt");
+
+                    b.ToTable("care_plans", (string)null);
+                });
+
+            modelBuilder.Entity("MentalHealth.Domain.Care.CarePlanTask", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("DueDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("ExerciseId")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("Feedback")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("PlanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("RespondedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlanId");
+
+                    b.ToTable("care_plan_tasks", (string)null);
+                });
+
+            modelBuilder.Entity("MentalHealth.Domain.Care.DailyCheckIn", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Mood")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<decimal>("SleepHours")
+                        .HasPrecision(3, 1)
+                        .HasColumnType("numeric(3,1)");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubjectId", "Date")
+                        .IsUnique();
+
+                    b.ToTable("daily_check_ins", (string)null);
+                });
+
+            modelBuilder.Entity("MentalHealth.Domain.Care.ExerciseCompletion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ExerciseId")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubjectId", "CompletedAt");
+
+                    b.ToTable("exercise_completions", (string)null);
+                });
+
+            modelBuilder.Entity("MentalHealth.Domain.Care.SharingGrant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AssignmentVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ConsentVersion")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("DoctorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("FollowUpId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("GrantedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FollowUpId", "AssignmentVersion")
+                        .IsUnique()
+                        .HasFilter("\"RevokedAt\" IS NULL");
+
+                    b.HasIndex("SubjectId", "DoctorId");
+
+                    b.ToTable("daily_sharing_grants", (string)null);
+                });
+
             modelBuilder.Entity("MentalHealth.Domain.Consents.ConsentRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -962,6 +1158,9 @@ namespace MentalHealth.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("assignee_id");
 
+                    b.Property<int>("AssignmentVersion")
+                        .HasColumnType("integer");
+
                     b.Property<Guid?>("AvailabilitySlotId")
                         .HasColumnType("uuid")
                         .HasColumnName("availability_slot_id");
@@ -1412,6 +1611,33 @@ namespace MentalHealth.Infrastructure.Persistence.Migrations
                     b.Navigation("Evidence");
                 });
 
+            modelBuilder.Entity("MentalHealth.Domain.Care.CarePlan", b =>
+                {
+                    b.HasOne("MentalHealth.Domain.FollowUps.FollowUpTask", null)
+                        .WithMany()
+                        .HasForeignKey("FollowUpId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("MentalHealth.Domain.Care.CarePlanTask", b =>
+                {
+                    b.HasOne("MentalHealth.Domain.Care.CarePlan", null)
+                        .WithMany("Tasks")
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("MentalHealth.Domain.Care.SharingGrant", b =>
+                {
+                    b.HasOne("MentalHealth.Domain.FollowUps.FollowUpTask", null)
+                        .WithMany()
+                        .HasForeignKey("FollowUpId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("MentalHealth.Domain.Consultations.AvailabilitySlot", b =>
                 {
                     b.HasOne("MentalHealth.Domain.Consultations.Practitioner", null)
@@ -1505,6 +1731,11 @@ namespace MentalHealth.Infrastructure.Persistence.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("MentalHealth.Domain.Care.CarePlan", b =>
+                {
+                    b.Navigation("Tasks");
                 });
 #pragma warning restore 612, 618
         }

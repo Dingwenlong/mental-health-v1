@@ -12,6 +12,7 @@ using MentalHealth.Application.Consultations.Ai;
 using MentalHealth.Application.Analysis;
 using MentalHealth.Application.FollowUps;
 using MentalHealth.Application.DataRights;
+using MentalHealth.Application.Care;
 using MentalHealth.Domain.Analysis;
 using MentalHealth.Domain.FollowUps;
 using MentalHealth.Infrastructure.Identity;
@@ -153,6 +154,8 @@ public static class DependencyInjection
         services.AddScoped<DeleteDemoSubjectHandler>();
         services.AddScoped<MediaContentAccessHandler>();
         services.AddScoped<AuditQueryHandler>();
+        services.AddScoped<ICareRepository, CareRepository>();
+        services.AddScoped<CareContinuityService>();
 
         services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -187,6 +190,10 @@ public static class DependencyInjection
         IConfiguration configuration)
     {
         services.TryAddSingleton<IClock, SystemClock>();
+        services.TryAddScoped<IUnitOfWork>(provider => provider.GetRequiredService<MentalHealthDbContext>());
+        services.TryAddScoped<IAuditTrail>(provider => provider.GetRequiredService<MentalHealthDbContext>());
+        services.TryAddScoped<IConsultationRepository>(provider => provider.GetRequiredService<MentalHealthDbContext>());
+        services.TryAddScoped<SessionAccessService>();
         services.TryAddSingleton<OutboxSaveChangesInterceptor>();
         services
             .AddOptions<LocalObjectStorageOptions>()

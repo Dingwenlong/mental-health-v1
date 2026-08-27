@@ -94,4 +94,4 @@ pwsh .\scripts\Run-AnalysisWorker.ps1
 
 脚本从本机 `.env` 读取数据库密码，只传给当前分析任务进程，不修改用户或系统环境变量。按 `Ctrl+C` 停止。
 
-本地运行、测试账号和验收步骤会随对应功能补入 `docs`。云部署不在 v1 开发阶段内。
+日常记录、资料共享、咨询报告列表、医生档案及跟进计划见 [功能与演示步骤](docs/care-continuity.md)，验证范围见 [本轮测试记录](docs/test-evidence/care-continuity.md)。云部署不在 v1 开发阶段内。

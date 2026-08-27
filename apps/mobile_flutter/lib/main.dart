@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/account/contact_email_gateway.dart';
 import 'core/api/api_client.dart';
@@ -14,6 +15,7 @@ import 'features/data_rights/data_rights_page.dart';
 import 'features/follow_ups/follow_up_list_page.dart';
 import 'features/follow_ups/local_reminder_service.dart';
 import 'features/home/patient_home_page.dart';
+import 'features/care/care_repository.dart';
 import 'features/results/analysis_progress_page.dart';
 import 'generated/ui_copy.g.dart';
 import 'providers/speech/chime_fallback_speech_provider.dart';
@@ -90,6 +92,7 @@ Future<void> main() async {
     MentalHealthApp(
       authStore: authStore,
       catalogRepository: ApiCatalogRepository(client),
+      careRepository: CareRepository(client),
       chatLauncher: chatLauncher,
       videoLauncher: videoLauncher,
       aiLauncher: aiLauncher,
@@ -108,6 +111,7 @@ class MentalHealthApp extends StatelessWidget {
   const MentalHealthApp({
     this.authStore,
     this.catalogRepository,
+    this.careRepository,
     this.chatLauncher,
     this.videoLauncher,
     this.aiLauncher,
@@ -123,6 +127,7 @@ class MentalHealthApp extends StatelessWidget {
 
   final AuthStore? authStore;
   final CatalogRepository? catalogRepository;
+  final CareRepository? careRepository;
   final ChatSessionLauncher? chatLauncher;
   final VideoSessionLauncher? videoLauncher;
   final AiSessionLauncher? aiLauncher;
@@ -137,12 +142,16 @@ class MentalHealthApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      locale: const Locale('zh', 'CN'),
+      supportedLocales: const [Locale('zh', 'CN')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       title: UiCopy.get('app.title'),
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
       home:
           authStore == null ||
               catalogRepository == null ||
+              careRepository == null ||
               resultGateway == null ||
               followUpRepository == null ||
               reminders == null ||
@@ -154,6 +163,7 @@ class MentalHealthApp extends StatelessWidget {
               builder: (context, _) => authStore!.isAuthenticated
                   ? PatientHomePage(
                       catalogRepository: catalogRepository!,
+                      careRepository: careRepository!,
                       chatLauncher: chatLauncher,
                       videoLauncher: videoLauncher,
                       aiLauncher: aiLauncher,

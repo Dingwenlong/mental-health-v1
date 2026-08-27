@@ -7,9 +7,12 @@ import {
   type ChatSnapshot,
 } from "./chatConnection";
 
-const props = defineProps<{ connection?: ChatConnection }>();
+const props = defineProps<{
+  connection?: ChatConnection;
+  initialSessionId?: string;
+}>();
 const chat = props.connection ?? createChatConnection();
-const sessionId = ref("");
+const sessionId = ref(props.initialSessionId ?? "");
 const draft = ref("");
 const errorCopyKey = ref<UiCopyKey | null>(null);
 const snapshot = ref<ChatSnapshot>(chat.snapshot);

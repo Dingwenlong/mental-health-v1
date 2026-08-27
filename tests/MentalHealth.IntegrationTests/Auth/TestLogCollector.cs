@@ -7,7 +7,8 @@ public sealed record TestLogEntry(
     string Category,
     LogLevel Level,
     EventId EventId,
-    string Message);
+    string Message,
+    Exception? Exception = null);
 
 public sealed class TestLogCollector : ILoggerProvider
 {
@@ -49,7 +50,8 @@ public sealed class TestLogCollector : ILoggerProvider
                 category,
                 logLevel,
                 eventId,
-                formatter(state, exception)));
+                formatter(state, exception),
+                exception));
         }
     }
 }

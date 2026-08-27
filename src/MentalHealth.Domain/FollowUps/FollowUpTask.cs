@@ -38,6 +38,8 @@ public sealed class FollowUpTask : IHasDomainEvents
 
     public Guid? AssigneeId { get; private set; }
 
+    public int AssignmentVersion { get; private set; }
+
     public Guid? AvailabilitySlotId { get; private set; }
 
     public FollowUpStatus Status { get; private set; }
@@ -130,6 +132,7 @@ public sealed class FollowUpTask : IHasDomainEvents
             throw new DomainException("FOLLOW_UP_DUE_AT_INVALID");
         }
 
+        if (AssigneeId != assigneeId) AssignmentVersion++;
         AssigneeId = assigneeId;
         DueAt = dueAt;
         ScheduledAt = now;
@@ -191,6 +194,7 @@ public sealed class FollowUpTask : IHasDomainEvents
             throw new DomainException("FOLLOW_UP_DUE_AT_INVALID");
         }
 
+        if (AssigneeId != assigneeId) AssignmentVersion++;
         AssigneeId = assigneeId;
         AvailabilitySlotId = availabilitySlotId;
         DueAt = dueAt;

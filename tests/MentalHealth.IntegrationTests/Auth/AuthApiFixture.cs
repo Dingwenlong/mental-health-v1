@@ -26,14 +26,19 @@ public sealed class AuthApiFixture : IAsyncLifetime
     private readonly string? _adminPhone;
     private readonly bool _aliyunPhoneLoginEnabled;
     private readonly bool _configureTestPhoneProviders;
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:17-alpine")
+    private readonly PostgreSqlContainer? _postgres = ExternalPostgres is not null ? null : new PostgreSqlBuilder("postgres:17-alpine")
         .WithDatabase("mental_health_auth_tests")
         .WithUsername("mental_health")
         .WithPassword("synthetic-test-password")
         .Build();
 
-    private readonly RedisContainer _redis = new RedisBuilder("redis:8-alpine")
+    private readonly RedisContainer? _redis = ExternalPostgres is not null ? null : new RedisBuilder("redis:8-alpine")
         .Build();
+
+    private static string? ExternalPostgres => Environment.GetEnvironmentVariable("MH_CARE_TEST_POSTGRES");
+    private string PostgresConnection => ExternalPostgres ?? _postgres!.GetConnectionString();
+    private string RedisConnection => ExternalPostgres is null ? _redis!.GetConnectionString()
+        : Environment.GetEnvironmentVariable("MH_CARE_TEST_REDIS") ?? throw new InvalidOperationException("A dedicated test Redis endpoint is required.");
 
     private WebApplicationFactory<Program>? _factory;
     private HttpClient? _client;
@@ -108,7 +113,24 @@ public sealed class AuthApiFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        await Task.WhenAll(_postgres.StartAsync(), _redis.StartAsync());
+        if (ExternalPostgres is null)
+        {
+            await Task.WhenAll(_postgres!.StartAsync(), _redis!.StartAsync());
+        }
+        else
+        {
+            var postgres = new NpgsqlConnectionStringBuilder(PostgresConnection);
+            var redis = ConfigurationOptions.Parse(RedisConnection);
+            var isolatedRedis = redis.EndPoints.Count == 1 && redis.EndPoints[0] switch
+            {
+                System.Net.DnsEndPoint endpoint => endpoint.Host == "127.0.0.1" && endpoint.Port != 6379,
+                System.Net.IPEndPoint endpoint => System.Net.IPAddress.IsLoopback(endpoint.Address) && endpoint.Port != 6379,
+                _ => false
+            };
+            if (postgres.Host != "127.0.0.1" || postgres.Database?.StartsWith("mental_health_care_test_", StringComparison.Ordinal) != true
+                || postgres.Port == 5432 || !isolatedRedis)
+                throw new InvalidOperationException("External care tests require explicitly isolated loopback databases and non-default ports.");
+        }
 
         _storageRoot = Path.Combine(
             Path.GetTempPath(),
@@ -117,8 +139,8 @@ public sealed class AuthApiFixture : IAsyncLifetime
 
         var settings = new Dictionary<string, string?>
         {
-            ["ConnectionStrings:MentalHealth"] = _postgres.GetConnectionString(),
-            ["ConnectionStrings:Redis"] = _redis.GetConnectionString(),
+            ["ConnectionStrings:MentalHealth"] = PostgresConnection,
+            ["ConnectionStrings:Redis"] = RedisConnection,
             ["LocalObjectStorage:RootPath"] = _storageRoot,
             ["Jwt:Issuer"] = "mental-health-v1-tests",
             ["Jwt:Audience"] = "mental-health-v1-tests",
@@ -305,7 +327,7 @@ public sealed class AuthApiFixture : IAsyncLifetime
     public async Task<(string? ClientPhone, string? AdminPhone)>
         ReadPublicAccountPhonesAsync()
     {
-        await using var connection = new NpgsqlConnection(_postgres.GetConnectionString());
+        await using var connection = new NpgsqlConnection(PostgresConnection);
         await connection.OpenAsync();
         await using var command = new NpgsqlCommand(
             "SELECT \"NormalizedEmail\", \"PhoneNumber\" FROM \"AspNetUsers\" "
@@ -346,8 +368,8 @@ public sealed class AuthApiFixture : IAsyncLifetime
             try
             {
                 await Task.WhenAll(
-                    _postgres.DisposeAsync().AsTask(),
-                    _redis.DisposeAsync().AsTask());
+                    _postgres?.DisposeAsync().AsTask() ?? Task.CompletedTask,
+                    _redis?.DisposeAsync().AsTask() ?? Task.CompletedTask);
             }
             finally
             {

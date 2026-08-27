@@ -18,6 +18,10 @@ class StartedVideoSession {
 
 abstract interface class VideoSessionLauncher {
   Future<StartedVideoSession> startHumanVideo(String orderId);
+  Future<StartedVideoSession> resumeHumanVideo(
+    String sessionId, {
+    required bool start,
+  });
 }
 
 class ApiVideoSessionLauncher implements VideoSessionLauncher {
@@ -67,20 +71,31 @@ class ApiVideoSessionLauncher implements VideoSessionLauncher {
       );
     }
 
-    return StartedVideoSession(
-      sessionId: sessionId,
-      media: FlutterWebRtcMediaProvider(
-        _rtcHubUrl,
-        _client.readAccessToken,
-        MediaRecordingUploader(_client),
-      ),
-      textController: ChatController(
-        history: ApiChatHistory(_client),
-        transport: SignalRChatTransport(
-          hubUrl: _chatHubUrl,
-          readAccessToken: _client.readAccessToken,
-        ),
-      ),
-    );
+    return _existingSession(sessionId);
   }
+
+  @override
+  Future<StartedVideoSession> resumeHumanVideo(
+    String sessionId, {
+    required bool start,
+  }) async {
+    if (start) await _client.post('consultations/$sessionId/start');
+    return _existingSession(sessionId);
+  }
+
+  StartedVideoSession _existingSession(String sessionId) => StartedVideoSession(
+    sessionId: sessionId,
+    media: FlutterWebRtcMediaProvider(
+      _rtcHubUrl,
+      _client.readAccessToken,
+      MediaRecordingUploader(_client),
+    ),
+    textController: ChatController(
+      history: ApiChatHistory(_client),
+      transport: SignalRChatTransport(
+        hubUrl: _chatHubUrl,
+        readAccessToken: _client.readAccessToken,
+      ),
+    ),
+  );
 }

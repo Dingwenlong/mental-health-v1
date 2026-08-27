@@ -350,6 +350,10 @@ class StartedChatSession {
 
 abstract interface class ChatSessionLauncher {
   Future<StartedChatSession> startHumanChat(String orderId);
+  Future<StartedChatSession> resumeHumanChat(
+    String sessionId, {
+    required bool start,
+  });
 }
 
 class ApiChatSessionLauncher implements ChatSessionLauncher {
@@ -393,15 +397,26 @@ class ApiChatSessionLauncher implements ChatSessionLauncher {
         message: 'The consultation cannot be opened.',
       );
     }
-    return StartedChatSession(
-      sessionId: sessionId,
-      controller: ChatController(
-        history: ApiChatHistory(_client),
-        transport: SignalRChatTransport(
-          hubUrl: _hubUrl,
-          readAccessToken: _client.readAccessToken,
-        ),
-      ),
-    );
+    return _existingSession(sessionId);
   }
+
+  @override
+  Future<StartedChatSession> resumeHumanChat(
+    String sessionId, {
+    required bool start,
+  }) async {
+    if (start) await _client.post('consultations/$sessionId/start');
+    return _existingSession(sessionId);
+  }
+
+  StartedChatSession _existingSession(String sessionId) => StartedChatSession(
+    sessionId: sessionId,
+    controller: ChatController(
+      history: ApiChatHistory(_client),
+      transport: SignalRChatTransport(
+        hubUrl: _hubUrl,
+        readAccessToken: _client.readAccessToken,
+      ),
+    ),
+  );
 }

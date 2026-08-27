@@ -7,7 +7,9 @@ import 'package:mobile_flutter/features/ai_consultation/ai_session_launcher.dart
 import 'package:mobile_flutter/features/catalog/catalog_repository.dart';
 import 'package:mobile_flutter/features/catalog/service_plan_card.dart';
 import 'package:mobile_flutter/generated/ui_copy.g.dart';
-import 'package:mobile_flutter/main.dart';
+
+import 'support/test_home.dart';
+
 import 'package:mobile_flutter/providers/speech/chime_fallback_speech_provider.dart';
 import 'package:mobile_flutter/providers/speech/flutter_tts_speech_provider.dart';
 import 'package:mobile_flutter/providers/speech/speech_provider.dart';
@@ -64,12 +66,14 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MentalHealthApp(
+      buildTestApp(
         authStore: auth,
+        client: client,
         catalogRepository: ApiCatalogRepository(client),
         aiLauncher: aiLauncher,
       ),
     );
+    await openTestCatalog(tester);
     await _pumpUntil(tester, find.byType(ServicePlanCard));
 
     final freeAiChat = find.byWidgetPredicate(

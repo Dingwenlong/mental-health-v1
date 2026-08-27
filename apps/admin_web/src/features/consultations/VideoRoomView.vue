@@ -7,9 +7,12 @@ import {
   type RtcSnapshot,
 } from "./browserRtcPeer";
 
-const props = defineProps<{ peer?: BrowserRtcPeer }>();
+const props = defineProps<{
+  peer?: BrowserRtcPeer;
+  initialSessionId?: string;
+}>();
 const peer = props.peer ?? createBrowserRtcPeer();
-const sessionId = ref("");
+const sessionId = ref(props.initialSessionId ?? "");
 const snapshot = ref<RtcSnapshot>(peer.snapshot);
 const localVideo = ref<HTMLVideoElement | null>(null);
 const remoteVideo = ref<HTMLVideoElement | null>(null);

@@ -50,8 +50,7 @@ public sealed class RescheduleFollowUpHandler(
         string reason,
         CancellationToken cancellationToken)
     {
-        _ = actor.RequireDoctor();
-        var task = await RequireTaskAsync(taskId, cancellationToken);
+        var task = await RequireOwnedTaskAsync(actor, taskId, cancellationToken);
         task.Cancel(reason, clock.UtcNow);
         AddAudit(actor.UserId, "FollowUpCancelled", task.Id, reason);
         await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -64,8 +63,7 @@ public sealed class RescheduleFollowUpHandler(
         string reason,
         CancellationToken cancellationToken)
     {
-        _ = actor.RequireDoctor();
-        var task = await RequireTaskAsync(taskId, cancellationToken);
+        var task = await RequireOwnedTaskAsync(actor, taskId, cancellationToken);
         task.Complete(reason, clock.UtcNow);
         AddAudit(actor.UserId, "FollowUpCompleted", task.Id, reason);
         await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -80,8 +78,7 @@ public sealed class RescheduleFollowUpHandler(
         string action,
         CancellationToken cancellationToken)
     {
-        _ = actor.RequireDoctor();
-        var task = await RequireTaskAsync(taskId, cancellationToken);
+        var task = await RequireOwnedTaskAsync(actor, taskId, cancellationToken);
         var candidate = await followUps.FindCandidateAsync(
             availabilitySlotId,
             cancellationToken)
@@ -102,11 +99,18 @@ public sealed class RescheduleFollowUpHandler(
         return task;
     }
 
-    private async Task<FollowUpTask> RequireTaskAsync(
+    private async Task<FollowUpTask> RequireOwnedTaskAsync(
+        ConsultationActor actor,
         Guid taskId,
-        CancellationToken cancellationToken) =>
-        await followUps.FindFollowUpAsync(taskId, cancellationToken)
+        CancellationToken cancellationToken)
+    {
+        var doctorId = actor.RequireDoctor();
+        var task = await followUps.FindFollowUpAsync(taskId, cancellationToken)
             ?? throw new DomainException("FOLLOW_UP_NOT_FOUND");
+        if (task.AssigneeId is { } assigneeId && assigneeId != doctorId)
+            throw new DomainException("FORBIDDEN_RESOURCE");
+        return task;
+    }
 
     private void AddAudit(
         Guid actorUserId,
