@@ -1,0 +1,16 @@
+Generation mode: built-in image_gen
+
+Use case: ads-marketing.
+Asset type: a finished Chinese portrait product cover poster for an existing adult mental health application, suitable for a product presentation and sharing. Single image, portrait 2:3 composition, high-resolution polished editorial design.
+
+Primary request: Design a beautiful, calm, credible cover poster for the product whose existing name is “心理健康智能系统”. Express its actual flow: daily records, consultation and reports, doctor follow-up and care-plan feedback. This is a product cover, not a dense infographic and not a clinical advertisement.
+
+Existing visual identity: deep green #1f665d, dark forest ink #18221f, pale gray-green paper #eef3f1, soft sage #dfece8. Match this restrained palette, with small warm natural wood and sunlight accents. Generous breathing room, exceptional typography and composition. Large dark green Chinese typography on light paper, clear contrast. Elegant contemporary Chinese editorial layout, subtle fine paper grain, not a generic technology template.
+
+Composition: At the top, the product name is set as two large, precisely aligned Chinese lines: “心理健康” then a somewhat smaller “智能系统”. Under it one restrained line reads “日常记录 · 咨询报告 · 回访跟进”. Make the title the strongest graphic element, with ample margin and no cropped text.
+The central and lower area features one beautifully composed original painterly illustration of a quiet, sunlit everyday consultation room: warm wooden desk, notebook for daily records, a comfortable chair, a leafy plant and soft window light. It feels open, human and restful, without medical equipment or distressed people. Combine this illustration naturally with one realistically proportioned unbranded Android smartphone standing on the desk, showing a clean conceptual app home screen that uses the same forest-green identity. The phone is a secondary focal point, rendered with accurate geometry, soft shadows, no shiny chrome or neon. Its simple legible screen displays “今天”, a main heading “记一下今天”, then three minimal spacious rows labeled “心情”, “睡眠”, “练习”, and bottom navigation “今天  咨询  记录  我的”. No numbers, health scores, progress charts, names, photos or private data on the screen. Treat this as illustrative interface imagery rather than a screenshot of a live service.
+Near the bottom, one small quiet line: “日常资料默认仅自己可见”. Footer, readable and restrained: “用于日常记录与沟通，不替代专业诊断”.
+
+Text requirements: all visible text must be simplified Chinese, accurately rendered exactly as quoted, with no random extra text, pseudo-characters or English. Maintain a clear hierarchy; body copy must not overwhelm the hero illustration. Do not add a brand name, invented logo, QR code, URLs, launch dates, badges, ratings or promotional claims.
+
+Avoid: diagnosis or treatment claims, guaranteed improvements, real-time monitoring claims, emergency alerts, individual psychological scores, medication, brain imagery, puzzle-piece heads, broken-heart symbols, hospital imagery, glitter, neon cyan-purple gradients, excessive floating cards, AI robots, stock-photo handshakes, watermarks.

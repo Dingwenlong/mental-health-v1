@@ -1,0 +1,26 @@
+Generation mode: built-in image_gen
+
+Landscape composition prompt
+
+Use case: compositing.
+Edit target: the provided portrait product cover poster.
+Requested change: turn this exact poster into a finished 16:9 landscape cover. The output canvas MUST be horizontal with an exact 16:9 width-to-height ratio, ideally 1536 x 864 pixels. Recompose and extend the scene for the wider canvas; do not squeeze, stretch, crop off the typography, or place the portrait inside a landscape frame.
+
+Keep the original product identity, deep forest-green and warm ivory palette, serif Chinese title style, paper texture, realistic sunlit room, wooden desk, sage armchair, plant, notebook and phone. Preserve the calm, understated photographic look and accurate phone proportions. No new design theme or added objects.
+
+Adapt the layout naturally for a presentation cover: generous ivory space on the left for the existing title and descriptor, the sunlit desk and phone scene occupying the right side and extending across the lower area. The phone screen must stay complete and readable. Use the existing gentle curved paper edge to transition between the text and room, and the forest-green footer along the whole bottom edge. Maintain generous safe margins and elegant visual balance.
+
+Keep these exact simplified Chinese texts, legible and uncropped:
+Large title on two lines: “心理健康” / “智能系统”
+Descriptor: “日常记录 · 咨询报告 · 回访跟进”
+Phone: “今天”, “记一下今天”, “心情”, “睡眠”, “练习”
+Phone navigation: “今天  咨询  记录  我的”
+Notebook handwritten text: “今天的自己，也值得被温柔对待。”
+Privacy line: “日常资料默认仅自己可见”
+Footer: “用于日常记录与沟通，不替代专业诊断”
+
+Do not add any new copy, logos, watermarks, QR codes, diagnostic numbers or medical promises. Change only the aspect ratio and spatial arrangement needed for this landscape adaptation. Deliver one complete landscape 16:9 poster.
+
+Canvas refinement prompt
+
+Edit the provided landscape poster solely to finalize an exact 16:9 canvas. Render at EXACTLY 1536 pixels wide by 864 pixels tall. This is an output canvas-size requirement, not text to print. Do not print any dimensions. Preserve this entire existing composition, all Chinese words, typography, room, notebook, smartphone interface and colors unchanged. Do not crop off any text. Do not add or remove content. Keep the full-width green footer. Output one finished horizontal raster poster with exact 16:9 aspect ratio (1536x864).
