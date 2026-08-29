@@ -14,6 +14,11 @@ import {
 } from "./careService";
 import CarePlanEditor from "./CarePlanEditor.vue";
 import PageControls from "./PageControls.vue";
+import AppIcon from "../../components/AppIcon.vue";
+import PageHeader from "../../components/PageHeader.vue";
+import StatusBadge from "../../components/StatusBadge.vue";
+import StatePanel from "../../components/StatePanel.vue";
+import TrendChart from "../../components/TrendChart.vue";
 const props = defineProps<{
   mode: "overview" | "subjects" | "plans";
   service?: CareApi;
@@ -42,6 +47,19 @@ const title = computed(() =>
         : "care.plans",
   ),
 );
+const taskProgress = computed(() => {
+  if (!summary.value?.planTasks) return 0;
+  return Math.round(
+    (summary.value.completedPlanTasks / summary.value.planTasks) * 100,
+  );
+});
+function statusTone(status: string): "neutral" | "info" | "success" | "warning" | "danger" {
+  if (["Completed", "Done", "Ready"].includes(status)) return "success";
+  if (["Active", "InProgress", "Scheduled", "Processing"].includes(status)) return "info";
+  if (["Overdue", "NeedsManual"].includes(status)) return "danger";
+  if (["Due", "Pending", "Proposed", "AwaitingConsent"].includes(status)) return "warning";
+  return "neutral";
+}
 async function load(): Promise<void> {
   const request = ++generation;
   busy.value = true;
@@ -132,9 +150,11 @@ async function saved(): Promise<void> {
 </script>
 <template>
   <section class="workspace-panel care-workspace">
-    <div class="section-header">
-      <h2>{{ selected ? c("care.file") : title }}</h2>
-      <div class="care-actions">
+    <PageHeader
+      :eyebrow="c('admin.workspaceEyebrow')"
+      :title="selected ? c('care.file') : title"
+      :description="c('admin.overviewDescription')"
+    >
         <button v-if="selected" type="button" class="secondary" @click="goBack">
           {{ c("care.back") }}</button
         ><button
@@ -147,10 +167,9 @@ async function saved(): Promise<void> {
             load();
           "
         >
-          {{ c("care.refresh") }}
+          <AppIcon name="refresh" :size="18" />{{ c("care.refresh") }}
         </button>
-      </div>
-    </div>
+    </PageHeader>
     <p v-if="busy" role="status">{{ c("care.loading") }}</p>
     <p v-if="error" role="alert" class="error">{{ error }}</p>
     <dl v-if="summary" class="care-metrics">
@@ -176,11 +195,14 @@ async function saved(): Promise<void> {
         <div>
           <dt>{{ c("care.completedTasks") }}</dt>
           <dd>{{ summary.completedPlanTasks }} / {{ summary.planTasks }}</dd>
+          <div class="care-progress" role="progressbar" :aria-valuenow="taskProgress" aria-valuemin="0" aria-valuemax="100">
+            <span :style="{ width: `${taskProgress}%` }"></span>
+          </div>
         </div></template
       >
     </dl>
     <template v-if="subjects">
-      <p v-if="!subjects.items.length">{{ c("care.noSubjects") }}</p>
+      <StatePanel v-if="!subjects.items.length" :message="c('care.noSubjects')" />
       <div
         v-for="subject in subjects.items"
         :key="subject.subjectId"
@@ -216,6 +238,10 @@ async function saved(): Promise<void> {
       <section v-if="detail.sharingActive" data-test="shared-records">
         <h3>{{ c("care.trends") }}</h3>
         <p>{{ c("care.sharedTrendNotice") }}</p>
+        <div class="care-trend-grid">
+          <TrendChart :title="c('care.moodTrend')" :days="detail.trends" value-key="mood" :max-value="5" />
+          <TrendChart :title="c('care.sleepTrend')" :days="detail.trends" value-key="sleepHours" :max-value="24" />
+        </div>
         <div class="care-table-scroll">
           <table>
             <thead>
@@ -260,9 +286,9 @@ async function saved(): Promise<void> {
           <div>
             <strong>{{ dateText(record.dueAt) }}</strong>
             <p>
-              {{ c(`care.status.${record.followUpStatus}`) }} ·
               {{ record.score }} · {{ record.level }}
             </p>
+            <StatusBadge :label="c(`care.status.${record.followUpStatus}`)" :tone="statusTone(record.followUpStatus)" />
           </div>
           <button
             v-if="!['Completed', 'Cancelled'].includes(record.followUpStatus)"
@@ -305,7 +331,7 @@ async function saved(): Promise<void> {
         <div class="care-list-row">
           <div>
             <h3>{{ plan.title }}</h3>
-            <span>{{ c(`care.status.${plan.status}`) }}</span>
+            <StatusBadge :label="c(`care.status.${plan.status}`)" :tone="statusTone(plan.status)" />
           </div>
           <div class="care-actions">
             <template v-if="plan.status === 'Draft'"
@@ -347,7 +373,7 @@ async function saved(): Promise<void> {
                     : "care.exercise.smallStep",
               )
             }}</span>
-            <span>{{ c(`care.status.${task.status}`) }}</span>
+            <StatusBadge :label="c(`care.status.${task.status}`)" :tone="statusTone(task.status)" />
             <p v-if="task.feedback">{{ task.feedback }}</p>
           </li>
         </ul>

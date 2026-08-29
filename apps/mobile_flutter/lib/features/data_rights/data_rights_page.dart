@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/api/api_client.dart';
+import '../../design/app_design.dart';
 import '../../generated/ui_copy.g.dart';
 
 class DataExportPackage {
@@ -86,46 +87,98 @@ class _DataRightsPageState extends State<DataRightsPage> {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: Text(UiCopy.get('dataRights.title'))),
     body: ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 36),
       children: <Widget>[
-        Text(UiCopy.get('dataRights.exportHelp')),
-        const SizedBox(height: 12),
-        CheckboxListTile(
-          key: const Key('include-raw-media'),
-          contentPadding: EdgeInsets.zero,
-          value: _includeRawMedia,
-          title: Text(UiCopy.get('dataRights.includeRawMedia')),
-          onChanged: _exporting
-              ? null
-              : (value) => setState(() => _includeRawMedia = value ?? false),
-        ),
-        FilledButton.icon(
-          onPressed: _exporting || _deleting ? null : _export,
-          icon: const Icon(Icons.download_outlined),
-          label: Text(
-            UiCopy.get(
-              _exporting ? 'dataRights.exporting' : 'dataRights.export',
-            ),
+        AppPanel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.download_outlined, color: AppPalette.pine),
+                  const SizedBox(width: 10),
+                  Text(
+                    UiCopy.get('dataRights.exportSection'),
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(UiCopy.get('dataRights.exportHelp')),
+              const SizedBox(height: 12),
+              CheckboxListTile(
+                key: const Key('include-raw-media'),
+                contentPadding: EdgeInsets.zero,
+                value: _includeRawMedia,
+                title: Text(UiCopy.get('dataRights.includeRawMedia')),
+                onChanged: _exporting
+                    ? null
+                    : (value) =>
+                          setState(() => _includeRawMedia = value ?? false),
+              ),
+              FilledButton.icon(
+                onPressed: _exporting || _deleting ? null : _export,
+                icon: const Icon(Icons.download_outlined),
+                label: Text(
+                  UiCopy.get(
+                    _exporting ? 'dataRights.exporting' : 'dataRights.export',
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         if (_savedFileName case final fileName?) ...<Widget>[
           const SizedBox(height: 12),
-          Text('${UiCopy.get('dataRights.savedPrefix')}$fileName'),
+          AppNotice(
+            text: '${UiCopy.get('dataRights.savedPrefix')}$fileName',
+            icon: Icons.check_circle_outline_rounded,
+          ),
         ],
         if (_statusCopyKey case final copyKey?) ...<Widget>[
           const SizedBox(height: 12),
-          Text(UiCopy.get(copyKey)),
+          AppNotice(
+            text: UiCopy.get(copyKey),
+            tone: copyKey == 'dataRights.deleted'
+                ? AppTone.success
+                : AppTone.danger,
+          ),
         ],
         const SizedBox(height: 28),
-        const Divider(),
-        const SizedBox(height: 20),
-        Text(UiCopy.get('dataRights.deleteHelp')),
-        const SizedBox(height: 12),
-        OutlinedButton.icon(
-          onPressed: _exporting || _deleting ? null : _delete,
-          icon: const Icon(Icons.delete_outline),
-          label: Text(
-            UiCopy.get(_deleting ? 'dataRights.deleting' : 'dataRights.delete'),
+        AppPanel(
+          color: const Color(0xFFFFF4F3),
+          borderColor: const Color(0xFFE8B8B4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.delete_outline, color: AppPalette.danger),
+                  const SizedBox(width: 10),
+                  Text(
+                    UiCopy.get('dataRights.deleteSection'),
+                    style: Theme.of(context).textTheme.titleLarge
+                        ?.copyWith(color: AppPalette.danger),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(UiCopy.get('dataRights.deleteHelp')),
+              const SizedBox(height: 14),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppPalette.danger,
+                  side: const BorderSide(color: AppPalette.danger),
+                ),
+                onPressed: _exporting || _deleting ? null : _delete,
+                icon: const Icon(Icons.delete_outline),
+                label: Text(
+                  UiCopy.get(
+                    _deleting ? 'dataRights.deleting' : 'dataRights.delete',
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -186,6 +239,7 @@ class _DataRightsPageState extends State<DataRightsPage> {
             child: Text(UiCopy.get('common.cancel')),
           ),
           FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppPalette.danger),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(UiCopy.get('dataRights.deleteConfirm')),
           ),

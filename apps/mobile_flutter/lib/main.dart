@@ -20,37 +20,9 @@ import 'features/results/analysis_progress_page.dart';
 import 'generated/ui_copy.g.dart';
 import 'providers/speech/chime_fallback_speech_provider.dart';
 import 'providers/speech/flutter_tts_speech_provider.dart';
+import 'design/app_design.dart';
 
-ThemeData buildAppTheme() => ThemeData(
-  colorScheme: ColorScheme.fromSeed(
-    seedColor: const Color(0xFF245D57),
-    surface: Colors.white,
-    error: const Color(0xFFA12626),
-  ),
-  scaffoldBackgroundColor: const Color(0xFFF5F7F6),
-  dividerColor: const Color(0xFFD8E0DE),
-  appBarTheme: const AppBarTheme(
-    backgroundColor: Colors.white,
-    foregroundColor: Color(0xFF18221F),
-    elevation: 0,
-    scrolledUnderElevation: 0,
-    shape: Border(bottom: BorderSide(color: Color(0xFFD8E0DE))),
-  ),
-  cardTheme: const CardThemeData(
-    color: Colors.white,
-    elevation: 0,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.all(Radius.circular(8)),
-      side: BorderSide(color: Color(0xFFD8E0DE)),
-    ),
-  ),
-  navigationBarTheme: const NavigationBarThemeData(
-    backgroundColor: Colors.white,
-    indicatorColor: Color(0xFFDCEBE8),
-    elevation: 0,
-  ),
-  useMaterial3: true,
-);
+ThemeData buildAppTheme() => buildMentalHealthTheme();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

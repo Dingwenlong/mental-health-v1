@@ -13,7 +13,7 @@ class EmptyStatePanel extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Image.asset(
-            'assets/images/empty-room.png',
+            'assets/images/empty-room.webp',
             key: const Key('empty-state-illustration'),
             width: 208,
             height: 184,

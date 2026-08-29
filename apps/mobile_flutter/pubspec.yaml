@@ -38,5 +38,5 @@ flutter:
   assets:
     - assets/audio/fallback-chime.wav
     - assets/certs/demo_root.crt
-    - assets/images/login-room.png
-    - assets/images/empty-room.png
+    - assets/images/login-room.webp
+    - assets/images/empty-room.webp

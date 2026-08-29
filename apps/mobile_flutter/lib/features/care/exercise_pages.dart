@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../design/app_design.dart';
 import 'care_repository.dart';
 import 'care_widgets.dart';
 
@@ -26,46 +27,100 @@ class _ExercisesPageState extends State<ExercisesPage> {
       await widget.repository.completions(_page),
     ),
     builder: (data, reload) => ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
       children: [
-        careNotice('care.exerciseNotice'),
+        AppNotice(
+          text: careCopy('care.exerciseNotice'),
+          icon: Icons.self_improvement_outlined,
+        ),
+        const SizedBox(height: 18),
         ...data.$1.map(
-          (exercise) => Card(
-            child: ListTile(
-              title: Text(exercise['title'] as String),
-              subtitle: Text(
-                '${exercise['durationSeconds']} ${careCopy('care.remaining')}',
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () async {
-                await Navigator.of(context).push(
-                  MaterialPageRoute<bool>(
-                    builder: (_) => ExercisePracticePage(
-                      repository: widget.repository,
-                      exercise: exercise,
+          (exercise) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: AppPanel(
+              padding: EdgeInsets.zero,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () async {
+                  await Navigator.of(context).push(
+                    MaterialPageRoute<bool>(
+                      builder: (_) => ExercisePracticePage(
+                        repository: widget.repository,
+                        exercise: exercise,
+                      ),
                     ),
+                  );
+                  reload();
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: AppPalette.mint,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.spa_outlined,
+                          color: AppPalette.pine,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              exercise['title'] as String,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${exercise['durationSeconds']} ${careCopy('care.seconds')}',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.arrow_forward_rounded),
+                    ],
                   ),
-                );
-                reload();
-              },
+                ),
+              ),
             ),
           ),
         ),
-        careNotice('care.exerciseSource'),
-        Text(
-          careCopy('care.exerciseHistory'),
-          style: Theme.of(context).textTheme.titleLarge,
+        AppNotice(
+          text: careCopy('care.exerciseSource'),
+          icon: Icons.menu_book_outlined,
         ),
-        if ((data.$2['total'] as num) == 0) careNotice('care.empty'),
+        const SizedBox(height: 22),
+        AppSectionHeader(title: careCopy('care.exerciseHistory')),
+        if ((data.$2['total'] as num) == 0)
+          AppStatePanel(message: careCopy('care.empty')),
         ...careObjects(data.$2['items']).map(
-          (item) => ListTile(
-            title: Text(
-              data.$1.firstWhere(
-                    (exercise) => exercise['id'] == item['exerciseId'],
-                  )['title']
-                  as String,
+          (item) => AppPanel(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(
+                Icons.check_circle_outline_rounded,
+                color: AppPalette.pine,
+              ),
+              title: Text(
+                data.$1.firstWhere(
+                      (exercise) => exercise['id'] == item['exerciseId'],
+                    )['title']
+                    as String,
+              ),
+              subtitle: Text(
+                '${careCopy('care.completedAt')} · ${careTime(item['completedAt'])}',
+              ),
             ),
-            subtitle: Text(careTime(item['completedAt'])),
           ),
         ),
         CarePagination(
@@ -122,7 +177,10 @@ class _ExercisePracticePageState extends State<ExercisePracticePage> {
         return;
       }
       setState(() => _remaining--);
-      if (_remaining <= 0) timer.cancel();
+      if (_remaining <= 0) {
+        timer.cancel();
+        setState(() => _remaining = 0);
+      }
     });
   }
 
@@ -143,37 +201,78 @@ class _ExercisePracticePageState extends State<ExercisePracticePage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(widget.exercise['title'] as String)),
-    body: ListView(
-      padding: const EdgeInsets.all(24),
-      children: [
-        Text(
-          widget.exercise['instruction'] as String,
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        careNotice('care.exerciseNotice'),
-        const SizedBox(height: 24),
-        Text(
-          '${careCopy('care.remaining')}: $_remaining',
-          style: Theme.of(context).textTheme.headlineMedium,
-        ),
-        const SizedBox(height: 24),
-        if (!_started)
-          FilledButton(
-            onPressed: _start,
-            child: Text(careCopy('care.startExercise')),
+  Widget build(BuildContext context) {
+    final duration = (widget.exercise['durationSeconds'] as num).toInt();
+    final progress = duration == 0 ? 1.0 : 1 - (_remaining / duration);
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.exercise['title'] as String)),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(22, 8, 22, 36),
+        children: [
+          AppPanel(
+            color: const Color(0xFFF0F6F3),
+            borderColor: AppPalette.mint,
+            child: Text(
+              widget.exercise['instruction'] as String,
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
           ),
-        if (_started)
-          FilledButton(
-            onPressed: _remaining == 0 && !_busy ? _complete : null,
-            child: Text(careCopy('care.finishExercise')),
+          const SizedBox(height: 14),
+          AppNotice(text: careCopy('care.exerciseNotice')),
+          const SizedBox(height: 30),
+          Center(
+            child: SizedBox(
+              width: 190,
+              height: 190,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox.expand(
+                    child: CircularProgressIndicator(
+                      value: progress.clamp(0, 1),
+                      strokeWidth: 8,
+                      color: AppPalette.pine,
+                      backgroundColor: AppPalette.mint,
+                    ),
+                  ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '$_remaining',
+                        style: Theme.of(context).textTheme.headlineLarge,
+                      ),
+                      Text(
+                        careCopy('care.seconds'),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
-        TextButton(
-          onPressed: _busy ? null : () => Navigator.pop(context, false),
-          child: Text(careCopy('care.stopExercise')),
-        ),
-      ],
-    ),
-  );
+          const SizedBox(height: 30),
+          if (!_started)
+            FilledButton.icon(
+              onPressed: _start,
+              icon: const Icon(Icons.play_arrow_rounded),
+              label: Text(careCopy('care.startExercise')),
+            ),
+          if (_started)
+            FilledButton.icon(
+              onPressed: _remaining == 0 && !_busy ? _complete : null,
+              icon: const Icon(Icons.check_rounded),
+              label: Text(careCopy('care.finishExercise')),
+            ),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: _busy ? null : () => Navigator.pop(context, false),
+            icon: const Icon(Icons.stop_circle_outlined),
+            label: Text(careCopy('care.stopExercise')),
+          ),
+        ],
+      ),
+    );
+  }
 }

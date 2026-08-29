@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import { ApiProblemError } from '../../api/client'
-import loginRoomUrl from '../../assets/login-room.png'
+import loginRoomUrl from '../../assets/login-room.webp'
 import { getUiCopy, type UiCopyKey } from '../../generated/uiCopy.generated'
 import { runAliyunCaptcha, type CaptchaBootstrap } from './aliyunCaptcha'
 

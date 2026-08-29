@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/api/api_client.dart';
+import '../../design/app_design.dart';
 import 'care_repository.dart';
 
 class CarePageFrame<T> extends StatefulWidget {
@@ -57,7 +58,7 @@ class _CarePageFrameState<T> extends State<CarePageFrame<T>>
         IconButton(
           onPressed: _reload,
           tooltip: careCopy('care.refresh'),
-          icon: const Icon(Icons.refresh),
+          icon: const Icon(Icons.refresh_rounded),
         ),
       ],
     ),
@@ -65,28 +66,62 @@ class _CarePageFrameState<T> extends State<CarePageFrame<T>>
       future: _future,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
+          return const _CareLoadingState();
         }
         if (snapshot.hasError) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(careCopy('care.retry')),
-                  const SizedBox(height: 12),
-                  FilledButton(
-                    onPressed: _reload,
-                    child: Text(careCopy('care.refresh')),
-                  ),
-                ],
-              ),
+          return AppStatePanel(
+            message: careCopy('care.retry'),
+            icon: Icons.cloud_off_outlined,
+            action: FilledButton.icon(
+              onPressed: _reload,
+              icon: const Icon(Icons.refresh_rounded),
+              label: Text(careCopy('care.refresh')),
             ),
           );
         }
         return widget.builder(snapshot.data as T, _reload);
       },
+    ),
+  );
+}
+
+class _CareLoadingState extends StatelessWidget {
+  const _CareLoadingState();
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: careCopy('care.loading'),
+    child: ListView(
+      padding: const EdgeInsets.all(20),
+      children: const [
+        _Skeleton(widthFactor: 0.42, height: 24),
+        SizedBox(height: 18),
+        _Skeleton(height: 130),
+        SizedBox(height: 14),
+        _Skeleton(height: 82),
+        SizedBox(height: 14),
+        _Skeleton(height: 82),
+      ],
+    ),
+  );
+}
+
+class _Skeleton extends StatelessWidget {
+  const _Skeleton({this.widthFactor = 1, required this.height});
+
+  final double widthFactor;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) => FractionallySizedBox(
+    alignment: Alignment.centerLeft,
+    widthFactor: widthFactor,
+    child: Container(
+      height: height,
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8ECE8),
+        borderRadius: BorderRadius.circular(8),
+      ),
     ),
   );
 }
@@ -127,5 +162,5 @@ void careError(BuildContext context, Object error) {
 
 Widget careNotice(String key) => Padding(
   padding: const EdgeInsets.symmetric(vertical: 12),
-  child: Text(careCopy(key)),
+  child: AppNotice(text: careCopy(key)),
 );

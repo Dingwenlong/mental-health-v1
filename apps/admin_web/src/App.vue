@@ -20,6 +20,7 @@ import CareWorkspace from "./features/care/CareWorkspace.vue";
 import ConsultationList from "./features/care/ConsultationList.vue";
 import { c, type Consultation } from "./features/care/careService";
 import { menusForRoles, type MenuView } from "./features/care/roleMenu";
+import AppIcon, { type AppIconName } from "./components/AppIcon.vue";
 const auth = useAuthStore();
 const roles = ref<string[]>([]);
 const accountReady = ref(false);
@@ -29,6 +30,11 @@ const activeView = ref<MenuView | "chat" | "video" | "analysisJobs">(
 );
 const selectedSession = ref<string | undefined>();
 const menus = computed(() => menusForRoles(roles.value));
+const primaryRole = computed(() => {
+  if (roles.value.includes("Doctor")) return c("option.doctor");
+  if (roles.value.includes("Counselor")) return c("option.counselor");
+  return c("admin.operations");
+});
 let generation = 0;
 async function loadAccount(): Promise<void> {
   const request = ++generation;
@@ -89,12 +95,16 @@ async function logout(): Promise<void> {
     </section>
     <template v-else>
       <header class="topbar">
-        <div>
+        <div class="topbar-brand">
           <span class="product-mark">MH</span>
-          <h1>{{ c("admin.title") }}</h1>
+          <div>
+            <h1>{{ c("admin.title") }}</h1>
+            <p>{{ primaryRole }}</p>
+          </div>
         </div>
-        <button type="button" class="secondary" @click="logout">
-          {{ c("auth.logout") }}
+        <button type="button" class="secondary topbar-logout" @click="logout">
+          <AppIcon name="logout" :size="18" />
+          <span>{{ c("auth.logout") }}</span>
         </button>
       </header>
       <section v-if="!accountReady" class="workspace-panel">
@@ -105,14 +115,17 @@ async function logout(): Promise<void> {
       </section>
       <div v-else class="admin-layout">
         <nav class="section-nav" :aria-label="c('admin.navigation')">
+          <p class="nav-heading">{{ c("admin.navigation") }}</p>
           <button
             v-for="menu in menus"
             :key="menu.view"
             type="button"
             :class="{ active: activeView === menu.view }"
+            :aria-current="activeView === menu.view ? 'page' : undefined"
             @click="select(menu.view)"
           >
-            {{ c(menu.label) }}
+            <AppIcon :name="menu.view as AppIconName" />
+            <span>{{ c(menu.label) }}</span>
           </button>
         </nav>
         <section class="admin-content">

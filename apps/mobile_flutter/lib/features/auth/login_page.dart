@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../core/auth/auth_store.dart';
 import '../../generated/ui_copy.g.dart';
+import '../../design/app_design.dart';
 import 'captcha_runner.dart';
 
 class LoginPage extends StatefulWidget {
@@ -44,14 +45,19 @@ class _LoginPageState extends State<LoginPage> {
           builder: (context, _) => AutofillGroup(
             child: Form(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+                padding: const EdgeInsets.fromLTRB(22, 14, 22, 36),
                 children: <Widget>[
                   const _LoginCover(),
                   const SizedBox(height: 28),
                   Text(
                     UiCopy.get('auth.title'),
-                    style: Theme.of(context).textTheme.headlineSmall
-                        ?.copyWith(fontWeight: FontWeight.w700),
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    UiCopy.get('auth.sendHint'),
+                    style: Theme.of(context).textTheme.bodyMedium
+                        ?.copyWith(color: AppPalette.muted),
                   ),
                   const SizedBox(height: 20),
                   TextField(
@@ -98,11 +104,6 @@ class _LoginPageState extends State<LoginPage> {
                             : null,
                       ),
                       onSubmitted: (_) => _submit(),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      UiCopy.get('auth.sendHint'),
-                      style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
                   if (auth.errorCopyKey case final key?
@@ -185,36 +186,42 @@ class _LoginCover extends StatelessWidget {
   const _LoginCover();
 
   @override
-  Widget build(BuildContext context) => AspectRatio(
-    aspectRatio: 16 / 9,
-    child: ClipRRect(
-      borderRadius: BorderRadius.circular(10),
-      child: Stack(
-        fit: StackFit.expand,
-        children: <Widget>[
-          const ColoredBox(color: Color(0xFF103D38)),
-          Image.asset(
-            'assets/images/login-room.png',
-            key: const Key('login-cover'),
-            fit: BoxFit.cover,
-            alignment: Alignment.center,
-            excludeFromSemantics: true,
-            errorBuilder: (_, _, _) => const SizedBox.expand(),
-          ),
-          const ColoredBox(color: Color(0x94103D38)),
-          Positioned(
-            left: 20,
-            right: 20,
-            bottom: 18,
-            child: Text(
-              UiCopy.get('app.title'),
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: const Color(0xFFF4FBF9),
-                fontWeight: FontWeight.w700,
+  Widget build(BuildContext context) => Align(
+    alignment: Alignment.topCenter,
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 420),
+      child: AspectRatio(
+        aspectRatio: 16 / 9,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Stack(
+            fit: StackFit.expand,
+            children: <Widget>[
+              const ColoredBox(color: Color(0xFF103D38)),
+              Image.asset(
+                'assets/images/login-room.webp',
+                key: const Key('login-cover'),
+                fit: BoxFit.cover,
+                alignment: Alignment.center,
+                excludeFromSemantics: true,
+                errorBuilder: (_, _, _) => const SizedBox.expand(),
               ),
-            ),
+              const ColoredBox(color: Color(0x8A103D38)),
+              Positioned(
+                left: 20,
+                right: 20,
+                bottom: 18,
+                child: Text(
+                  UiCopy.get('app.title'),
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    color: const Color(0xFFF4FBF9),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     ),
   );

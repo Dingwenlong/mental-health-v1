@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../design/app_design.dart';
 import '../ai_consultation/ai_consultation_page.dart';
 import '../ai_consultation/ai_session_launcher.dart';
 import '../consultation/chat_connection.dart';
@@ -146,97 +147,146 @@ class _ConsultationHistoryPageState extends State<ConsultationHistoryPage> {
       to: _to,
     ),
     builder: (data, reload) => ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
       children: [
-        Wrap(
-          spacing: 8,
-          children: [
-            OutlinedButton(
-              onPressed: _dates,
-              child: Text(
-                _from == null ? careCopy('care.dateRange') : '$_from ~ $_to',
-              ),
-            ),
-            if (_from != null)
-              TextButton(
-                onPressed: () => setState(() {
-                  _from = null;
-                  _to = null;
-                  _page = 1;
-                }),
-                child: Text(careCopy('care.clearFilter')),
-              ),
-          ],
-        ),
-        DropdownButtonFormField<String>(
-          initialValue: _status ?? '',
-          decoration: InputDecoration(labelText: careCopy('care.all')),
-          items:
-              (widget.reports
-                      ? [
-                          '',
-                          'NotRequested',
-                          'Pending',
-                          'Ready',
-                          'Processing',
-                          'NeedsManual',
-                          'Completed',
-                        ]
-                      : [
-                          '',
-                          'Scheduled',
-                          'InProgress',
-                          'Completed',
-                          'Cancelled',
-                        ])
-                  .map(
-                    (status) => DropdownMenuItem(
-                      value: status,
-                      child: Text(
-                        careCopy(
-                          status.isEmpty ? 'care.all' : 'care.status.$status',
-                        ),
+        AppPanel(
+          color: const Color(0xFFFAF9F5),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _dates,
+                      icon: const Icon(Icons.date_range_outlined),
+                      label: Text(
+                        _from == null
+                            ? careCopy('care.dateRange')
+                            : '$_from ~ $_to',
                       ),
                     ),
-                  )
-                  .toList(),
-          onChanged: (status) => setState(() {
-            _status = status == '' ? null : status;
-            _page = 1;
-          }),
+                  ),
+                  if (_from != null) ...[
+                    const SizedBox(width: 8),
+                    TextButton(
+                      onPressed: () => setState(() {
+                        _from = null;
+                        _to = null;
+                        _page = 1;
+                      }),
+                      child: Text(careCopy('care.clearFilter')),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: _status ?? '',
+                decoration: InputDecoration(labelText: careCopy('care.all')),
+                items:
+                    (widget.reports
+                            ? [
+                                '',
+                                'NotRequested',
+                                'Pending',
+                                'Ready',
+                                'Processing',
+                                'NeedsManual',
+                                'Completed',
+                              ]
+                            : [
+                                '',
+                                'Scheduled',
+                                'InProgress',
+                                'Completed',
+                                'Cancelled',
+                              ])
+                        .map(
+                          (status) => DropdownMenuItem(
+                            value: status,
+                            child: Text(
+                              careCopy(
+                                status.isEmpty
+                                    ? 'care.all'
+                                    : 'care.status.$status',
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                onChanged: (status) => setState(() {
+                  _status = status == '' ? null : status;
+                  _page = 1;
+                }),
+              ),
+            ],
+          ),
         ),
+        const SizedBox(height: 18),
         if ((data['total'] as num) == 0)
-          careNotice(
-            widget.reports ? 'care.noReports' : 'care.noConsultations',
+          AppStatePanel(
+            message: careCopy(
+              widget.reports ? 'care.noReports' : 'care.noConsultations',
+            ),
           ),
         ...careObjects(data['items']).map(
-          (session) => Card(
-            child: Padding(
-              padding: const EdgeInsets.all(14),
+          (session) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: AppPanel(
+              padding: const EdgeInsets.all(18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    careTime(session['scheduledAt']),
-                    style: Theme.of(context).textTheme.titleMedium,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          careTime(session['scheduledAt']),
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ),
+                      AppStatusBadge(
+                        label: careCopy('care.status.${session['status']}'),
+                        tone: statusTone(session['status'] as String),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 8),
                   Text(
-                    '${session['practitionerName'] ?? careCopy('home.consultation')} · ${careCopy('care.status.${session['status']}')}',
+                    session['practitionerName'] as String? ??
+                        careCopy('home.consultation'),
+                    style: Theme.of(context).textTheme.bodySmall,
                   ),
                   if (session['status'] == 'Completed')
-                    Text(careCopy('care.status.${session['analysisStatus']}')),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(
+                        careCopy('care.status.${session['analysisStatus']}'),
+                      ),
+                    ),
                   if ([
                     'Scheduled',
                     'InProgress',
                     'Completed',
                   ].contains(session['status']))
-                    TextButton(
-                      onPressed: _opening ? null : () => _open(session, reload),
-                      child: Text(
-                        careCopy(
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: FilledButton.icon(
+                        onPressed: _opening
+                            ? null
+                            : () => _open(session, reload),
+                        icon: Icon(
                           session['status'] == 'Completed'
-                              ? 'care.openReport'
-                              : 'care.openConsultation',
+                              ? Icons.description_outlined
+                              : Icons.arrow_forward_rounded,
+                        ),
+                        label: Text(
+                          careCopy(
+                            session['status'] == 'Completed'
+                                ? 'care.openReport'
+                                : 'care.openConsultation',
+                          ),
                         ),
                       ),
                     ),

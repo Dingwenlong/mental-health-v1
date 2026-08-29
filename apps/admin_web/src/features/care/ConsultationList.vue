@@ -9,6 +9,10 @@ import {
   type Page,
 } from "./careService";
 import PageControls from "./PageControls.vue";
+import AppIcon from "../../components/AppIcon.vue";
+import PageHeader from "../../components/PageHeader.vue";
+import StatePanel from "../../components/StatePanel.vue";
+import StatusBadge from "../../components/StatusBadge.vue";
 const props = defineProps<{ service?: CareApi }>();
 const emit = defineEmits<{
   open: [session: Consultation, mode: "chat" | "video" | "analysisJobs"];
@@ -51,15 +55,24 @@ function filter(): void {
   if (page.value !== 1) page.value = 1;
   else void load();
 }
+function statusTone(status: string): "neutral" | "info" | "success" | "warning" {
+  if (status === "Completed") return "success";
+  if (["Scheduled", "InProgress"].includes(status)) return "info";
+  if (status === "Cancelled") return "neutral";
+  return "warning";
+}
 </script>
 <template>
   <section class="workspace-panel">
-    <div class="section-header">
-      <h2>{{ c("care.consultations") }}</h2>
+    <PageHeader
+      :eyebrow="c('admin.workspaceEyebrow')"
+      :title="c('care.consultations')"
+      :description="c('care.consultationIntro')"
+    >
       <button type="button" class="secondary" :disabled="busy" @click="load">
-        {{ c("care.refresh") }}
+        <AppIcon name="refresh" :size="18" />{{ c("care.refresh") }}
       </button>
-    </div>
+    </PageHeader>
     <form class="care-filters" @submit.prevent="filter">
       <label
         >{{ c("care.all")
@@ -83,9 +96,41 @@ function filter(): void {
       ><button :disabled="busy">{{ c("care.filter") }}</button>
     </form>
     <p v-if="busy" role="status">{{ c("care.loading") }}</p>
-    <p v-if="error" role="alert">{{ error }}</p>
+    <p v-if="error" class="error" role="alert">{{ error }}</p>
     <template v-if="result"
-      ><p v-if="!result.items.length">{{ c("care.noConsultations") }}</p>
+      ><StatePanel v-if="!result.items.length" :message="c('care.noConsultations')" />
+      <div v-else class="consultation-table-wrap">
+        <table class="consultation-table">
+          <thead>
+            <tr>
+              <th>{{ c("care.date") }}</th>
+              <th>{{ c("admin.practitioners") }}</th>
+              <th>{{ c("care.all") }}</th>
+              <th>{{ c("care.consultations") }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="session in result.items" :key="session.id">
+              <td>{{ dateText(session.scheduledAt) }}</td>
+              <td>{{ session.practitionerName }}</td>
+              <td><StatusBadge :label="c(`care.status.${session.status}`)" :tone="statusTone(session.status)" /></td>
+              <td>
+                <button
+                  v-if="['Scheduled', 'InProgress'].includes(session.status)"
+                  type="button"
+                  @click="emit('open', session, session.channel === 'Video' ? 'video' : 'chat')"
+                >{{ c("care.openConsultation") }}</button>
+                <button
+                  v-if="session.status === 'Completed'"
+                  type="button"
+                  @click="emit('open', session, 'analysisJobs')"
+                >{{ c("care.openReport") }}</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="consultation-cards">
       <article
         v-for="session in result.items"
         :key="session.id"
@@ -94,9 +139,9 @@ function filter(): void {
         <div>
           <h3>{{ dateText(session.scheduledAt) }}</h3>
           <p>
-            {{ session.practitionerName }} ·
-            {{ c(`care.status.${session.status}`) }}
+            {{ session.practitionerName }}
           </p>
+          <StatusBadge :label="c(`care.status.${session.status}`)" :tone="statusTone(session.status)" />
         </div>
         <div class="care-actions">
           <button
@@ -120,6 +165,7 @@ function filter(): void {
           </button>
         </div>
       </article>
+      </div>
       <PageControls
         :page="page"
         :total="result.total"

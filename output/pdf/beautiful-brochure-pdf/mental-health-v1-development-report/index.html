@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>心理健康系统开发记录</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="book">
+    <section class="page cover dark" data-page="01">
+      <div class="eyebrow light">MENTAL HEALTH · DEVELOPMENT LOG</div>
+      <h1>心理健康系统<br>开发记录</h1>
+      <p class="lead light">从本地实验到日常记录、咨询报告、医生回访和跟进任务</p>
+      <figure class="cover-figure">
+        <img src="assets/cover.png" alt="心理健康系统产品封面">
+      </figure>
+      <div class="cover-meta">
+        <span>记录时间</span><strong>2026.08.22 至 08.29</strong>
+        <span>代码范围</span><strong>main@73e1e97 与当前体验优化工作树</strong>
+        <span>整理依据</span><strong>Git、测试输出、截图、本地构建记录</strong>
+      </div>
+      <footer><span>项目开发全流程记录</span><span>01 / 26</span></footer>
+    </section>
+
+    <section class="page" data-page="02">
+      <header class="page-head"><span>READ THIS FIRST</span><strong>报告说明</strong></header>
+      <h2>这份记录写到哪里</h2>
+      <p class="intro">项目从 8 月 22 日开始搭建。到 8 月 28 日，主分支共有 49 个提交；8 月 29 日继续在独立工作树中调整 Android 和管理端界面。本文按时间记录设计、编码、测试、排错和版本变化。</p>
+      <div class="number-band">
+        <div><b>8</b><span>个自然日</span></div>
+        <div><b>49</b><span>个主分支提交</span></div>
+        <div><b>3</b><span>个客户端</span></div>
+        <div><b>1</b><span>项当前阻塞</span></div>
+      </div>
+      <div class="two-col top-gap">
+        <div>
+          <h3>已经核对</h3>
+          <ul class="check-list">
+            <li>Git 日期、提交号和提交量</li>
+            <li>.NET、Flutter、管理端测试结果</li>
+            <li>Android Debug APK 文件与哈希</li>
+            <li>手机端、医生档案和授权撤回截图</li>
+          </ul>
+        </div>
+        <div>
+          <h3>不能这样理解</h3>
+          <ul class="plain-list">
+            <li>本地通过不等于已经上线。</li>
+            <li>单文件补跑通过不等于 Flutter 全量宿主通过。</li>
+            <li>本地短信模拟不等于真实短信网关已联调。</li>
+            <li>当前没有可核实的同步会议录音或 PR 审批记录。</li>
+          </ul>
+        </div>
+      </div>
+      <aside class="note ochre">本报告只写能够从仓库和测试材料中还原的事实。没有证据的会议、人员和上线状态不会补写。</aside>
+      <footer><span>范围与口径</span><span>02 / 26</span></footer>
+    </section>
+
+    <section class="page split-page" data-page="03">
+      <div class="split-left dark">
+        <div class="eyebrow light">WHO DID WHAT</div>
+        <h2 class="light">项目怎么分工</h2>
+        <p class="light muted-light">仓库里只有一名可核实的 Git 作者。工具协作参与了代码修改、测试执行、截图和文档整理，但不替代项目负责人作产品决定。</p>
+        <div class="role-card invert"><span>项目负责人</span><b>用户</b><p>确定产品方向、实施计划、视觉偏好及 Git 写入授权。</p></div>
+        <div class="role-card invert"><span>代码提交者</span><b>jimmy</b><p>49 个主分支提交均使用 jimmy &lt;jimmy@visualsoft.cn&gt;。</p></div>
+        <div class="role-card invert"><span>开发协作</span><b>Codex</b><p>根据已确认计划改代码、跑测试、整理证据；不伪造作者和审批人。</p></div>
+      </div>
+      <div class="split-right">
+        <h3>工作方式</h3>
+        <div class="process-rail">
+          <div><i>01</i><b>先定边界</b><p>先明确普通成年用户、本地演示、合成资料和不做诊断。</p></div>
+          <div><i>02</i><b>分阶段实现</b><p>后端权限、客户端流程、管理端工作台逐步推进。</p></div>
+          <div><i>03</i><b>每轮留下证据</b><p>提交号、测试数量、错误信息、截图和产物哈希一并保留。</p></div>
+          <div><i>04</i><b>写清没通过的部分</b><p>Docker 集成测试和 Flutter 宿主波动均单列，不用局部通过覆盖。</p></div>
+        </div>
+        <aside class="note">8 月 29 日的体验优化位于 <code>feature/client-experience-refresh</code>，尚未提交或推送。</aside>
+      </div>
+      <footer><span>人员与工作方式</span><span>03 / 26</span></footer>
+    </section>
+
+    <section class="page timeline-page dark" data-page="04">
+      <header class="page-head light-head"><span>8 DAYS</span><strong>总时间线</strong></header>
+      <h2 class="light">八天里完成了什么</h2>
+      <div class="timeline">
+        <article><time>08.22</time><h3>项目骨架与实时实验</h3><p>建立 .NET、管理端、Flutter 和本地依赖；验证 SignalR、WebRTC、摄像头、TTS 与短视频编码。</p><b>12 commits</b></article>
+        <article><time>08.24</time><h3>身份、咨询与报告流程</h3><p>补用户、咨询、报告、文件和回访基础能力，并扩大契约与集成测试。</p><b>7 commits</b></article>
+        <article><time>08.25</time><h3>规则问答、分析与回访</h3><p>接入规则驱动问答、离线数字人、结果页、复核、重点观察和回访管理。</p><b>24 commits</b></article>
+        <article><time>08.26</time><h3>短信登录</h3><p>完成短信登录界面和本地模拟流程，保留真实网关接入边界。</p><b>4 commits</b></article>
+        <article><time>08.27</time><h3>日常记录与跟进计划</h3><p>加入心情、睡眠、练习、共享授权、医生档案、计划任务和反馈。</p><b>1 commit</b></article>
+        <article><time>08.28</time><h3>封面与产品介绍</h3><p>生成并提交产品封面，合并至主分支；网页 PPT 保持 10 页。</p><b>1 commit</b></article>
+        <article><time>08.29</time><h3>客户端体验优化</h3><p>在独立工作树中调整 Android 与管理端视觉、响应式布局和中文文案。</p><b>未提交</b></article>
+      </div>
+      <footer><span>总时间线</span><span>04 / 26</span></footer>
+    </section>
+
+    <section class="page" data-page="05">
+      <header class="page-head"><span>WEEK 1–2</span><strong>早期实验</strong></header>
+      <h2>先把最难的链路跑起来</h2>
+      <p class="intro">前两轮没有先做大而全的页面，而是验证浏览器与移动端最容易失败的部分：实时连接、音视频、摄像头、语音播报和媒体文件。</p>
+      <div class="experiment-grid">
+        <article><span>SignalR</span><b>连接成功</b><p>开发环境补上探测 Hub，解决初始 404。</p></article>
+        <article><span>WebRTC</span><b>Android 可运行</b><p>增加网络状态权限，修复原生进程退出。</p></article>
+        <article><span>FFmpeg</span><b>3,035 bytes</b><p>生成 1 秒 H.264/AAC 样片，证明本地编码链可用。</p></article>
+        <article><span>契约测试</span><b>41 / 41</b><p>服务提供者契约在首轮全部通过。</p></article>
+      </div>
+      <h3 class="section-title">第二轮基线</h3>
+      <table class="data-table">
+        <thead><tr><th>检查项</th><th>结果</th><th>用途</th></tr></thead>
+        <tbody>
+          <tr><td>单元测试</td><td class="num">58</td><td>领域规则与应用服务</td></tr>
+          <tr><td>契约测试</td><td class="num">64</td><td>接口请求、响应与错误格式</td></tr>
+          <tr><td>集成测试</td><td class="num">5</td><td>数据库与真实中间件路径</td></tr>
+          <tr><td>.NET 构建</td><td class="num">0 error / 0 warning</td><td>解决方案可编译</td></tr>
+        </tbody>
+      </table>
+      <aside class="note">这两轮的作用是暴露技术问题。后续功能都建立在这些可重复的本地实验上。</aside>
+      <footer><span>早期实验</span><span>05 / 26</span></footer>
+    </section>
+
+    <section class="page section-opener pine" data-page="06">
+      <div class="eyebrow light">FOUNDATION</div>
+      <h2 class="light">从项目骨架到可用咨询流程</h2>
+      <p class="light opener-copy">身份、咨询、报告、文件和回访先落到同一套 .NET 分层中。前端只读取已授权资源，不能靠菜单隐藏代替后端检查。</p>
+      <div class="architecture">
+        <div><b>Android</b><span>用户记录、咨询、报告、反馈</span></div>
+        <i>HTTP / SignalR</i>
+        <div><b>ASP.NET Core</b><span>Controller → Application → Domain</span></div>
+        <i>EF Core</i>
+        <div><b>PostgreSQL</b><span>账号、咨询、报告、回访、计划</span></div>
+      </div>
+      <div class="architecture lower">
+        <div><b>管理端</b><span>医生、咨询师、运营按角色使用</span></div>
+        <i>REST</i>
+        <div><b>Redis</b><span>本地任务与临时状态</span></div>
+        <i>worker</i>
+        <div><b>分析任务</b><span>本地规则和合成资料</span></div>
+      </div>
+      <div class="guardrails">
+        <span>不接真实支付</span><span>不接真实 AI 服务</span><span>不做诊断结论</span><span>不加入登录后门</span>
+      </div>
+      <footer><span>系统基础</span><span>06 / 26</span></footer>
+    </section>
+
+    <section class="page" data-page="07">
+      <header class="page-head"><span>REAL-TIME</span><strong>聊天与视频</strong></header>
+      <h2>让咨询入口真的能用</h2>
+      <div class="story-grid">
+        <div>
+          <p class="intro small">文字、视频、文件上传和咨询状态逐步接入。每次新增能力都同时增加契约测试，避免客户端自己猜接口。</p>
+          <h3>出现过的问题</h3>
+          <ol class="numbered">
+            <li><b>聊天框第二次无法输入</b><span>发送时只锁发送按钮，不再把整个输入框设为不可用。</span></li>
+            <li><b>RTC 与上传接口返回 404</b><span>补 Controller、应用服务和迁移，并加入接口契约。</span></li>
+            <li><b>Android 原生进程退出</b><span>Manifest 增加 ACCESS_NETWORK_STATE。</span></li>
+          </ol>
+        </div>
+        <div class="metric-stack">
+          <div><span>单元测试</span><b>72</b></div>
+          <div><span>契约测试</span><b>76</b></div>
+          <div><span>集成测试</span><b>51</b></div>
+          <p>数字对应实时咨询阶段的已记录结果。</p>
+        </div>
+      </div>
+      <div class="commit-strip"><code>c812458</code><span>补齐 RTC 与上传链路</span><code>a60b04c</code><span>保护并清除合成资料</span></div>
+      <footer><span>聊天与视频</span><span>07 / 26</span></footer>
+    </section>
+
+    <section class="page dark" data-page="08">
+      <header class="page-head light-head"><span>LOCAL ONLY</span><strong>离线问答与分析</strong></header>
+      <h2 class="light">演示需要稳定，所以核心链路留在本地</h2>
+      <div class="two-col light-cols">
+        <div>
+          <h3>规则问答</h3>
+          <p>使用固定规则和版本化配置回答演示问题，不调用真实模型，也不把日常记录换算成心理评分。</p>
+          <div class="mini-ledger"><span>单元</span><b>84</b><span>契约</span><b>83</b><span>集成</span><b>59</b></div>
+        </div>
+        <div>
+          <h3>分析与数字人</h3>
+          <p>分析任务、报告状态和离线数字人使用合成资料。结果页保留安全提示和求助入口。</p>
+          <div class="mini-ledger"><span>单元</span><b>84</b><span>契约</span><b>87</b><span>集成</span><b>67</b></div>
+        </div>
+      </div>
+      <div class="incident dark-incident">
+        <span>排错记录</span>
+        <h3>规则版本唯一键冲突</h3>
+        <p>同一事务里连续保存两个版本时触发唯一约束。修复后改为一次事务内完成版本切换，并补回归测试。</p>
+      </div>
+      <blockquote>所有结论只用于比赛演示，不替代医生判断，也不声称实时监测。</blockquote>
+      <footer><span>离线问答与分析</span><span>08 / 26</span></footer>
+    </section>
+
+    <section class="page" data-page="09">
+      <header class="page-head"><span>CLINICAL FLOW</span><strong>报告与回访</strong></header>
+      <h2>结果页之后，医生还能继续处理</h2>
+      <p class="intro">报告、复核、重点观察和回访不是独立演示页，而是同一条工作记录。医生只能处理自己负责的回访，运营端只看数量和状态。</p>
+      <div class="flow-line">
+        <div><i>01</i><b>咨询结束</b><span>提交分析任务</span></div>
+        <div><i>02</i><b>生成报告</b><span>展示进度与结果</span></div>
+        <div><i>03</i><b>医生复核</b><span>留下复核状态</span></div>
+        <div><i>04</i><b>安排回访</b><span>分配负责人</span></div>
+        <div><i>05</i><b>持续跟进</b><span>发布任务并收反馈</span></div>
+      </div>
+      <div class="growth-bars">
+        <div><span>重点观察</span><i style="--w:70%"></i><b>100 / 93 / 68</b></div>
+        <div><span>回访界面</span><i style="--w:82%"></i><b>113 / 93 / 71</b></div>
+      </div>
+      <p class="caption">数字顺序为单元测试 / 契约测试 / 集成测试。</p>
+      <footer><span>报告与回访</span><span>09 / 26</span></footer>
+    </section>
+
+    <section class="page accent-page" data-page="10">
+      <header class="page-head"><span>08.26</span><strong>短信登录</strong></header>
+      <div class="huge-number">136</div>
+      <h2>登录流程进入移动端</h2>
+      <p class="intro">保留手机号、验证码、重新发送和错误提示。比赛演示使用隔离测试凭据，不触发未经授权的真实短信。</p>
+      <div class="three-col">
+        <article><b>136</b><span>单元测试</span></article>
+        <article><b>96</b><span>契约测试</span></article>
+        <article><b>125</b><span>集成测试</span></article>
+      </div>
+      <div class="decision-box">
+        <h3>当时的设计决定</h3>
+        <p>把验证码错误、倒计时和重新发送放在同一张表单里，避免用户在多个页面之间来回跳。联系邮箱仍放在“我的”里。</p>
+      </div>
+      <div class="commit-strip"><code>c2a861b</code><span>短信登录界面与本地流程</span></div>
+      <footer><span>短信登录</span><span>10 / 26</span></footer>
+    </section>
+
+    <section class="page" data-page="11">
+      <header class="page-head"><span>SMS TEST NOTES</span><strong>短信联调记录</strong></header>
+      <h2>本地流程通过，真实网关还没接</h2>
+      <div class="status-split">
+        <div class="done">
+          <span>已完成</span>
+          <ul><li>手机号格式校验</li><li>验证码发送与倒计时</li><li>错误码展示</li><li>登录后读取本人账号</li><li>旧登录流程回归</li></ul>
+        </div>
+        <div class="pending">
+          <span>未完成</span>
+          <ul><li>真实短信供应商凭据</li><li>供应商沙箱授权</li><li>真实号码接收验证</li><li>发送量与费用核对</li></ul>
+        </div>
+      </div>
+      <aside class="note ochre"><b>为什么停在这里：</b>仓库没有短信密钥，用户也没有授权调用真实供应商。继续尝试会越过既定边界，因此只保留本地模拟和接口封装。</aside>
+      <h3 class="section-title">Android 构建排错</h3>
+      <div class="incident"><span>问题</span><p>通知依赖要求 core library desugaring，初次 Debug 构建失败。</p><span>处理</span><p>在 Gradle 中开启 desugaring 并固定依赖，随后重新构建。</p></div>
+      <footer><span>短信联调记录</span><span>11 / 26</span></footer>
+    </section>
+
+    <section class="page section-opener warm" data-page="12">
+      <div class="eyebrow">08.27 · CARE CONTINUITY</div>
+      <h2>日常记录只在用户同意后给负责医生看</h2>
+      <p class="opener-copy">新增心情、睡眠、备注、练习、共享授权、医生档案和跟进任务。咨询师和运营不能读取这些私人资料。</p>
+      <div class="privacy-diagram">
+        <div class="person"><b>用户</b><span>记录与练习</span></div>
+        <div class="arrow"><span>主动授权</span><i>→</i><small>撤回后立即失效</small></div>
+        <div class="person doctor"><b>当前负责医生</b><span>查看趋势并制定计划</span></div>
+      </div>
+      <div class="rule-list">
+        <p><b>01</b>只能授权当前回访负责人。</p>
+        <p><b>02</b>回访改派后，旧医生立即失去访问权。</p>
+        <p><b>03</b>新医生必须重新获得授权。</p>
+        <p><b>04</b>撤回授权不删除已发布的跟进任务。</p>
+        <p><b>05</b>跟进任务接口不能反向读取私人备注。</p>
+      </div>
+      <footer><span>日常记录与授权</span><span>12 / 26</span></footer>
+    </section>
+
+    <section class="page" data-page="13">
+      <header class="page-head"><span>USER → DOCTOR → USER</span><strong>跟进流程</strong></header>
+      <h2>一次完整演示怎么走</h2>
+      <div class="vertical-flow">
+        <article><time>用户</time><b>记录心情和睡眠</b><p>每天最多一条，可修改、删除；7 天和 30 天趋势保留缺失日期。</p></article>
+        <article><time>用户</time><b>查看咨询和报告</b><p>从列表进入咨询室、分析进度或结果页，不再手输咨询编号。</p></article>
+        <article><time>用户</time><b>授权当前负责医生</b><p>授权页面写明会包含历史和后续记录。</p></article>
+        <article><time>医生</time><b>发布跟进计划</b><p>指定记录或练习任务、到期日期；发布后内容不直接改写。</p></article>
+        <article><time>用户</time><b>完成或跳过任务</b><p>提交反馈，重复提交不能创建重复任务。</p></article>
+        <article><time>医生</time><b>查看执行情况</b><p>计划完成不会自动完成回访，医生仍按原流程处理。</p></article>
+      </div>
+      <div class="commit-strip"><code>b8870ed</code><span>日常记录、共享、档案与跟进计划</span></div>
+      <footer><span>跟进流程</span><span>13 / 26</span></footer>
+    </section>
+
+    <section class="page" data-page="14">
+      <header class="page-head"><span>CARE DEBUGGING</span><strong>跟进功能排错</strong></header>
+      <h2>测试暴露的四类问题</h2>
+      <div class="issue-cards">
+        <article><i>01</i><h3>医生越权风险</h3><p>四个回访接口只按角色判断，没有同时核对当前负责人和分配版本。</p><b>修复：每次查询都校验当前负责人。</b></article>
+        <article><i>02</i><h3>API 地址缺少前缀</h3><p>客户端拼出的照护接口少了 <code>/api/v1/</code>，本地请求返回 404。</p><b>修复：统一由 API 客户端生成基础地址。</b></article>
+        <article><i>03</i><h3>授权版本不一致</h3><p>旧授权与新版本规则冲突，医生档案看不到趋势。</p><b>修复：通过正式接口撤回并重新授权。</b></article>
+        <article><i>04</i><h3>Docker 环境过期</h3><p>默认集成测试连接到过期 runtime socket，容器初始化失败。</p><b>处理：保留失败结果，改用本机隔离环境做完整流程。</b></article>
+      </div>
+      <div class="test-ribbon"><span>单元测试</span><b>143 / 143</b><span>契约测试</span><b>96 / 96</b><span>重点集成</span><b>12 passed</b></div>
+      <footer><span>跟进功能排错</span><span>14 / 26</span></footer>
+    </section>
+
+    <section class="page image-page" data-page="15">
+      <header class="page-head"><span>08.28</span><strong>产品封面与主分支</strong></header>
+      <h2>功能完成后，补齐比赛展示材料</h2>
+      <figure class="wide-image"><img src="assets/cover.png" alt="产品封面海报"><figcaption>1920 × 1080 产品封面。画面使用本地文件，不依赖运行时网络素材。</figcaption></figure>
+      <div class="two-col compact-gap">
+        <div><h3>本次交付</h3><p>生成 16:9 产品封面，纳入仓库；网页 PPT 保持 10 页结构和演讲功能。</p></div>
+        <div><h3>主分支状态</h3><p><code>73e1e97</code> 已包含封面提交。后续客户端体验优化从该提交建立独立工作树。</p></div>
+      </div>
+      <div class="hash-line"><span>封面 SHA-256</span><code>7699698663B24F84A06AF395DC84E8E54F2B7AEEBFDB3D2EF21D33D2EFEE36B4</code></div>
+      <footer><span>产品封面与主分支</span><span>15 / 26</span></footer>
+    </section>
+
+    <section class="page pine" data-page="16">
+      <header class="page-head light-head"><span>08.29</span><strong>客户端体验优化</strong></header>
+      <h2 class="light">界面改动不碰业务接口</h2>
+      <p class="light opener-copy">在 <code>feature/client-experience-refresh</code> 中统一 Android 与管理端的色彩、排版、状态反馈和响应式布局。API、权限、分页和错误格式保持不变。</p>
+      <div class="design-tokens">
+        <div style="--c:#174A42"><i></i><b>#174A42</b><span>深松绿</span></div>
+        <div style="--c:#24665B"><i></i><b>#24665B</b><span>操作绿</span></div>
+        <div style="--c:#F5F3ED"><i></i><b>#F5F3ED</b><span>暖纸色</span></div>
+        <div style="--c:#B97932"><i></i><b>#B97932</b><span>提醒赭色</span></div>
+      </div>
+      <div class="two-col light-cols top-gap">
+        <div><h3>Android</h3><ul><li>今天、咨询、记录、我的四栏</li><li>记录编辑与缺失日期趋势</li><li>练习、计划、反馈和共享撤回</li><li>键盘、1.3 倍字体和窄屏检查</li></ul></div>
+        <div><h3>管理端</h3><ul><li>桌面侧栏与窄屏横向导航</li><li>医生档案主从布局</li><li>授权失效后立即清除旧内容</li><li>统一筛选、状态和空页面</li></ul></div>
+      </div>
+      <aside class="note dark-note">中文文案先写入 <code>content/zh-CN/ui-copy.v1.json</code>，再生成 Dart 与 TypeScript 文件。生成结果共 467 条，重复运行无变化。</aside>
+      <footer><span>客户端体验优化</span><span>16 / 26</span></footer>
+    </section>
+
+    <section class="page" data-page="17">
+      <header class="page-head"><span>CURRENT TEST MATRIX</span><strong>当前检查结果</strong></header>
+      <h2>通过项和失败项分开列</h2>
+      <table class="test-matrix">
+        <thead><tr><th>范围</th><th>结果</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>.NET 单元测试</td><td><span class="status ok">143 / 143</span></td><td>全部通过</td></tr>
+          <tr><td>内容契约测试</td><td><span class="status ok">96 / 96</span></td><td>全部通过</td></tr>
+          <tr><td>默认集成测试</td><td><span class="status warn">13 通过 / 123 初始化失败</span></td><td>Testcontainers runtime socket 过期</td></tr>
+          <tr><td>管理端测试</td><td><span class="status ok">36 / 36</span></td><td>单 worker；生产构建通过</td></tr>
+          <tr><td>Flutter 静态分析</td><td><span class="status ok">通过</span></td><td>无分析错误</td></tr>
+          <tr><td>Flutter 全量宿主</td><td><span class="status warn">53 完成 / 3 未完成</span></td><td>三个用例出现 did not complete</td></tr>
+          <tr><td>Flutter 单文件补跑</td><td><span class="status ok">登录 4 / 4；首页 1 / 1</span></td><td>趋势与计划重点用例通过</td></tr>
+          <tr><td>Android Debug APK</td><td><span class="status ok">构建成功</span></td><td>文件 242,592,686 bytes</td></tr>
+        </tbody>
+      </table>
+      <aside class="note ochre">“单文件补跑通过”只能说明相应用例可重复通过，不能改写成“Flutter 全量测试通过”。</aside>
+      <footer><span>当前检查结果</span><span>17 / 26</span></footer>
+    </section>
+
+    <section class="page chart-page" data-page="18">
+      <header class="page-head"><span>TEST GROWTH</span><strong>测试数量变化</strong></header>
+      <h2>功能增加，测试同步增长</h2>
+      <div class="chart-wrap">
+        <svg viewBox="0 0 720 360" role="img" aria-label="各阶段测试数量折线图">
+          <g class="grid"><line x1="70" y1="40" x2="70" y2="300"/><line x1="70" y1="300" x2="690" y2="300"/><line x1="70" y1="235" x2="690" y2="235"/><line x1="70" y1="170" x2="690" y2="170"/><line x1="70" y1="105" x2="690" y2="105"/><line x1="70" y1="40" x2="690" y2="40"/></g>
+          <g class="axis"><text x="30" y="305">0</text><text x="20" y="240">40</text><text x="20" y="175">80</text><text x="12" y="110">120</text><text x="12" y="45">160</text></g>
+          <polyline class="line unit" points="90,206 180,183 270,164 360,164 450,138 540,117 630,68"/>
+          <polyline class="line contract" points="90,196 180,177 270,165 360,158 450,149 540,149 630,144"/>
+          <polyline class="line integration" points="90,292 180,218 270,204 360,191 450,189 540,184 630,97"/>
+          <g class="labels"><text x="80" y="330">基础</text><text x="165" y="330">RTC</text><text x="250" y="330">规则</text><text x="345" y="330">分析</text><text x="430" y="330">观察</text><text x="520" y="330">回访</text><text x="615" y="330">短信</text></g>
+        </svg>
+        <div class="legend"><span><i class="u"></i>单元</span><span><i class="c"></i>契约</span><span><i class="i"></i>集成</span></div>
+      </div>
+      <div class="chart-note"><b>说明</b><p>图中数据来自各阶段保留的测试记录。不同阶段的测试集合并非完全相同，适合观察覆盖增长，不适合当作性能指标。</p></div>
+      <footer><span>测试数量变化</span><span>18 / 26</span></footer>
+    </section>
+
+    <section class="page screenshot-page" data-page="19">
+      <header class="page-head"><span>ANDROID EVIDENCE</span><strong>Android 截图</strong></header>
+      <h2>记录、趋势和共享</h2>
+      <div class="phone-row">
+        <figure><img src="assets/check-in.png" alt="每日记录编辑页面"><figcaption>每日记录：心情、睡眠和备注</figcaption></figure>
+        <figure><img src="assets/trends.png" alt="近七天趋势页面"><figcaption>趋势：缺失日期保持断开</figcaption></figure>
+        <figure><img src="assets/sharing.png" alt="医生共享授权页面"><figcaption>共享：授权当前负责医生</figcaption></figure>
+      </div>
+      <div class="screen-checks"><span>1080 × 2400</span><span>360 × 800</span><span>412 × 915</span><span>1.3 倍字体</span><span>数字键盘</span></div>
+      <p class="caption">在 Android API 36 上检查。当前记录没有发现横向溢出；测试后恢复设备设置。</p>
+      <footer><span>Android 截图</span><span>19 / 26</span></footer>
+    </section>
+
+    <section class="page screenshot-page" data-page="20">
+      <header class="page-head"><span>ADMIN EVIDENCE</span><strong>医生档案与撤回</strong></header>
+      <h2>医生看到的是授权范围内的资料</h2>
+      <figure class="admin-shot"><img src="assets/clinical-file.png" alt="医生档案管理端截图"><figcaption>1680 × 720 医生档案：共享状态、趋势、报告时间线和计划执行情况。</figcaption></figure>
+      <div class="revocation-row">
+        <figure><img src="assets/sharing-revoked.png" alt="撤回授权后的页面"><figcaption>撤回授权后刷新，私人记录不再返回。</figcaption></figure>
+        <div>
+          <h3>反向检查</h3>
+          <ul class="check-list">
+            <li>未授权医生不能读取日常记录。</li>
+            <li>撤回后，已打开页面刷新会清空旧内容。</li>
+            <li>运营角色不能通过接口读取备注和反馈正文。</li>
+            <li>回访改派后，新医生需要重新获得授权。</li>
+          </ul>
+        </div>
+      </div>
+      <footer><span>医生档案与撤回</span><span>20 / 26</span></footer>
+    </section>
+
+    <section class="page" data-page="21">
+      <header class="page-head"><span>DAILY LOG</span><strong>逐日开发记录</strong></header>
+      <h2>每天改了多少代码</h2>
+      <table class="daily-table">
+        <thead><tr><th>日期</th><th>提交</th><th>新增</th><th>删除</th><th>主要工作</th></tr></thead>
+        <tbody>
+          <tr><td>08.22</td><td>12</td><td>36,930</td><td>182</td><td>骨架、实时实验、媒体链</td></tr>
+          <tr><td>08.24</td><td>7</td><td>55,360</td><td>134</td><td>身份、咨询、报告、文件</td></tr>
+          <tr><td>08.25</td><td>24</td><td>11,010</td><td>1,705</td><td>规则问答、分析、复核、回访</td></tr>
+          <tr><td>08.26</td><td>4</td><td>582</td><td>75</td><td>短信登录</td></tr>
+          <tr><td>08.27</td><td>1</td><td>8,679</td><td>237</td><td>日常记录、授权、计划</td></tr>
+          <tr><td>08.28</td><td>1</td><td>42</td><td>0</td><td>封面与展示材料</td></tr>
+        </tbody>
+      </table>
+      <p class="caption">统计来自主分支提交差异。8 月 29 日的体验优化尚未提交，因此不计入表格。</p>
+      <div class="milestones">
+        <div><code>dcba07f</code><span>项目骨架</span></div>
+        <div><code>c812458</code><span>RTC 与上传</span></div>
+        <div><code>a60b04c</code><span>合成资料保护</span></div>
+        <div><code>c2a861b</code><span>短信登录</span></div>
+        <div><code>b8870ed</code><span>持续跟进功能</span></div>
+        <div><code>73e1e97</code><span>封面进入主分支</span></div>
+      </div>
+      <footer><span>逐日开发记录</span><span>21 / 26</span></footer>
+    </section>
+
+    <section class="page warm" data-page="22">
+      <header class="page-head"><span>DECISION NOTES</span><strong>异步评审记录</strong></header>
+      <h2>几次关键决定</h2>
+      <p class="intro">没有同步会议录音可供引用。以下内容来自用户确认的实施计划、后续指令和代码结果，可视为本项目的异步评审记录。</p>
+      <div class="decision-list">
+        <article><time>08.27</time><b>日常记录不参与风险评分</b><p>心情、睡眠和练习只用于本人回顾与回访沟通，不生成诊断分数。</p></article>
+        <article><time>08.27</time><b>医生访问必须由用户授权</b><p>只有当前负责回访的医生可以被授权；撤回和改派立即收回访问权。</p></article>
+        <article><time>08.28</time><b>Git 写入分开授权</b><p>代码实现、提交、推送、PR 和合并分别处理，不能因为功能完成就自动推送。</p></article>
+        <article><time>08.29</time><b>体验优化不改后端接口</b><p>只组合现有查询结果，保留权限、状态值、分页和错误格式。</p></article>
+        <article><time>08.29</time><b>中文先进入统一文案源</b><p>页面文案从 JSON 生成到 Dart 和 TypeScript，避免两端各写一套。</p></article>
+      </div>
+      <footer><span>异步评审记录</span><span>22 / 26</span></footer>
+    </section>
+
+    <section class="page" data-page="23">
+      <header class="page-head"><span>ISSUE LEDGER</span><strong>问题台账</strong></header>
+      <h2>发现问题后怎么处理</h2>
+      <table class="issue-table">
+        <thead><tr><th>现象</th><th>原因</th><th>处理结果</th></tr></thead>
+        <tbody>
+          <tr><td>SignalR 404</td><td>开发环境没有映射探测 Hub</td><td>补 Hub 路由并回归</td></tr>
+          <tr><td>WebRTC 原生退出</td><td>缺少网络状态权限</td><td>补 Manifest 权限</td></tr>
+          <tr><td>EF 包版本冲突</td><td>10.0.4 与 10.0.11 混用</td><td>统一固定为 10.0.11</td></tr>
+          <tr><td>Windows 文件删除失败</td><td>文件句柄不允许删除共享</td><td>使用 FileShare.Delete</td></tr>
+          <tr><td>规则版本唯一键冲突</td><td>一次事务内两次保存</td><td>合并版本切换</td></tr>
+          <tr><td>Android 通知构建失败</td><td>缺少 desugaring</td><td>开启并固定依赖</td></tr>
+          <tr><td>医生访问范围过宽</td><td>只查角色，未查负责人</td><td>核对负责人和分配版本</td></tr>
+          <tr><td>Flutter 宿主卡住</td><td>全量运行出现波动</td><td>单 worker 与单文件补跑，保留原失败</td></tr>
+          <tr><td>Docker 集成测试初始化失败</td><td>runtime socket 过期</td><td>未做破坏性修复，列为阻塞</td></tr>
+        </tbody>
+      </table>
+      <footer><span>问题台账</span><span>23 / 26</span></footer>
+    </section>
+
+    <section class="page dark" data-page="24">
+      <header class="page-head light-head"><span>REPRODUCE</span><strong>复现方法</strong></header>
+      <h2 class="light">从这些命令开始</h2>
+      <div class="command-list">
+        <div><span>.NET</span><code>dotnet test MentalHealth.slnx</code></div>
+        <div><span>管理端</span><code>npm test -- --run --pool=threads --maxWorkers=1</code></div>
+        <div><span>管理端构建</span><code>npm run build</code></div>
+        <div><span>Flutter 分析</span><code>flutter analyze</code></div>
+        <div><span>Flutter 测试</span><code>flutter test --concurrency=1</code></div>
+        <div><span>Android APK</span><code>flutter build apk --debug</code></div>
+      </div>
+      <div class="artifact-box">
+        <span>当前 APK</span>
+        <b>242,592,686 bytes</b>
+        <code>CB215471BA8F03A4A32934E75B50985690CCBFB762A1AC96B3856AB2A5D9A96F</code>
+      </div>
+      <aside class="note dark-note">默认 Docker 集成测试仍会遇到 Testcontainers 初始化失败。复现时应保留原始输出，不要只摘取通过的 13 个用例。</aside>
+      <footer><span>复现方法</span><span>24 / 26</span></footer>
+    </section>
+
+    <section class="page" data-page="25">
+      <header class="page-head"><span>EVIDENCE INDEX</span><strong>证据索引</strong></header>
+      <h2>截图和产物可以这样核对</h2>
+      <div class="evidence-list">
+        <article><b>产品封面</b><span>1920 × 1080</span><code>7699698663B24F84A06AF395DC84E8E54F2B7AEEBFDB3D2EF21D33D2EFEE36B4</code></article>
+        <article><b>每日记录截图</b><span>1080 × 2400</span><code>9FDCAE8BF5BFCA5ED38C544FE70E72B5CA030D6A74B338E9AD0CE3D5F360E0DA</code></article>
+        <article><b>趋势截图</b><span>1080 × 2400</span><code>BA83EEB4ECA12050A8A589A524CDC2E1846EBC310A7E2516A6A10CEDF739E9AB</code></article>
+        <article><b>共享截图</b><span>1080 × 2400</span><code>D1E01E9E55A3A688BDEE5B395605C2567B4E32F4290400A1C31A4102652BFA74</code></article>
+        <article><b>医生档案截图</b><span>1680 × 720</span><code>8420FFC165F89DD613FED8CE8D50555C309F00BC58BA26AC8D3CBE6B88972996</code></article>
+        <article><b>撤回授权截图</b><span>1280 × 1312</span><code>E7D52866A4FD0E5406EDA38A51D8D1D8AE55A7FD5A4E6FFAEE761A9A498C1052</code></article>
+      </div>
+      <p class="caption">哈希为 SHA-256。截图均来自仓库中的本地证据文件。</p>
+      <footer><span>证据索引</span><span>25 / 26</span></footer>
+    </section>
+
+    <section class="page closing pine" data-page="26">
+      <div class="eyebrow light">CURRENT STATE</div>
+      <h2 class="light">现在可以演示什么</h2>
+      <div class="closing-grid">
+        <div><b>用户</b><p>登录、每日记录、趋势、练习、咨询、报告、共享授权、计划任务和反馈。</p></div>
+        <div><b>医生</b><p>查看本人负责的回访、授权范围内的档案、计划执行情况和反馈。</p></div>
+        <div><b>咨询师</b><p>从本人咨询列表进入文字、视频或报告页面。</p></div>
+        <div><b>运营</b><p>查看咨询量和回访状态汇总，不接触私人正文或个体评分。</p></div>
+      </div>
+      <div class="next-block">
+        <span>接下来仍要做</span>
+        <p>修复本地 Docker runtime 后重跑完整集成测试；查清三个 Flutter 宿主未完成用例；获得正式凭据和授权后再联调真实短信。</p>
+      </div>
+      <p class="signoff light">截至 2026 年 8 月 29 日，体验优化仍在独立工作树中，尚未提交、推送、创建 PR 或合并。</p>
+      <footer><span>当前状态</span><span>26 / 26</span></footer>
+    </section>
+  </main>
+</body>
+</html>

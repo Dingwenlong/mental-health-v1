@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import CareWorkspace from "../features/care/CareWorkspace.vue";
 import CarePlanEditor from "../features/care/CarePlanEditor.vue";
 import ConsultationList from "../features/care/ConsultationList.vue";
+import TrendChart from "../components/TrendChart.vue";
 import { menusForRoles } from "../features/care/roleMenu";
 import type { CareApi, SubjectView } from "../features/care/careService";
 
@@ -32,6 +33,23 @@ function service(get: (path: string) => Promise<unknown>): CareApi {
 }
 
 describe("care workspace", () => {
+  it("breaks the trend line across missing dates", () => {
+    const wrapper = mount(TrendChart, {
+      props: {
+        title: "心情变化",
+        valueKey: "mood",
+        maxValue: 5,
+        days: [
+          { date: "2026-08-26", mood: 3 },
+          { date: "2026-08-27", mood: null },
+          { date: "2026-08-28", mood: 4 },
+          { date: "2026-08-29", mood: 4 },
+        ],
+      },
+    });
+    expect(wrapper.findAll("path.trend-line")).toHaveLength(2);
+    expect(wrapper.get("svg").attributes("aria-label")).toBe("心情变化");
+  });
   it("keeps clinical menus out of operations and consultation menus out of doctors", () => {
     expect(
       menusForRoles(["OperationsAdmin"]).map((item) => item.view),
@@ -70,10 +88,12 @@ describe("care workspace", () => {
     await wrapper.get("[data-test=open-subject]").trigger("click");
     await flushPromises();
     expect(wrapper.text()).toContain("用户主动分享的记录");
+    expect(wrapper.findAll("figure.trend-chart")).toHaveLength(2);
     allowed = false;
     await wrapper.get("[data-test=refresh-care]").trigger("click");
     await flushPromises();
     expect(wrapper.find("[data-test=shared-records]").exists()).toBe(false);
+    expect(wrapper.findAll("figure.trend-chart")).toHaveLength(0);
     expect(wrapper.text()).not.toContain("用户主动分享的记录");
     expect(wrapper.text()).toContain("日常资料未获授权");
   });
