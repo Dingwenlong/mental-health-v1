@@ -113,8 +113,12 @@ onBeforeUnmount(() => { if (countdown) clearInterval(countdown) })
   <div class="login-experience">
     <section class="login-introduction" data-test="login-introduction" aria-labelledby="admin-login-title">
       <img class="login-cover" data-test="login-cover" :src="loginRoomUrl" alt="" aria-hidden="true" />
-      <span class="login-monogram" aria-hidden="true">MH</span>
-      <h1 id="admin-login-title">{{ getUiCopy('admin.title') }}</h1>
+      <span class="login-monogram" aria-hidden="true">{{ getUiCopy('app.title') }}</span>
+      <div class="login-brand-copy">
+        <h1 id="admin-login-title">{{ getUiCopy('admin.title') }}</h1>
+        <p class="login-tagline">{{ getUiCopy('app.tagline') }}</p>
+        <p class="login-description">{{ getUiCopy('app.description') }}</p>
+      </div>
     </section>
 
     <div class="login-form-pane">

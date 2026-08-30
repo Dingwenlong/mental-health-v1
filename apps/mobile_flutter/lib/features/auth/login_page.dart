@@ -48,7 +48,13 @@ class _LoginPageState extends State<LoginPage> {
                 padding: const EdgeInsets.fromLTRB(22, 14, 22, 36),
                 children: <Widget>[
                   const _LoginCover(),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 20),
+                  Text(
+                    UiCopy.get('app.description'),
+                    style: Theme.of(context).textTheme.bodyMedium
+                        ?.copyWith(color: AppPalette.muted, height: 1.65),
+                  ),
+                  const SizedBox(height: 24),
                   Text(
                     UiCopy.get('auth.title'),
                     style: Theme.of(context).textTheme.headlineMedium,
@@ -211,12 +217,27 @@ class _LoginCover extends StatelessWidget {
                 left: 20,
                 right: 20,
                 bottom: 18,
-                child: Text(
-                  UiCopy.get('app.title'),
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: const Color(0xFFF4FBF9),
-                    fontWeight: FontWeight.w700,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(
+                      UiCopy.get('app.title'),
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(
+                            color: const Color(0xFFF4FBF9),
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      UiCopy.get('app.tagline'),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFFDCE9E4),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

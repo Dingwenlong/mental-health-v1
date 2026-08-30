@@ -3,21 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>心理健康系统开发记录</title>
+  <title>心续开发记录</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <main class="book">
     <section class="page cover dark" data-page="01">
-      <div class="eyebrow light">MENTAL HEALTH · DEVELOPMENT LOG</div>
-      <h1>心理健康系统<br>开发记录</h1>
-      <p class="lead light">从本地实验到日常记录、咨询报告、医生回访和跟进任务</p>
+      <div class="eyebrow light">心续 · DEVELOPMENT LOG</div>
+      <h1>心续<br>开发记录</h1>
+      <p class="lead light">心理健康持续服务平台 · 把每天的记录、一次咨询和后续回访接起来。</p>
       <figure class="cover-figure">
-        <img src="assets/cover.png" alt="心理健康系统产品封面">
+        <img src="assets/hero-room.webp" alt="心续产品室内视觉">
       </figure>
       <div class="cover-meta">
-        <span>记录时间</span><strong>2026.08.22 至 08.29</strong>
-        <span>代码范围</span><strong>main@73e1e97 与当前体验优化工作树</strong>
+        <span>记录时间</span><strong>2026.08.22 至 08.30</strong>
+        <span>代码范围</span><strong>main@73e1e97、feature/client-experience-refresh@a876aea 与本次名称同步</strong>
         <span>整理依据</span><strong>Git、测试输出、截图、本地构建记录</strong>
       </div>
       <footer><span>项目开发全流程记录</span><span>01 / 26</span></footer>
@@ -25,11 +25,12 @@
 
     <section class="page" data-page="02">
       <header class="page-head"><span>READ THIS FIRST</span><strong>报告说明</strong></header>
-      <h2>这份记录写到哪里</h2>
-      <p class="intro">项目从 8 月 22 日开始搭建。到 8 月 28 日，主分支共有 49 个提交；8 月 29 日继续在独立工作树中调整 Android 和管理端界面。本文按时间记录设计、编码、测试、排错和版本变化。</p>
+      <h2>心续，把记录和回访接起来</h2>
+      <p class="intro">记录心情与睡眠，查看咨询和报告，并在本人授权后与负责医生共同完成跟进计划。日常资料默认仅本人可见，系统不提供心理诊断。</p>
+      <p>项目从 8 月 22 日开始搭建。到 8 月 28 日，主分支共有 49 个提交；8 月 29 日的客户端体验优化已提交并推送到功能分支，8 月 30 日开始统一产品名称。本文按时间记录设计、编码、测试、排错和版本变化。</p>
       <div class="number-band">
-        <div><b>8</b><span>个自然日</span></div>
-        <div><b>49</b><span>个主分支提交</span></div>
+        <div><b>9</b><span>个自然日</span></div>
+        <div><b>50</b><span>个已提交版本</span></div>
         <div><b>3</b><span>个客户端</span></div>
         <div><b>1</b><span>项当前阻塞</span></div>
       </div>
@@ -74,14 +75,14 @@
           <div><i>03</i><b>每轮留下证据</b><p>提交号、测试数量、错误信息、截图和产物哈希一并保留。</p></div>
           <div><i>04</i><b>写清没通过的部分</b><p>Docker 集成测试和 Flutter 宿主波动均单列，不用局部通过覆盖。</p></div>
         </div>
-        <aside class="note">8 月 29 日的体验优化位于 <code>feature/client-experience-refresh</code>，尚未提交或推送。</aside>
+        <aside class="note">8 月 29 日的体验优化已提交并推送至 <code>feature/client-experience-refresh@a876aea</code>；8 月 30 日的产品名称同步仍在本地检查。</aside>
       </div>
       <footer><span>人员与工作方式</span><span>03 / 26</span></footer>
     </section>
 
     <section class="page timeline-page dark" data-page="04">
-      <header class="page-head light-head"><span>8 DAYS</span><strong>总时间线</strong></header>
-      <h2 class="light">八天里完成了什么</h2>
+      <header class="page-head light-head"><span>9 DAYS</span><strong>总时间线</strong></header>
+      <h2 class="light">九天里完成了什么</h2>
       <div class="timeline">
         <article><time>08.22</time><h3>项目骨架与实时实验</h3><p>建立 .NET、管理端、Flutter 和本地依赖；验证 SignalR、WebRTC、摄像头、TTS 与短视频编码。</p><b>12 commits</b></article>
         <article><time>08.24</time><h3>身份、咨询与报告流程</h3><p>补用户、咨询、报告、文件和回访基础能力，并扩大契约与集成测试。</p><b>7 commits</b></article>
@@ -89,7 +90,8 @@
         <article><time>08.26</time><h3>短信登录</h3><p>完成短信登录界面和本地模拟流程，保留真实网关接入边界。</p><b>4 commits</b></article>
         <article><time>08.27</time><h3>日常记录与跟进计划</h3><p>加入心情、睡眠、练习、共享授权、医生档案、计划任务和反馈。</p><b>1 commit</b></article>
         <article><time>08.28</time><h3>封面与产品介绍</h3><p>生成并提交产品封面，合并至主分支；网页 PPT 保持 10 页。</p><b>1 commit</b></article>
-        <article><time>08.29</time><h3>客户端体验优化</h3><p>在独立工作树中调整 Android 与管理端视觉、响应式布局和中文文案。</p><b>未提交</b></article>
+        <article><time>08.29</time><h3>客户端体验优化</h3><p>统一 Android 与管理端视觉、响应式布局和中文文案，并提交到功能分支。</p><b>1 commit</b></article>
+        <article><time>08.30</time><h3>产品名称统一</h3><p>系统、网页 PPT 和开发记录统一使用“心续”及新的产品介绍。</p><b>检查中</b></article>
       </div>
       <footer><span>总时间线</span><span>04 / 26</span></footer>
     </section>
@@ -294,14 +296,14 @@
     </section>
 
     <section class="page image-page" data-page="15">
-      <header class="page-head"><span>08.28</span><strong>产品封面与主分支</strong></header>
-      <h2>功能完成后，补齐比赛展示材料</h2>
-      <figure class="wide-image"><img src="assets/cover.png" alt="产品封面海报"><figcaption>1920 × 1080 产品封面。画面使用本地文件，不依赖运行时网络素材。</figcaption></figure>
+      <header class="page-head"><span>08.28—08.30</span><strong>品牌与展示材料</strong></header>
+      <h2>统一使用“心续”</h2>
+      <figure class="wide-image"><img src="assets/hero-room.webp" alt="心续产品室内视觉"><figcaption>心续——心理健康持续服务平台。视觉使用仓库内素材，不依赖运行时网络资源。</figcaption></figure>
       <div class="two-col compact-gap">
-        <div><h3>本次交付</h3><p>生成 16:9 产品封面，纳入仓库；网页 PPT 保持 10 页结构和演讲功能。</p></div>
-        <div><h3>主分支状态</h3><p><code>73e1e97</code> 已包含封面提交。后续客户端体验优化从该提交建立独立工作树。</p></div>
+        <div><h3>统一名称</h3><p>产品简称为“心续”，完整名称为“心续——心理健康持续服务平台”。网页 PPT 保持 10 页结构和演讲功能。</p></div>
+        <div><h3>版本状态</h3><p><code>a876aea</code> 已包含客户端体验优化；本次名称与介绍同步在该功能分支继续完成。</p></div>
       </div>
-      <div class="hash-line"><span>封面 SHA-256</span><code>7699698663B24F84A06AF395DC84E8E54F2B7AEEBFDB3D2EF21D33D2EFEE36B4</code></div>
+      <div class="hash-line"><span>室内视觉 SHA-256</span><code>D876D1490179FF4584FDC400443904CEA9E435C577D51AE7F20B0FB49D51C80C</code></div>
       <footer><span>产品封面与主分支</span><span>15 / 26</span></footer>
     </section>
 
@@ -405,9 +407,10 @@
           <tr><td>08.26</td><td>4</td><td>582</td><td>75</td><td>短信登录</td></tr>
           <tr><td>08.27</td><td>1</td><td>8,679</td><td>237</td><td>日常记录、授权、计划</td></tr>
           <tr><td>08.28</td><td>1</td><td>42</td><td>0</td><td>封面与展示材料</td></tr>
+          <tr><td>08.29</td><td>1</td><td>6,940</td><td>638</td><td>客户端体验优化、PPT 与开发记录</td></tr>
         </tbody>
       </table>
-      <p class="caption">统计来自主分支提交差异。8 月 29 日的体验优化尚未提交，因此不计入表格。</p>
+      <p class="caption">统计来自主分支及 <code>feature/client-experience-refresh@a876aea</code> 的提交差异。8 月 30 日的名称同步尚未提交，因此不计入表格。</p>
       <div class="milestones">
         <div><code>dcba07f</code><span>项目骨架</span></div>
         <div><code>c812458</code><span>RTC 与上传</span></div>
@@ -477,11 +480,11 @@
       <header class="page-head"><span>EVIDENCE INDEX</span><strong>证据索引</strong></header>
       <h2>截图和产物可以这样核对</h2>
       <div class="evidence-list">
-        <article><b>产品封面</b><span>1920 × 1080</span><code>7699698663B24F84A06AF395DC84E8E54F2B7AEEBFDB3D2EF21D33D2EFEE36B4</code></article>
+        <article><b>室内视觉</b><span>1254 × 1254</span><code>D876D1490179FF4584FDC400443904CEA9E435C577D51AE7F20B0FB49D51C80C</code></article>
         <article><b>每日记录截图</b><span>1080 × 2400</span><code>9FDCAE8BF5BFCA5ED38C544FE70E72B5CA030D6A74B338E9AD0CE3D5F360E0DA</code></article>
         <article><b>趋势截图</b><span>1080 × 2400</span><code>BA83EEB4ECA12050A8A589A524CDC2E1846EBC310A7E2516A6A10CEDF739E9AB</code></article>
         <article><b>共享截图</b><span>1080 × 2400</span><code>D1E01E9E55A3A688BDEE5B395605C2567B4E32F4290400A1C31A4102652BFA74</code></article>
-        <article><b>医生档案截图</b><span>1680 × 720</span><code>8420FFC165F89DD613FED8CE8D50555C309F00BC58BA26AC8D3CBE6B88972996</code></article>
+        <article><b>医生档案截图</b><span>1680 × 720</span><code>57FDB8164DFDA7DA55FB2267187F276F26F3ED6D74C6B9C29F04C9AB16CE777F</code></article>
         <article><b>撤回授权截图</b><span>1280 × 1312</span><code>E7D52866A4FD0E5406EDA38A51D8D1D8AE55A7FD5A4E6FFAEE761A9A498C1052</code></article>
       </div>
       <p class="caption">哈希为 SHA-256。截图均来自仓库中的本地证据文件。</p>
@@ -490,7 +493,7 @@
 
     <section class="page closing pine" data-page="26">
       <div class="eyebrow light">CURRENT STATE</div>
-      <h2 class="light">现在可以演示什么</h2>
+      <h2 class="light">心续现在可以演示什么</h2>
       <div class="closing-grid">
         <div><b>用户</b><p>登录、每日记录、趋势、练习、咨询、报告、共享授权、计划任务和反馈。</p></div>
         <div><b>医生</b><p>查看本人负责的回访、授权范围内的档案、计划执行情况和反馈。</p></div>
@@ -501,7 +504,7 @@
         <span>接下来仍要做</span>
         <p>修复本地 Docker runtime 后重跑完整集成测试；查清三个 Flutter 宿主未完成用例；获得正式凭据和授权后再联调真实短信。</p>
       </div>
-      <p class="signoff light">截至 2026 年 8 月 29 日，体验优化仍在独立工作树中，尚未提交、推送、创建 PR 或合并。</p>
+      <p class="signoff light">截至 2026 年 8 月 30 日，体验优化已推送至功能分支；本次产品名称同步仍在本地检查，尚未提交、推送、创建 PR 或合并。</p>
       <footer><span>当前状态</span><span>26 / 26</span></footer>
     </section>
   </main>

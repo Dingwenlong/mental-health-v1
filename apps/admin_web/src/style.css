@@ -204,6 +204,32 @@ textarea:disabled {
   letter-spacing: -0.04em;
 }
 
+.login-brand-copy {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  max-width: 34rem;
+  gap: 0.75rem;
+}
+
+.login-tagline,
+.login-description {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.login-tagline {
+  font-size: clamp(1rem, 1.6vw, 1.3rem);
+  font-weight: 650;
+}
+
+.login-description {
+  max-width: 42rem;
+  font-size: 0.94rem;
+  line-height: 1.75;
+  color: rgba(255, 255, 255, 0.72);
+}
+
 .login-form-pane {
   display: grid;
   min-width: 0;
@@ -759,6 +785,14 @@ textarea:disabled {
     max-width: none;
     font-size: clamp(1.8rem, 8vw, 2.4rem);
     letter-spacing: -0.03em;
+  }
+
+  .login-brand-copy {
+    gap: 0.5rem;
+  }
+
+  .login-description {
+    display: none;
   }
 
   .login-form-pane {

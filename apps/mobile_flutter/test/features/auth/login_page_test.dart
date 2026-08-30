@@ -60,7 +60,12 @@ void main() {
 
     expect(find.byType(Form), findsOneWidget);
     expect(find.byKey(const Key('login-cover')), findsOneWidget);
-    expect(find.text('心理健康'), findsOneWidget);
+    expect(find.text('心续'), findsOneWidget);
+    expect(find.text('把每天的记录、一次咨询和后续回访接起来。'), findsOneWidget);
+    expect(
+      find.text('记录心情与睡眠，查看咨询和报告，并在本人授权后与负责医生共同完成跟进计划。日常资料默认仅本人可见，系统不提供心理诊断。'),
+      findsOneWidget,
+    );
     expect(find.text('登录'), findsOneWidget);
     expect(find.byKey(const Key('login-phone')), findsOneWidget);
     expect(find.byKey(const Key('login-send-code')), findsOneWidget);

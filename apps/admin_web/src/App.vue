@@ -96,7 +96,7 @@ async function logout(): Promise<void> {
     <template v-else>
       <header class="topbar">
         <div class="topbar-brand">
-          <span class="product-mark">MH</span>
+          <span class="product-mark">{{ c("app.title") }}</span>
           <div>
             <h1>{{ c("admin.title") }}</h1>
             <p>{{ primaryRole }}</p>
